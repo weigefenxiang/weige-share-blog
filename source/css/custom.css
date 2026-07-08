@@ -1,0 +1,27 @@
+/* 全站基础字体 */
+:root {
+    --global-font-size: 16px;
+}
+
+/* 文章正文 */
+#article-container p,
+#article-container li {
+    font-size: 20px !important;
+    line-height: 2 !important;
+}
+
+/* 一级标题 */
+#article-container h1 {
+    font-size: 2.2rem !important;
+}
+
+/* 二级标题 */
+#article-container h2 {
+    font-size: 1.8rem !important;
+}
+
+/* 三级标题 */
+#article-container h3 {
+    font-size: 1.5rem !important;
+}
+``
