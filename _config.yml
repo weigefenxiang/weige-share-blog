@@ -114,3 +114,7 @@ search:
   path: search.xml
   field: post
   content: true
+  
+# Generate sitemap.xml for search engines (Google, Bing, etc.)
+sitemap:
+  path: sitemap.xml

@@ -17,4 +17,4 @@ type: about
 ## 联系我
 
 - GitHub：https://github.com/weigefenxiang
-- 邮箱：weigefenxiang@email.com
+- 邮箱：weigefenxiang@gmail.com

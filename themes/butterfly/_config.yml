@@ -154,7 +154,7 @@ index_top_img_height: 480px
 
 # The subtitle on homepage
 subtitle:
-  enable: false
+  enable: true
   # Typewriter Effect
   effect: true
   # Customize typed.js
@@ -170,6 +170,9 @@ subtitle:
   source: false
   # If you close the typewriter effect, the subtitle will only show the first line of sub
   sub:
+    - 分享 Cloudflare
+    - 分享 AI 工具
+    - 分享 Python
 
 # Article layout on the homepage
 # 1: Cover on the left, info on the right
@@ -293,11 +296,11 @@ aside:
     button:
       enable: true
       icon: fab fa-github
-      text: Follow Me
-      link: https://github.com/xxxxxx
+      text: About Me
+      link: /about/
   card_announcement:
     enable: true
-    content: This is my Blog
+    content: Welcome to Weige Share Blog 🚀
   card_recent_post:
     enable: true
     # If set 0 will show all
@@ -357,7 +360,7 @@ aside:
     # Time difference between publish date and now
     # Formal: Month/Day/Year Time or Year/Month/Day Time
     # Leave it empty if you don't enable this feature
-    runtime_date:
+    runtime_date: 2026/07/08 00:00:00
 
 # --------------------------------------
 # Bottom right button
