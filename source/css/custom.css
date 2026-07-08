@@ -33,6 +33,16 @@
 }
 
 
+/* 暗黑模式公告图标 */
+
+[data-theme="dark"] #aside-content .card-info-social-icons .social-icon {
+    transition: all 0.3s ease;
+}
+
+[data-theme="dark"] #aside-content .card-info-social-icons .social-icon:hover {
+    color: #49b1f5 !important;
+    transform: translateY(-3px);
+}
 
 
 
