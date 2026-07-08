@@ -11,7 +11,7 @@
 
 nav:
   # Navigation bar logo image
-  logo:
+  logo: /img/Wei.G-icon.png
   display_title: true
   display_post_title: true
   # Whether to fix navigation bar
@@ -360,7 +360,7 @@ aside:
     # Time difference between publish date and now
     # Formal: Month/Day/Year Time or Year/Month/Day Time
     # Leave it empty if you don't enable this feature
-    runtime_date: 2026/07/08 00:00:00
+    runtime_date: 2025/08/08 00:00:00
 
 # --------------------------------------
 # Bottom right button
