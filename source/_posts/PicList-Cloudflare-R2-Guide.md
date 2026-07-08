@@ -51,7 +51,7 @@ description: 使用 PicList 配合 Cloudflare R2 搭建免费、高速、全球 
     ● 设定 Bucket：
     ● 设定自定义节点：https://770*************************39d8.r2.cloudflarestorage.com
 
-■ 设定上传路径：img（我根目录下 **img**）[图示](https://www.weigeshare.cc.cd/img/001.003_CDF_bucket.png)
+■ 设定上传路径：img（我根目录下 **img**）[图示](https://img.weigeshare.cc.cd/img/001.003_CDF_bucket.png)
 
     ●设定自定义域名：（绑定了域名才能设置，上传后就可拿到对应域名的链接 ）
  
