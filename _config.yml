@@ -21,7 +21,7 @@ timezone: Asia/Singapore
 ## Set your site url here. For example, if you use GitHub Page, set url as 'https://username.github.io/project'
 url: https://www.weigeshare.cc.cd
 root: /
-permalink: :year/:month/:day/:title/
+permalink: posts/:title/
 permalink_defaults:
 pretty_urls:
   trailing_index: true # Set to false to remove trailing 'index.html' from permalinks
@@ -49,8 +49,8 @@ filename_case: 0
 render_drafts: false
 post_asset_folder: false
 relative_link: false
-future: true
-syntax_highlighter: highlight.js
+future: false
+syntax_highlighter: prismjs
 highlight:
   line_number: true
   auto_detect: false
@@ -72,13 +72,13 @@ index_generator:
   order_by: -date
 
 # Category & Tag
-default_category: uncategorized
+default_category: Blog
 category_map:
 tag_map:
 
 # Metadata elements
 ## https://developer.mozilla.org/en-US/docs/Web/HTML/Element/meta
-meta_generator: true
+meta_generator: false
 
 # Date / Time format
 ## Hexo uses Moment.js to parse and display date
@@ -118,3 +118,8 @@ search:
 # Generate sitemap.xml for search engines (Google, Bing, etc.)
 sitemap:
   path: sitemap.xml
+
+feed:
+  type: atom
+  path: atom.xml
+  limit: 20

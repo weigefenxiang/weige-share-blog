@@ -759,9 +759,11 @@ ad:
 site_verification:
   - name: google-site-verification
     content: wYH7dDYAD2PpLuqx9z_5D9zj4pV5mdyuHvS4uSTWhHQ
+  - name: msvalidate.01
+    content: AAB374467B72A5D9E595708446CB7D33
   # - name: baidu-site-verification
   #   content: xxxxxxx
-  
+
 # --------------------------------------
 # Beautify / Effect
 # --------------------------------------
