@@ -3,4 +3,7 @@ public/
 db.json
 
 .DS_Store
+.deploy_git/
 Thumbs.db
+
+git
