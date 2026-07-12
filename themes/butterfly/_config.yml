@@ -360,7 +360,7 @@ aside:
     # Time difference between publish date and now
     # Formal: Month/Day/Year Time or Year/Month/Day Time
     # Leave it empty if you don't enable this feature
-    runtime_date: 2025/08/08 00:00:00
+    runtime_date: 2026/07/01 11:11:11
 
 # --------------------------------------
 # Bottom right button
