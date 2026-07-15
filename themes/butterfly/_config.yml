@@ -701,13 +701,13 @@ crisp:
 baidu_analytics:
 
 # https://analytics.google.com/analytics/web/
-google_analytics:
+google_analytics: G-60EG1B85VB
 
 # https://www.cloudflare.com/zh-tw/web-analytics/
-cloudflare_analytics:
+cloudflare_analytics: 93925794bf194b4099dd1f88ca7b8adc
 
 # https://clarity.microsoft.com/
-microsoft_clarity:
+microsoft_clarity: xmqptjiur1
 
 # https://umami.is/
 umami_analytics:
