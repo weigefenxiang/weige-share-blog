@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
+<title>Wei.G · OpenWrt 固件在线定制</title>
+<link rel="icon" href="Wei.G.ico">
+<link rel="stylesheet" href="app.css?v=4">
+</head>
+<body>
+<header class="site-header">
+  <div class="wrap header-row">
+    <div class="brand">
+      <img class="brand-icon" src="Wei.G-favicon_little.png" alt="Wei.G" width="34" height="34">
+      <div>
+        <h1><span class="brand-name">Wei.G</span> <span data-i18n="app.title">OpenWrt 固件在线定制</span></h1>
+        <p class="sub" data-i18n="app.subtitle">选好插件,云端自动编译,免费自取</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="text-btn" id="helpBtn" type="button" data-i18n="help.btn">说明</button>
+      <a class="icon-btn" id="repoLink" href="https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild" target="_blank" rel="noopener" data-i18n-aria="btn.repo" data-i18n-title="btn.repo">
+        <svg viewBox="0 0 16 16" width="18" height="18" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.42 7.42 0 0 1 4 0c1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+      </a>
+      <a class="icon-btn blog-link" href="https://www.weigeshare.cc.cd" target="_blank" rel="noopener" title="Wei.G Blog" aria-label="Wei.G Blog">
+        <img src="Wei.G-favicon_little.png" alt="" width="20" height="20">
+      </a>
+    </div>
+  </div>
+</header>
+
+<div class="side-dock" id="sideDock">
+  <button class="icon-btn dock-toggle" id="dockToggle" type="button" aria-label="toggle dock" aria-expanded="true">⚙</button>
+  <div class="dock-items">
+    <select id="langSel" class="lang-sel" aria-label="界面语言"></select>
+    <button class="text-btn" id="selfTestBtn" type="button" data-i18n="btn.selfTest" data-i18n-title="btn.selfTest.title">自检</button>
+    <button class="icon-btn" id="densityBtn" type="button" aria-label="显示密度">Aa</button>
+    <button class="icon-btn" id="themeBtn" type="button" aria-label="主题">◐</button>
+  </div>
+</div>
+
+<div class="risk-bar" id="riskBar" hidden>
+  <div class="wrap risk-row">
+    <span class="risk-ico" aria-hidden="true">⚠️</span>
+    <p class="risk-text" id="riskText" data-i18n="risk.text"></p>
+    <button type="button" class="btn risk-ok" id="riskOk" data-i18n="risk.ok">知道了</button>
+  </div>
+</div>
+
+<main class="wrap" id="app">
+  <div class="loading" id="loading">
+    <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton sk-short"></div>
+    <p data-i18n="loading">正在加载插件数据…</p>
+  </div>
+
+  <div id="form" hidden>
+    <section class="step">
+      <h2><span class="stepnum">⓪</span> <span data-i18n="step.brand">选择品牌</span> <span class="hint" data-i18n="step.device.hint"></span></h2>
+      <div class="picker-row"><span class="picker-label" data-i18n="device.brandLabel">品牌</span><div class="pill-row" id="brandRow"></div></div>
+      <div class="picker-row model-row"><span class="picker-label" data-i18n="device.modelLabel">型号</span><div class="pill-row" id="deviceRow"></div></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="stepnum">①</span> <span data-i18n="step.source">选择源码</span> <span class="hint" data-i18n="step.source.hint"></span></h2>
+      <div class="pill-row" id="sourceRow"></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="stepnum">②</span> <span data-i18n="step.version">选择版本</span> <span class="hint" data-i18n="step.version.hint"></span></h2>
+      <div class="pill-row" id="versionRow"></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="stepnum">③</span> <span data-i18n="step.variant">分区变体</span></h2>
+      <div class="pill-row" id="variantRow"></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="stepnum">④</span> <span data-i18n="step.plugins">勾选插件</span> <span class="hint" data-i18n="step.plugins.hint"></span></h2>
+      <div class="legend">
+        <span class="lg-item"><span class="lg-box"></span><span data-i18n="legend.ok"></span></span>
+        <span class="lg-item"><span class="lg-box lg-builtin">✓</span><span data-i18n="legend.builtin"></span></span>
+        <span class="lg-item"><span class="lg-box lg-off"></span><span data-i18n="legend.off"></span></span>
+        <label class="adv-toggle" id="advLabel"><input type="checkbox" id="advMode"> <span data-i18n="adv.toggle">高级模式</span></label>
+        <span class="lg-stats" id="availStats"></span>
+      </div>
+      <div class="toolbar">
+        <input type="search" id="searchBox" data-i18n-ph="search.placeholder" data-i18n-aria="search.aria">
+        <label class="hot-only"><input type="checkbox" id="hotOnly"> <span data-i18n="filter.hotOnly">只看热门</span></label>
+      </div>
+      <div class="group devpkg" id="devpkgBox" hidden>
+        <div class="group-head devpkg-head"><span class="group-ico" aria-hidden="true">📦</span><span data-i18n="devpkg.title"></span><span class="group-count" id="devpkgCount"></span></div>
+        <div class="devpkg-body">
+          <p class="hint" data-i18n="devpkg.hint"></p>
+          <p class="hint"><a href="packages.html" target="_blank" rel="noopener" data-i18n="devpkg.docs">📖 软件包用途说明页</a></p>
+          <input type="search" id="pkgSearch" placeholder="iptables-mod / kmod-usb / luci-i18n …">
+          <div id="pkgList" class="pkg-list"></div>
+        </div>
+      </div>
+      <div id="groups"></div>
+    </section>
+
+    <section class="step">
+      <h2><span class="stepnum">⑤</span> <span data-i18n="step.submit">提交设置</span></h2>
+      <label class="field-label" for="tagBox" data-i18n="tag.label"></label>
+      <input type="text" id="tagBox" maxlength="24" data-i18n-ph="tag.placeholder">
+      <label class="field-label" for="lanipBox" data-i18n="lanip.label" style="margin-top:10px"></label>
+      <input type="text" id="lanipBox" value="192.168.1.1" inputmode="decimal" autocapitalize="off" autocorrect="off">
+      <p class="hint" data-i18n="lanip.hint"></p>
+      <p class="hint" id="loginInfo"></p>
+      <label class="field-label" for="rootpwBox" data-i18n="rootpw.label" style="margin-top:10px"></label>
+      <input type="text" id="rootpwBox" maxlength="32" autocapitalize="off" autocorrect="off" autocomplete="off">
+      <p class="hint" data-i18n="rootpw.hint"></p>
+      <div class="mode-row">
+        <span class="mode-label" data-i18n="mode.label">构建仓库:</span>
+        <div class="pill-row" id="modeRow">
+          <button type="button" class="pill pill-active" data-mode="official" data-i18n="mode.official">官方仓库</button>
+          <button type="button" class="pill" data-mode="self" data-i18n="mode.self">我自己的 Fork</button>
+        </div>
+      </div>
+      <div class="self-box" id="selfBox" hidden>
+        <label class="field-label" for="ownerBox" data-i18n="owner.label"></label>
+        <input type="text" id="ownerBox" data-i18n-ph="owner.placeholder" autocapitalize="off" autocorrect="off">
+        <p class="hint" id="selfHint"></p>
+      </div>
+    </section>
+  </div>
+</main>
+
+<div class="actionbar" id="actionbar" hidden>
+  <div class="wrap actionbar-row">
+    <div class="stats">
+      <button type="button" class="link-btn" id="selCount" data-i18n-title="bar.selected.title"></button>
+      <div class="cap" id="capBox" data-i18n-title="bar.capacity.title"><div class="cap-fill" id="capFill"></div></div>
+      <span class="cap-text" id="capText"></span>
+    </div>
+    <div class="actions">
+      <button type="button" class="btn" id="dlBtn" data-i18n="btn.download">下载 .config</button>
+      <button type="button" class="btn btn-primary" id="submitBtn" data-i18n="btn.submit">提交云编译</button>
+    </div>
+  </div>
+</div>
+
+<footer class="site-footer wrap">
+  <p data-i18n="footer.note"></p>
+  <p><a id="footRepo" href="https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild" target="_blank" rel="noopener">GitHub</a> ·
+     <a href="https://www.weigeshare.cc.cd" target="_blank" rel="noopener">Weige Share Blog</a> ·
+     <a href="packages.html" target="_blank" rel="noopener" data-i18n="pkgpage.title">软件包用途说明</a> ·
+     <span data-i18n="footer.thanks"></span></p>
+</footer>
+
+<div class="popover" id="popover" hidden role="tooltip">
+  <p class="pop-title" id="popTitle"></p>
+  <p class="pop-body" id="popBody"></p>
+</div>
+
+<div class="modal-mask" id="modal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-head">
+      <h3 id="modalTitle"></h3>
+      <button type="button" class="icon-btn" id="modalClose" data-i18n-aria="btn.close">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+
+<noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
+<script src="app.js?v=4"></script>
+</body>
+</html>

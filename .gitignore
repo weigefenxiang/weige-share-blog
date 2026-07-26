@@ -1,9 +1,24 @@
+# Hexo 生成内容
 node_modules/
 public/
 db.json
-
-.DS_Store
 .deploy_git/
+
+# 系统临时文件
+.DS_Store
 Thumbs.db
 
-git
+# 日志
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# 本地编辑器配置
+.vscode/
+.idea/
+
+# 私有配置
+.env
+.env.*
+docs-private/
