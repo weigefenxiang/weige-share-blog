@@ -494,17 +494,9 @@ body.dense .plugin-name.fit-s2 { font-size: 13px; }
 .pkg-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
 .pkg-item .flag { flex: none; }
 
-/* V10:灰色插件二级门禁行,仅开发者模式可见 / V10: second-gate row for grey plugins, developer-mode only */
-.adv-grey {
-  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
-  padding: 8px 12px; margin-bottom: 10px;
-  background: var(--card2); border-radius: var(--radius);
-  border: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent);
-  font-size: 15px;
-}
-.adv-grey-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--danger); font-weight: 600; }
+/* 灰色插件二级门禁:紧挨开发者模式,风险细节由 title+确认弹窗承载 / Grey-plugin gate: inline beside Developer mode; title + confirm carry the risk details */
+.adv-grey-toggle { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: var(--danger); font-weight: 600; white-space: nowrap; }
 .adv-grey-toggle input { accent-color: var(--danger); width: 16px; height: 16px; }
-.adv-grey .hint { margin: 0; }
 
 /* V11:Aa 字号面板,毛玻璃小卡,悬浮坞左侧 / V11: Aa font-size panel, small glassy card beside the dock */
 .font-panel {

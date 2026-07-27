@@ -2257,17 +2257,17 @@
    "vi": "📖 Trang mô tả công dụng gói phần mềm"
   },
   "adv.grey.toggle": {
-   "zh-CN": "允许强制勾选灰色插件",
-   "zh-TW": "允許強制勾選灰色套件",
-   "en": "Allow force-selecting greyed-out plugins",
-   "ru": "Разрешить принудительный выбор серых плагинов",
-   "es": "Permitir forzar plugins grises",
-   "pt": "Permitir forçar plugins cinza",
-   "ja": "グレーのプラグインの強制選択を許可",
-   "ko": "회색 플러그인 강제 체크 허용",
-   "de": "Erzwingen grauer Plugins erlauben",
-   "fr": "Autoriser le forçage des plugins grisés",
-   "vi": "Cho phép buộc chọn plugin xám"
+   "zh-CN": "选择灰色插件",
+   "zh-TW": "選擇灰色套件",
+   "en": "Select greyed-out plugins",
+   "ru": "Выбирать серые плагины",
+   "es": "Seleccionar plugins grises",
+   "pt": "Selecionar plugins cinza",
+   "ja": "グレーのプラグインを選択",
+   "ko": "회색 플러그인 선택",
+   "de": "Graue Plugins auswählen",
+   "fr": "Sélectionner les plugins grisés",
+   "vi": "Chọn plugin màu xám"
   },
   "adv.grey.hint": {
    "zh-CN": "灰色 = 该源没有的包;强制编入大概率编译失败,风险自担",

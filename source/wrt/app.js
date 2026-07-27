@@ -104,7 +104,11 @@ function applyI18n() {
   ensurePlugI18n();   // 非中文界面需要插件译名,未加载则触发并在完成后重渲染 / non-Chinese UIs need translated plugin names; trigger the load, re-render on completion
   document.documentElement.lang = state.lang;
   document.title = 'Wei.G · ' + t('app.title');   // 品牌名不随语言变 / brand name stays across languages
-  document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
+  document.querySelectorAll('[data-i18n]').forEach((el) => {
+    const value = t(el.dataset.i18n);
+    // 缺词条时保留 HTML 中的人类可读兜底,绝不把 adv.grey.toggle 之类内部键名显示给用户 / Keep the human-readable HTML fallback when a key is missing; never expose internal keys such as adv.grey.toggle
+    if (value !== el.dataset.i18n) el.textContent = value;
+  });
   document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
   document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
@@ -171,9 +175,18 @@ async function loadJson(path) {
   const cached = localStorage.getItem(key);
   const refresh = async () => {
     const text = await (await fetchData(path)).text();
-    if (text !== cached) { safeSet(key, text); if (cached) showToast(t('toast.dataUpdated')); }
+    if (text !== cached) {
+      safeSet(key, text);
+      // i18n 在 init 最前加载,此时还不能用旧 I18N 弹更新提示 / i18n loads before I18N is initialized, so do not toast through the stale table
+      if (cached && path !== 'i18n.json') showToast(t('toast.dataUpdated'));
+    }
     return text;
   };
+  // 文案必须网络优先,否则新增键会在本次页面继续使用旧 localStorage;断网时才回退缓存 / Strings are network-first so new keys take effect in the current page; use cache only when offline
+  if (path === 'i18n.json') {
+    try { return JSON.parse(await refresh()); }
+    catch (e) { if (cached) return JSON.parse(cached); throw e; }
+  }
   if (cached) { refresh().catch(() => {}); return JSON.parse(cached); }
   return JSON.parse(await refresh());
 }
