@@ -21,7 +21,7 @@
    "name": "USB 自动挂载",
    "group": "系统基础",
    "desc": "插上 U 盘/硬盘自动挂载",
-   "size": 1,
+   "size": 0.128,
    "pkgs": {
     "hanwckf": "block-mount",
     "ImmortalWrt": "block-mount"
@@ -38,7 +38,7 @@
    "name": "Dnsmasq 完整版",
    "group": "系统基础",
    "desc": "完整 DNS/DHCP,多数魔法插件需要",
-   "size": 1,
+   "size": 0.739,
    "pkgs": {
     "hanwckf": "dnsmasq-full",
     "ImmortalWrt": "dnsmasq-full"
@@ -56,7 +56,7 @@
    "name": "SFTP 服务",
    "group": "系统基础",
    "desc": "WinSCP 等工具传文件需要",
-   "size": 1,
+   "size": 0.06,
    "pkgs": {
     "hanwckf": "openssh-sftp-server",
     "ImmortalWrt": "openssh-sftp-server"
@@ -72,7 +72,7 @@
    "name": "BusyBox 基础命令",
    "group": "系统基础",
    "desc": "系统核心命令集,固件必需",
-   "size": 1,
+   "size": 0.229,
    "pkgs": {
     "hanwckf": "busybox",
     "ImmortalWrt": "busybox"
@@ -89,7 +89,7 @@
    "name": "curl 下载工具",
    "group": "系统基础",
    "desc": "命令行 HTTP 工具,脚本常用",
-   "size": 1,
+   "size": 1.741,
    "pkgs": {
     "hanwckf": "curl",
     "ImmortalWrt": "curl"
@@ -104,7 +104,7 @@
    "name": "Dropbear SSH",
    "group": "系统基础",
    "desc": "SSH 登录服务,固件必需",
-   "size": 1,
+   "size": 0.106,
    "pkgs": {
     "hanwckf": "dropbear",
     "ImmortalWrt": "dropbear"
@@ -121,7 +121,7 @@
    "name": "防火墙核心",
    "group": "系统基础",
    "desc": "系统防火墙,固件必需",
-   "size": 1,
+   "size": 0.269,
    "pkgs": {
     "hanwckf": "firewall",
     "ImmortalWrt": "firewall4"
@@ -138,7 +138,7 @@
    "name": "fstools 存储基础",
    "group": "系统基础",
    "desc": "挂载与恢复分区,固件必需",
-   "size": 1,
+   "size": 0.098,
    "pkgs": {
     "hanwckf": "fstools",
     "ImmortalWrt": "fstools"
@@ -155,7 +155,7 @@
    "name": "htop 进程监视",
    "group": "系统基础",
    "desc": "命令行查看 CPU/内存占用",
-   "size": 1,
+   "size": 0.297,
    "pkgs": {
     "hanwckf": "htop",
     "ImmortalWrt": "htop"
@@ -170,7 +170,7 @@
    "name": "USB 存储驱动",
    "group": "系统基础",
    "desc": "USB 磁盘内核驱动",
-   "size": 1,
+   "size": 0.138,
    "pkgs": {
     "hanwckf": "kmod-usb-storage",
     "ImmortalWrt": "kmod-usb-storage"
@@ -182,7 +182,7 @@
    "name": "nano 编辑器",
    "group": "系统基础",
    "desc": "比 vi 好上手的文本编辑器",
-   "size": 1,
+   "size": 0.261,
    "pkgs": {
     "hanwckf": "nano",
     "ImmortalWrt": "nano"
@@ -197,7 +197,7 @@
    "name": "tcpdump 抓包",
    "group": "系统基础",
    "desc": "命令行网络抓包排障",
-   "size": 1,
+   "size": 0.462,
    "pkgs": {
     "hanwckf": "tcpdump",
     "ImmortalWrt": "tcpdump"
@@ -212,7 +212,7 @@
    "name": "Adblock 广告过滤",
    "group": "广告过滤与DNS",
    "desc": "拦截广告和恶意域名",
-   "size": 2,
+   "size": 0.882,
    "pkgs": {
     "hanwckf": "luci-app-adblock",
     "ImmortalWrt": "luci-app-adblock",
@@ -226,7 +226,7 @@
    "name": "SmartDNS",
    "group": "广告过滤与DNS",
    "desc": "本地DNS加速，多服务器测速优选",
-   "size": 2,
+   "size": 2.146,
    "pkgs": {
     "hanwckf": "luci-app-smartdns",
     "ImmortalWrt": "luci-app-smartdns",
@@ -240,7 +240,7 @@
    "name": "Adblock Fast 广告过滤",
    "group": "广告过滤与DNS",
    "desc": "轻量快速的广告域名拦截",
-   "size": 1,
+   "size": 1.876,
    "pkgs": {
     "OpenWrt": "luci-app-adblock-fast"
    },
@@ -251,7 +251,7 @@
    "name": "广告屏蔽大师+",
    "group": "广告过滤与DNS",
    "desc": "本地规则强力去广告",
-   "size": 4,
+   "size": 2.164,
    "pkgs": {
     "hanwckf": "luci-app-adbyby-plus",
     "ImmortalWrt": "luci-app-adbyby-plus"
@@ -263,7 +263,7 @@
    "name": "DNSCrypt 加密DNS",
    "group": "广告过滤与DNS",
    "desc": "加密DNS查询防污染防劫持",
-   "size": 3,
+   "size": 0.78,
    "pkgs": {
     "hanwckf": "luci-app-dnscrypt-proxy",
     "ImmortalWrt": "luci-app-dnscrypt-proxy",
@@ -276,7 +276,7 @@
    "name": "DNSForwarder 转发",
    "group": "广告过滤与DNS",
    "desc": "自定义DNS转发防污染",
-   "size": 1,
+   "size": 2.468,
    "pkgs": {
     "hanwckf": "luci-app-dnsforwarder",
     "ImmortalWrt": "luci-app-dnsforwarder"
@@ -288,7 +288,7 @@
    "name": "DNS over HTTPS 代理",
    "group": "广告过滤与DNS",
    "desc": "DoH 加密 DNS,防污染防劫持",
-   "size": 1,
+   "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-https-dns-proxy",
     "ImmortalWrt": "luci-app-https-dns-proxy",
@@ -301,7 +301,7 @@
    "name": "NextDNS",
    "group": "广告过滤与DNS",
    "desc": "接入 NextDNS 云端过滤 DNS",
-   "size": 8,
+   "size": 2.8,
    "pkgs": {
     "hanwckf": "luci-app-nextdns",
     "ImmortalWrt": "luci-app-nextdns",
@@ -314,7 +314,7 @@
    "name": "Privoxy 过滤代理",
    "group": "广告过滤与DNS",
    "desc": "能过滤广告的 HTTP 代理",
-   "size": 1,
+   "size": 0.9,
    "pkgs": {
     "hanwckf": "luci-app-privoxy",
     "ImmortalWrt": "luci-app-privoxy",
@@ -327,7 +327,7 @@
    "name": "Simple AdBlock",
    "group": "广告过滤与DNS",
    "desc": "轻量去广告，自动更新拦截规则",
-   "size": 2,
+   "size": 1.683,
    "pkgs": {
     "hanwckf": "luci-app-simple-adblock",
     "ImmortalWrt": "luci-app-simple-adblock"
@@ -339,7 +339,7 @@
    "name": "Unbound DNS",
    "group": "广告过滤与DNS",
    "desc": "本地递归DNS解析更快更安全",
-   "size": 2,
+   "size": 2.959,
    "pkgs": {
     "hanwckf": "luci-app-unbound",
     "ImmortalWrt": "luci-app-unbound",
@@ -352,7 +352,7 @@
    "name": "动态 DNS",
    "group": "内网穿透与组网",
    "desc": "动态域名解析远程访问",
-   "size": 1,
+   "size": 0.375,
    "pkgs": {
     "hanwckf": "luci-app-ddns",
     "ImmortalWrt": "luci-app-ddns",
@@ -366,7 +366,7 @@
    "name": "DDNS-GO",
    "group": "内网穿透与组网",
    "desc": "简单好用的动态域名",
-   "size": 8,
+   "size": 3.442,
    "pkgs": {
     "hanwckf": "luci-app-ddns-go",
     "ImmortalWrt": "luci-app-ddns-go"
@@ -379,7 +379,7 @@
    "name": "frp 客户端 frpc",
    "group": "内网穿透与组网",
    "desc": "内网穿透远程访问家中设备",
-   "size": 5,
+   "size": 4.717,
    "pkgs": {
     "hanwckf": "luci-app-frpc",
     "ImmortalWrt": "luci-app-frpc",
@@ -393,7 +393,7 @@
    "name": "WireGuard",
    "group": "内网穿透与组网",
    "desc": "内核级 VPN,异地组网快而稳",
-   "size": 2,
+   "size": 0.237,
    "pkgs": {
     "hanwckf": "luci-app-wireguard",
     "ImmortalWrt": "luci-proto-wireguard"
@@ -406,7 +406,7 @@
    "name": "ZeroTier",
    "group": "内网穿透与组网",
    "desc": "异地组网，像在同一局域网",
-   "size": 3,
+   "size": 1.366,
    "pkgs": {
     "hanwckf": "luci-app-zerotier",
     "ImmortalWrt": "luci-app-zerotier"
@@ -419,7 +419,7 @@
    "name": "阿里云 DDNS",
    "group": "内网穿透与组网",
    "desc": "阿里云域名动态解析",
-   "size": 1,
+   "size": 2.009,
    "pkgs": {
     "hanwckf": "luci-app-aliddns",
     "ImmortalWrt": "luci-app-aliddns"
@@ -431,7 +431,7 @@
    "name": "Cloudflare 隧道",
    "group": "内网穿透与组网",
    "desc": "Cloudflare Tunnel 内网穿透",
-   "size": 8,
+   "size": 8.073,
    "pkgs": {
     "OpenWrt": "luci-app-cloudflared"
    },
@@ -442,7 +442,7 @@
    "name": "EoIP 隧道",
    "group": "内网穿透与组网",
    "desc": "以太网隧道打通两地内网",
-   "size": 1,
+   "size": 0.408,
    "pkgs": {
     "hanwckf": "luci-app-eoip",
     "ImmortalWrt": "luci-app-eoip",
@@ -455,7 +455,7 @@
    "name": "frp 服务端 frps",
    "group": "内网穿透与组网",
    "desc": "自建frp服务端供外网穿透",
-   "size": 5,
+   "size": 5.514,
    "pkgs": {
     "hanwckf": "luci-app-frps",
     "ImmortalWrt": "luci-app-frps",
@@ -468,7 +468,7 @@
    "name": "IPSec VPN 服务器",
    "group": "内网穿透与组网",
    "desc": "搭建IPSec VPN远程回家",
-   "size": 3,
+   "size": 3.268,
    "pkgs": {
     "hanwckf": "luci-app-ipsec-vpnd",
     "ImmortalWrt": "luci-app-ipsec-vpnd"
@@ -480,7 +480,7 @@
    "name": "IPSec 多用户 VPN",
    "group": "内网穿透与组网",
    "desc": "支持多账号的IPSec VPN",
-   "size": 3,
+   "size": 1.188,
    "pkgs": {
     "hanwckf": "luci-app-ipsec-vpnserver-manyusers",
     "ImmortalWrt": "luci-app-ipsec-vpnserver-manyusers"
@@ -492,7 +492,7 @@
    "name": "Libreswan IPsec",
    "group": "内网穿透与组网",
    "desc": "IPsec VPN 服务端",
-   "size": 5,
+   "size": 6.564,
    "pkgs": {
     "OpenWrt": "luci-app-libreswan"
    },
@@ -503,7 +503,7 @@
    "name": "N2N 组网",
    "group": "内网穿透与组网",
    "desc": "P2P 虚拟局域网穿透组网",
-   "size": 2,
+   "size": 2.646,
    "pkgs": {
     "hanwckf": "luci-app-n2n",
     "ImmortalWrt": "luci-app-n2n"
@@ -515,7 +515,7 @@
    "name": "NATMap 端口打洞",
    "group": "内网穿透与组网",
    "desc": "无公网IP也能开放外网端口",
-   "size": 1,
+   "size": 0.024,
    "pkgs": {
     "hanwckf": "luci-app-natmap",
     "ImmortalWrt": "luci-app-natmap",
@@ -528,7 +528,7 @@
    "name": "Ngrok 内网穿透",
    "group": "内网穿透与组网",
    "desc": "Ngrok 隧道让外网访问家里",
-   "size": 1,
+   "size": 2.783,
    "pkgs": {
     "hanwckf": "luci-app-ngrokc",
     "ImmortalWrt": "luci-app-ngrokc"
@@ -540,7 +540,7 @@
    "name": "NPS 内网穿透",
    "group": "内网穿透与组网",
    "desc": "NPS 客户端穿透访问内网",
-   "size": 5,
+   "size": 6.369,
    "pkgs": {
     "hanwckf": "luci-app-nps",
     "ImmortalWrt": "luci-app-nps"
@@ -552,7 +552,7 @@
    "name": "OpenConnect 服务器",
    "group": "内网穿透与组网",
    "desc": "搭建 OpenConnect VPN 服务",
-   "size": 3,
+   "size": 2.778,
    "pkgs": {
     "hanwckf": "luci-app-ocserv",
     "ImmortalWrt": "luci-app-ocserv",
@@ -565,7 +565,7 @@
    "name": "OpenVPN",
    "group": "内网穿透与组网",
    "desc": "OpenVPN 客户端远程组网",
-   "size": 2,
+   "size": 0.584,
    "pkgs": {
     "hanwckf": "luci-app-openvpn",
     "ImmortalWrt": "luci-app-openvpn",
@@ -578,7 +578,7 @@
    "name": "OpenVPN 服务器",
    "group": "内网穿透与组网",
    "desc": "一键搭建 OpenVPN 服务器",
-   "size": 2,
+   "size": 2.831,
    "pkgs": {
     "hanwckf": "luci-app-openvpn-server",
     "ImmortalWrt": "luci-app-openvpn-server"
@@ -590,7 +590,7 @@
    "name": "PageKite 内网穿透",
    "group": "内网穿透与组网",
    "desc": "PageKite 隧道暴露本地服务",
-   "size": 1,
+   "size": 2.013,
    "pkgs": {
     "hanwckf": "luci-app-pagekitec",
     "ImmortalWrt": "luci-app-pagekitec",
@@ -603,7 +603,7 @@
    "name": "SoftEther VPN",
    "group": "内网穿透与组网",
    "desc": "多协议VPN服务器，远程回家",
-   "size": 8,
+   "size": 5.998,
    "pkgs": {
     "hanwckf": "luci-app-softether",
     "ImmortalWrt": "luci-app-softether",
@@ -616,7 +616,7 @@
    "name": "SoftEther VPN 4",
    "group": "内网穿透与组网",
    "desc": "老牌多协议VPN服务器",
-   "size": 8,
+   "size": 6.903,
    "pkgs": {
     "hanwckf": "luci-app-softethervpn",
     "ImmortalWrt": "luci-app-softethervpn"
@@ -628,7 +628,7 @@
    "name": "SoftEther VPN 5",
    "group": "内网穿透与组网",
    "desc": "SoftEther新版多协议VPN",
-   "size": 10,
+   "size": 5.359,
    "pkgs": {
     "hanwckf": "luci-app-softethervpn5",
     "ImmortalWrt": "luci-app-softethervpn5"
@@ -640,7 +640,7 @@
    "name": "SSH 隧道",
    "group": "内网穿透与组网",
    "desc": "SSH 端口转发与隧道",
-   "size": 1,
+   "size": 1.426,
    "pkgs": {
     "OpenWrt": "luci-app-sshtunnel"
    },
@@ -651,7 +651,7 @@
    "name": "xfrpc 内网穿透",
    "group": "内网穿透与组网",
    "desc": "轻量版frp客户端穿透内网",
-   "size": 1,
+   "size": 2.286,
    "pkgs": {
     "ImmortalWrt": "luci-app-xfrpc",
     "OpenWrt": "luci-app-xfrpc"
@@ -663,7 +663,7 @@
    "name": "Aria2 下载器",
    "group": "存储与下载",
    "desc": "多协议离线下载工具",
-   "size": 4,
+   "size": 3.433,
    "pkgs": {
     "hanwckf": "luci-app-aria2",
     "ImmortalWrt": "luci-app-aria2",
@@ -677,7 +677,7 @@
    "name": "磁盘管理 DiskMan",
    "group": "存储与下载",
    "desc": "格式化和管理USB硬盘分区",
-   "size": 2,
+   "size": 4.029,
    "pkgs": {
     "hanwckf": "luci-app-diskman",
     "ImmortalWrt": "luci-app-diskman"
@@ -690,7 +690,7 @@
    "name": "Ksmbd 网络共享",
    "group": "存储与下载",
    "desc": "轻量SMB共享文件给电脑电视",
-   "size": 2,
+   "size": 0.323,
    "pkgs": {
     "hanwckf": "luci-app-ksmbd",
     "ImmortalWrt": "luci-app-ksmbd",
@@ -704,7 +704,7 @@
    "name": "qBittorrent",
    "group": "存储与下载",
    "desc": "好用的 BT/PT 下载工具",
-   "size": 15,
+   "size": 16.669,
    "pkgs": {
     "hanwckf": "luci-app-qbittorrent",
     "ImmortalWrt": "luci-app-qbittorrent"
@@ -717,7 +717,7 @@
    "name": "Samba4 网络共享",
    "group": "存储与下载",
    "desc": "局域网共享文件给电脑电视",
-   "size": 20,
+   "size": 13.478,
    "pkgs": {
     "hanwckf": "luci-app-samba4",
     "ImmortalWrt": "luci-app-samba4",
@@ -731,7 +731,7 @@
    "name": "Transmission 下载",
    "group": "存储与下载",
    "desc": "经典BT下载，网页远程管理",
-   "size": 2,
+   "size": 3.373,
    "pkgs": {
     "hanwckf": "luci-app-transmission",
     "ImmortalWrt": "luci-app-transmission",
@@ -745,7 +745,7 @@
    "name": "aMule 电驴",
    "group": "存储与下载",
    "desc": "电驴网络离线下载",
-   "size": 8,
+   "size": 7.604,
    "pkgs": {
     "hanwckf": "luci-app-amule",
     "ImmortalWrt": "luci-app-amule"
@@ -757,7 +757,7 @@
    "name": "百度网盘 Web",
    "group": "存储与下载",
    "desc": "网页版百度网盘下载",
-   "size": 10,
+   "size": 8.822,
    "pkgs": {
     "hanwckf": "luci-app-baidupcs-web",
     "ImmortalWrt": "luci-app-baidupcs-web"
@@ -769,7 +769,7 @@
    "name": "CIFS 网络挂载",
    "group": "存储与下载",
    "desc": "挂载远程共享文件夹",
-   "size": 1,
+   "size": 0.028,
    "pkgs": {
     "hanwckf": "luci-app-cifs",
     "ImmortalWrt": "luci-app-cifs"
@@ -781,7 +781,7 @@
    "name": "CIFS 挂载点",
    "group": "存储与下载",
    "desc": "挂载 SMB 共享到本机",
-   "size": 1,
+   "size": 0.007,
    "pkgs": {
     "hanwckf": "luci-app-cifs-mount",
     "ImmortalWrt": "luci-app-cifs-mount"
@@ -793,7 +793,7 @@
    "name": "FileBrowser 文件管理",
    "group": "存储与下载",
    "desc": "网页版私人网盘和文件管理",
-   "size": 10,
+   "size": 3.45,
    "pkgs": {
     "hanwckf": "luci-app-filebrowser",
     "ImmortalWrt": "luci-app-filebrowser"
@@ -805,7 +805,7 @@
    "name": "WebDAV 服务 GoWebdav",
    "group": "存储与下载",
    "desc": "把路由器变成WebDAV网盘",
-   "size": 2,
+   "size": 1.921,
    "pkgs": {
     "hanwckf": "luci-app-gowebdav",
     "ImmortalWrt": "luci-app-gowebdav"
@@ -817,7 +817,7 @@
    "name": "硬盘休眠 hd-idle",
    "group": "存储与下载",
    "desc": "空闲时让USB硬盘自动休眠",
-   "size": 1,
+   "size": 0.386,
    "pkgs": {
     "hanwckf": "luci-app-hd-idle",
     "ImmortalWrt": "luci-app-hd-idle",
@@ -830,7 +830,7 @@
    "name": "可道云 KodExplorer",
    "group": "存储与下载",
    "desc": "功能齐全的私有云网盘系统",
-   "size": 15,
+   "size": 10.026,
    "pkgs": {
     "hanwckf": "luci-app-kodexplorer",
     "ImmortalWrt": "luci-app-kodexplorer"
@@ -842,7 +842,7 @@
    "name": "NFS 文件共享",
    "group": "存储与下载",
    "desc": "通过 NFS 协议共享文件",
-   "size": 2,
+   "size": 1.138,
    "pkgs": {
     "hanwckf": "luci-app-nfs",
     "ImmortalWrt": "luci-app-nfs"
@@ -854,7 +854,7 @@
    "name": "Radicale 日历同步",
    "group": "存储与下载",
    "desc": "私有日历和通讯录同步",
-   "size": 8,
+   "size": 1.126,
    "pkgs": {
     "hanwckf": "luci-app-radicale",
     "ImmortalWrt": "luci-app-radicale",
@@ -867,7 +867,7 @@
    "name": "Radicale2 日历同步",
    "group": "存储与下载",
    "desc": "新版私有日历通讯录同步",
-   "size": 8,
+   "size": 12.75,
    "pkgs": {
     "hanwckf": "luci-app-radicale2",
     "ImmortalWrt": "luci-app-radicale2",
@@ -880,7 +880,7 @@
    "name": "Rclone 网盘工具",
    "group": "存储与下载",
    "desc": "挂载和同步各类云盘网盘",
-   "size": 15,
+   "size": 27.338,
    "pkgs": {
     "hanwckf": "luci-app-rclone",
     "ImmortalWrt": "luci-app-rclone"
@@ -901,7 +901,7 @@
    "name": "Syncthing 文件同步",
    "group": "存储与下载",
    "desc": "多设备间自动同步文件",
-   "size": 10,
+   "size": 8.898,
    "pkgs": {
     "hanwckf": "luci-app-syncthing",
     "ImmortalWrt": "luci-app-syncthing"
@@ -913,7 +913,7 @@
    "name": "微力同步",
    "group": "存储与下载",
    "desc": "多设备文件自动同步",
-   "size": 8,
+   "size": 13.142,
    "pkgs": {
     "hanwckf": "luci-app-verysync",
     "ImmortalWrt": "luci-app-verysync"
@@ -925,7 +925,7 @@
    "name": "vsftpd FTP 服务器",
    "group": "存储与下载",
    "desc": "搭建FTP共享路由器文件",
-   "size": 1,
+   "size": 0.311,
    "pkgs": {
     "hanwckf": "luci-app-vsftpd",
     "ImmortalWrt": "luci-app-vsftpd"
@@ -937,7 +937,7 @@
    "name": "miniDLNA 媒体服务器",
    "group": "多媒体与外设",
    "desc": "电视投屏播放路由器里影音",
-   "size": 2,
+   "size": 2.105,
    "pkgs": {
     "hanwckf": "luci-app-minidlna",
     "ImmortalWrt": "luci-app-minidlna",
@@ -951,7 +951,7 @@
    "name": "网易云音乐解锁",
    "group": "多媒体与外设",
    "desc": "解锁网易云灰色歌曲",
-   "size": 3,
+   "size": 15.566,
    "pkgs": {
     "hanwckf": "luci-app-unblockmusic",
     "ImmortalWrt": "luci-app-unblockneteasemusic"
@@ -964,7 +964,7 @@
    "name": "AirPlay 2 音频接收",
    "group": "多媒体与外设",
    "desc": "让路由器变苹果音箱",
-   "size": 3,
+   "size": 4.172,
    "pkgs": {
     "hanwckf": "luci-app-airplay2",
     "ImmortalWrt": "luci-app-airplay2"
@@ -985,7 +985,7 @@
    "name": "摄像头串流 mjpg-streamer",
    "group": "多媒体与外设",
    "desc": "USB摄像头变网络监控画面",
-   "size": 1,
+   "size": 0.535,
    "pkgs": {
     "hanwckf": "luci-app-mjpg-streamer",
     "ImmortalWrt": "luci-app-mjpg-streamer",
@@ -998,7 +998,7 @@
    "name": "音乐远程中心",
    "group": "多媒体与外设",
    "desc": "路由器接音箱远程点歌播放",
-   "size": 5,
+   "size": 15.878,
    "pkgs": {
     "hanwckf": "luci-app-music-remote-center",
     "ImmortalWrt": "luci-app-music-remote-center"
@@ -1010,7 +1010,7 @@
    "name": "PingOS 流媒体服务",
    "group": "多媒体与外设",
    "desc": "搭建 RTMP 直播推流服务器",
-   "size": 4,
+   "size": 1.973,
    "pkgs": {
     "hanwckf": "luci-app-nginx-pingos",
     "ImmortalWrt": "luci-app-nginx-pingos"
@@ -1022,7 +1022,7 @@
    "name": "UPS 电源监控 NUT",
    "group": "多媒体与外设",
    "desc": "监控 UPS 不间断电源状态",
-   "size": 2,
+   "size": 1.625,
    "pkgs": {
     "hanwckf": "luci-app-nut",
     "ImmortalWrt": "luci-app-nut",
@@ -1035,7 +1035,7 @@
    "name": "OLED 屏幕显示",
    "group": "多媒体与外设",
    "desc": "在 OLED 小屏显示状态信息",
-   "size": 1,
+   "size": 0.34,
    "pkgs": {
     "hanwckf": "luci-app-oled",
     "ImmortalWrt": "luci-app-oled"
@@ -1047,7 +1047,7 @@
    "name": "OSCam",
    "group": "多媒体与外设",
    "desc": "卫星电视解密卡共享服务",
-   "size": 2,
+   "size": 3.104,
    "pkgs": {
     "hanwckf": "luci-app-oscam",
     "ImmortalWrt": "luci-app-oscam"
@@ -1059,7 +1059,7 @@
    "name": "打印服务器 p910nd",
    "group": "多媒体与外设",
    "desc": "共享 USB 打印机给全家用",
-   "size": 1,
+   "size": 0.351,
    "pkgs": {
     "hanwckf": "luci-app-p910nd",
     "ImmortalWrt": "luci-app-p910nd",
@@ -1072,7 +1072,7 @@
    "name": "PS3 游戏共享",
    "group": "多媒体与外设",
    "desc": "PS3 主机网络加载游戏",
-   "size": 1,
+   "size": 0.925,
    "pkgs": {
     "hanwckf": "luci-app-ps3netsrv",
     "ImmortalWrt": "luci-app-ps3netsrv"
@@ -1084,7 +1084,7 @@
    "name": "串口转网络 ser2net",
    "group": "多媒体与外设",
    "desc": "把串口设备映射到网络端口",
-   "size": 1,
+   "size": 0.246,
    "pkgs": {
     "hanwckf": "luci-app-ser2net",
     "ImmortalWrt": "luci-app-ser2net",
@@ -1097,7 +1097,7 @@
    "name": "AirPlay 音箱 Shairplay",
    "group": "多媒体与外设",
    "desc": "让路由变身 AirPlay 音箱",
-   "size": 1,
+   "size": 1.743,
    "pkgs": {
     "hanwckf": "luci-app-shairplay",
     "ImmortalWrt": "luci-app-shairplay",
@@ -1110,7 +1110,7 @@
    "name": "短信工具 SMS Tool",
    "group": "多媒体与外设",
    "desc": "用4G模块收发手机短信",
-   "size": 1,
+   "size": 0.002,
    "pkgs": {
     "hanwckf": "luci-app-smstool",
     "ImmortalWrt": "luci-app-smstool"
@@ -1133,7 +1133,7 @@
    "name": "USB 打印共享",
    "group": "多媒体与外设",
    "desc": "共享USB打印机给全家用",
-   "size": 1,
+   "size": 0.421,
    "pkgs": {
     "hanwckf": "luci-app-usb-printer",
     "ImmortalWrt": "luci-app-usb-printer"
@@ -1145,7 +1145,7 @@
    "name": "MWAN3 多线负载",
    "group": "网络管理",
    "desc": "多条宽带负载均衡与备份",
-   "size": 2,
+   "size": 1.354,
    "pkgs": {
     "hanwckf": "luci-app-mwan3",
     "ImmortalWrt": "luci-app-mwan3",
@@ -1159,7 +1159,7 @@
    "name": "SQM 智能队列(QoS)",
    "group": "网络管理",
    "desc": "智能限速排队，降低延迟卡顿",
-   "size": 2,
+   "size": 0.755,
    "pkgs": {
     "hanwckf": "luci-app-sqm",
     "ImmortalWrt": "luci-app-sqm",
@@ -1173,7 +1173,7 @@
    "name": "UPnP 自动端口转发",
    "group": "网络管理",
    "desc": "游戏下载自动开放端口",
-   "size": 1,
+   "size": 0.518,
    "pkgs": {
     "hanwckf": "luci-app-upnp",
     "ImmortalWrt": "luci-app-upnp",
@@ -1187,7 +1187,7 @@
    "name": "DAWN 无线漫游",
    "group": "网络管理",
    "desc": "多 AP 无线漫游调度",
-   "size": 1,
+   "size": 0.885,
    "pkgs": {
     "hanwckf": "luci-app-dawn",
     "ImmortalWrt": "luci-app-dawn",
@@ -1200,7 +1200,7 @@
    "name": "DynaPoint 动态热点",
    "group": "网络管理",
    "desc": "按联网状态自动启停WiFi热点",
-   "size": 1,
+   "size": 0.593,
    "pkgs": {
     "hanwckf": "luci-app-dynapoint",
     "ImmortalWrt": "luci-app-dynapoint",
@@ -1213,7 +1213,7 @@
    "name": "EQoS 简单限速",
    "group": "网络管理",
    "desc": "按IP限制设备上下行网速",
-   "size": 1,
+   "size": 0.367,
    "pkgs": {
     "hanwckf": "luci-app-eqos",
     "ImmortalWrt": "luci-app-eqos"
@@ -1225,7 +1225,7 @@
    "name": "访客 WiFi",
    "group": "网络管理",
    "desc": "一键开启隔离的访客无线网",
-   "size": 1,
+   "size": 0.004,
    "pkgs": {
     "hanwckf": "luci-app-guest-wifi",
     "ImmortalWrt": "luci-app-guest-wifi"
@@ -1237,7 +1237,7 @@
    "name": "HAProxy 负载均衡",
    "group": "网络管理",
    "desc": "TCP流量负载均衡与高可用",
-   "size": 3,
+   "size": 3.848,
    "pkgs": {
     "hanwckf": "luci-app-haproxy-tcp",
     "ImmortalWrt": "luci-app-haproxy-tcp"
@@ -1249,7 +1249,7 @@
    "name": "IPTV 助手",
    "group": "网络管理",
    "desc": "单线复用同时看IPTV和上网",
-   "size": 1,
+   "size": 1.802,
    "pkgs": {
     "hanwckf": "luci-app-iptvhelper",
     "ImmortalWrt": "luci-app-iptvhelper"
@@ -1261,7 +1261,7 @@
    "name": "LLDP 邻居发现",
    "group": "网络管理",
    "desc": "发现同网段交换机与设备",
-   "size": 1,
+   "size": 0.457,
    "pkgs": {
     "OpenWrt": "luci-app-lldpd"
    },
@@ -1272,7 +1272,7 @@
    "name": "组播转发 msd_lite",
    "group": "网络管理",
    "desc": "组播IPTV转HTTP流多端看",
-   "size": 1,
+   "size": 0.073,
    "pkgs": {
     "hanwckf": "luci-app-msd_lite",
     "ImmortalWrt": "luci-app-msd_lite"
@@ -1284,7 +1284,7 @@
    "name": "MWAN3 分流助手",
    "group": "网络管理",
    "desc": "按国内外IP智能分流出口",
-   "size": 2,
+   "size": 2.11,
    "pkgs": {
     "hanwckf": "luci-app-mwan3helper",
     "ImmortalWrt": "luci-app-mwan3helper"
@@ -1299,7 +1299,7 @@
    "name": "nft-QoS 限速",
    "group": "网络管理",
    "desc": "按设备限速防止抢占带宽",
-   "size": 1,
+   "size": 1.186,
    "pkgs": {
     "hanwckf": "luci-app-nft-qos",
     "ImmortalWrt": "luci-app-nft-qos",
@@ -1312,7 +1312,7 @@
    "name": "组播代理 omcproxy",
    "group": "网络管理",
    "desc": "组播中继常用于 IPTV 看电视",
-   "size": 1,
+   "size": 0.056,
    "pkgs": {
     "hanwckf": "luci-app-omcproxy",
     "ImmortalWrt": "luci-app-omcproxy",
@@ -1325,7 +1325,7 @@
    "name": "OpenWISP 集中管理",
    "group": "网络管理",
    "desc": "接入 OpenWISP 统一管理平台",
-   "size": 1,
+   "size": 2.01,
    "pkgs": {
     "ImmortalWrt": "luci-app-openwisp",
     "OpenWrt": "luci-app-openwisp"
@@ -1337,7 +1337,7 @@
    "name": "策略路由 PBR",
    "group": "网络管理",
    "desc": "按设备或网站自定义分流",
-   "size": 1,
+   "size": 0.982,
    "pkgs": {
     "ImmortalWrt": "luci-app-pbr",
     "OpenWrt": "luci-app-pbr"
@@ -1349,7 +1349,7 @@
    "name": "PPPoE 中继",
    "group": "网络管理",
    "desc": "转发下级设备的拨号请求",
-   "size": 1,
+   "size": 0.281,
    "pkgs": {
     "hanwckf": "luci-app-pppoe-relay",
     "ImmortalWrt": "luci-app-pppoe-relay"
@@ -1361,7 +1361,7 @@
    "name": "PPPoE 服务器",
    "group": "网络管理",
    "desc": "让下级设备拨号认证上网",
-   "size": 1,
+   "size": 0.294,
    "pkgs": {
     "hanwckf": "luci-app-pppoe-server",
     "ImmortalWrt": "luci-app-pppoe-server"
@@ -1373,7 +1373,7 @@
    "name": "QoS 流量优先级",
    "group": "网络管理",
    "desc": "老牌限速与流量优先级控制",
-   "size": 1,
+   "size": 1.418,
    "pkgs": {
     "hanwckf": "luci-app-qos",
     "ImmortalWrt": "luci-app-qos",
@@ -1386,7 +1386,7 @@
    "name": "RP-PPPoE 服务器",
    "group": "网络管理",
    "desc": "另一款 PPPoE 拨号服务器",
-   "size": 1,
+   "size": 0.588,
    "pkgs": {
     "hanwckf": "luci-app-rp-pppoe-server",
     "ImmortalWrt": "luci-app-rp-pppoe-server",
@@ -1399,7 +1399,7 @@
    "name": "Socat 端口转发",
    "group": "网络管理",
    "desc": "端口转发中继，支持IPv6中转",
-   "size": 1,
+   "size": 0.045,
    "pkgs": {
     "hanwckf": "luci-app-socat",
     "ImmortalWrt": "luci-app-socat"
@@ -1411,7 +1411,7 @@
    "name": "宽带多拨 Syncdial",
    "group": "网络管理",
    "desc": "PPPoE多拨，叠加宽带速度",
-   "size": 1,
+   "size": 0.704,
    "pkgs": {
     "hanwckf": "luci-app-syncdial",
     "ImmortalWrt": "luci-app-syncdial"
@@ -1423,7 +1423,7 @@
    "name": "Travelmate 中继",
    "group": "网络管理",
    "desc": "出门在外自动中继WiFi热点",
-   "size": 1,
+   "size": 1.973,
    "pkgs": {
     "hanwckf": "luci-app-travelmate",
     "ImmortalWrt": "luci-app-travelmate",
@@ -1436,7 +1436,7 @@
    "name": "udpxy 组播代理",
    "group": "网络管理",
    "desc": "IPTV组播转单播，多设备看电视",
-   "size": 1,
+   "size": 0.036,
    "pkgs": {
     "hanwckf": "luci-app-udpxy",
     "ImmortalWrt": "luci-app-udpxy",
@@ -1449,7 +1449,7 @@
    "name": "usteer 漫游调度",
    "group": "网络管理",
    "desc": "多 AP 之间智能切换客户端",
-   "size": 1,
+   "size": 0.307,
    "pkgs": {
     "OpenWrt": "luci-app-usteer"
    },
@@ -1460,7 +1460,7 @@
    "name": "VPN 策略路由",
    "group": "网络管理",
    "desc": "按IP端口灵活分流VPN流量",
-   "size": 1,
+   "size": 1.427,
    "pkgs": {
     "hanwckf": "luci-app-vpn-policy-routing"
    },
@@ -1471,7 +1471,7 @@
    "name": "VPN 绕行分流",
    "group": "网络管理",
    "desc": "指定网站或设备不走VPN",
-   "size": 1,
+   "size": 1.427,
    "pkgs": {
     "hanwckf": "luci-app-vpnbypass"
    },
@@ -1482,7 +1482,7 @@
    "name": "Netdata 实时监控",
    "group": "监控统计",
    "desc": "实时查看 CPU 内存网络性能",
-   "size": 15,
+   "size": 14.88,
    "pkgs": {
     "hanwckf": "luci-app-netdata",
     "ImmortalWrt": "luci-app-netdata"
@@ -1495,7 +1495,7 @@
    "name": "带宽用量统计 nlbwmon",
    "group": "监控统计",
    "desc": "按设备统计每月流量用量",
-   "size": 1,
+   "size": 0.243,
    "pkgs": {
     "hanwckf": "luci-app-nlbwmon",
     "ImmortalWrt": "luci-app-nlbwmon",
@@ -1532,7 +1532,7 @@
    "name": "Apinger 链路监测",
    "group": "监控统计",
    "desc": "监测线路延迟和丢包",
-   "size": 1,
+   "size": 0.309,
    "pkgs": {
     "ImmortalWrt": "luci-app-apinger",
     "OpenWrt": "luci-app-apinger"
@@ -1544,7 +1544,7 @@
    "name": "CloudShark 抓包",
    "group": "监控统计",
    "desc": "抓包上传在线分析",
-   "size": 1,
+   "size": 0.959,
    "pkgs": {
     "hanwckf": "luci-app-cshark",
     "ImmortalWrt": "luci-app-cshark",
@@ -1566,7 +1566,7 @@
    "name": "SNMP 服务",
    "group": "监控统计",
    "desc": "开启SNMP供监控系统采集数据",
-   "size": 1,
+   "size": 0.932,
    "pkgs": {
     "hanwckf": "luci-app-snmpd",
     "ImmortalWrt": "luci-app-snmpd",
@@ -1579,7 +1579,7 @@
    "name": "系统统计图表",
    "group": "监控统计",
    "desc": "记录并绘制CPU流量等曲线",
-   "size": 2,
+   "size": 0.763,
    "pkgs": {
     "hanwckf": "luci-app-statistics",
     "ImmortalWrt": "luci-app-statistics",
@@ -1592,7 +1592,7 @@
    "name": "vnStat 流量统计",
    "group": "监控统计",
    "desc": "按日月统计上网流量",
-   "size": 1,
+   "size": 1.225,
    "pkgs": {
     "hanwckf": "luci-app-vnstat",
     "ImmortalWrt": "luci-app-vnstat",
@@ -1605,7 +1605,7 @@
    "name": "vnStat2 流量统计",
    "group": "监控统计",
    "desc": "新版流量统计，数据更详细",
-   "size": 1,
+   "size": 1.307,
    "pkgs": {
     "hanwckf": "luci-app-vnstat2",
     "ImmortalWrt": "luci-app-vnstat2",
@@ -1618,7 +1618,7 @@
    "name": "应用过滤 OpenAppFilter",
    "group": "管控与安全",
    "desc": "禁用抖音游戏等应用",
-   "size": 2,
+   "size": 3.445,
    "pkgs": {
     "hanwckf": "luci-app-appfilter",
     "ImmortalWrt": "luci-app-appfilter"
@@ -1631,7 +1631,7 @@
    "name": "上网时间控制",
    "group": "管控与安全",
    "desc": "按时段禁止指定设备上网",
-   "size": 1,
+   "size": 0.004,
    "pkgs": {
     "hanwckf": "luci-app-timecontrol",
     "ImmortalWrt": "luci-app-timecontrol"
@@ -1644,7 +1644,7 @@
    "name": "上网时间控制",
    "group": "管控与安全",
    "desc": "按时间段限制设备上网",
-   "size": 1,
+   "size": 0.004,
    "pkgs": {
     "hanwckf": "luci-app-accesscontrol",
     "ImmortalWrt": "luci-app-accesscontrol"
@@ -1656,7 +1656,7 @@
    "name": "IP/MAC 绑定",
    "group": "管控与安全",
    "desc": "绑定 IP 与 MAC 防欺骗",
-   "size": 1,
+   "size": 0.207,
    "pkgs": {
     "hanwckf": "luci-app-arpbind",
     "ImmortalWrt": "luci-app-arpbind"
@@ -1668,7 +1668,7 @@
    "name": "banIP 防护",
    "group": "管控与安全",
    "desc": "自动封禁恶意 IP",
-   "size": 1,
+   "size": 0.487,
    "pkgs": {
     "hanwckf": "luci-app-banip",
     "ImmortalWrt": "luci-app-banip",
@@ -1681,7 +1681,7 @@
    "name": "BCP38 过滤",
    "group": "管控与安全",
    "desc": "过滤伪造源地址流量",
-   "size": 1,
+   "size": 0.339,
    "pkgs": {
     "hanwckf": "luci-app-bcp38",
     "ImmortalWrt": "luci-app-bcp38",
@@ -1694,7 +1694,7 @@
    "name": "BearDropper 防爆破",
    "group": "管控与安全",
    "desc": "拦截 SSH 暴力破解",
-   "size": 1,
+   "size": 0.01,
    "pkgs": {
     "hanwckf": "luci-app-beardropper",
     "ImmortalWrt": "luci-app-beardropper"
@@ -1706,7 +1706,7 @@
    "name": "ClamAV 杀毒",
    "group": "管控与安全",
    "desc": "病毒扫描防护引擎",
-   "size": 10,
+   "size": 8.357,
    "pkgs": {
     "hanwckf": "luci-app-clamav",
     "ImmortalWrt": "luci-app-clamav",
@@ -1719,7 +1719,7 @@
    "name": "CoovaChilli 认证门户",
    "group": "管控与安全",
    "desc": "WiFi 上网认证门户",
-   "size": 3,
+   "size": 0.535,
    "pkgs": {
     "OpenWrt": "luci-app-coovachilli"
    },
@@ -1730,7 +1730,7 @@
    "name": "CrowdSec 防护",
    "group": "管控与安全",
    "desc": "协同情报自动封禁攻击 IP",
-   "size": 6,
+   "size": 4.819,
    "pkgs": {
     "OpenWrt": "luci-app-crowdsec-firewall-bouncer"
    },
@@ -1741,7 +1741,7 @@
    "name": "fwknop 端口敲门",
    "group": "管控与安全",
    "desc": "敲门认证后才开放端口更安全",
-   "size": 1,
+   "size": 0.586,
    "pkgs": {
     "hanwckf": "luci-app-fwknopd",
     "ImmortalWrt": "luci-app-fwknopd",
@@ -1754,7 +1754,7 @@
    "name": "热点认证页 Splash",
    "group": "管控与安全",
    "desc": "为开放WiFi添加认证欢迎页",
-   "size": 1,
+   "size": 1.282,
    "pkgs": {
     "hanwckf": "luci-app-splash",
     "ImmortalWrt": "luci-app-splash",
@@ -1767,7 +1767,7 @@
    "name": "上网限制",
    "group": "管控与安全",
    "desc": "按设备禁止或放行上网",
-   "size": 1,
+   "size": 0.004,
    "pkgs": {
     "hanwckf": "luci-app-webrestriction",
     "ImmortalWrt": "luci-app-webrestriction"
@@ -1779,7 +1779,7 @@
    "name": "网址过滤",
    "group": "管控与安全",
    "desc": "屏蔽指定网站和关键词",
-   "size": 1,
+   "size": 0.134,
    "pkgs": {
     "hanwckf": "luci-app-weburl",
     "ImmortalWrt": "luci-app-weburl"
@@ -1791,7 +1791,7 @@
    "name": "定时重启",
    "group": "定时与唤醒",
    "desc": "设定时间自动重启路由",
-   "size": 1,
+   "size": 0.003,
    "pkgs": {
     "hanwckf": "luci-app-autoreboot",
     "ImmortalWrt": "luci-app-autoreboot"
@@ -1804,7 +1804,7 @@
    "name": "WiFi 定时开关",
    "group": "定时与唤醒",
    "desc": "定时开关WiFi，夜间自动关",
-   "size": 1,
+   "size": 0.341,
    "pkgs": {
     "hanwckf": "luci-app-wifischedule",
     "ImmortalWrt": "luci-app-wifischedule",
@@ -1818,7 +1818,7 @@
    "name": "网络唤醒 WOL",
    "group": "定时与唤醒",
    "desc": "远程一键唤醒家里电脑",
-   "size": 1,
+   "size": 0.009,
    "pkgs": {
     "hanwckf": "luci-app-wol",
     "ImmortalWrt": "luci-app-wol",
@@ -1832,7 +1832,7 @@
    "name": "网络唤醒 mWOL",
    "group": "定时与唤醒",
    "desc": "远程一键唤醒家里的电脑",
-   "size": 1,
+   "size": 1.968,
    "pkgs": {
     "hanwckf": "luci-app-mwol",
     "ImmortalWrt": "luci-app-mwol"
@@ -1844,7 +1844,7 @@
    "name": "定时网络唤醒",
    "group": "定时与唤醒",
    "desc": "定时发魔术包唤醒电脑",
-   "size": 1,
+   "size": 0.267,
    "pkgs": {
     "hanwckf": "luci-app-timewol",
     "ImmortalWrt": "luci-app-timewol"
@@ -1856,7 +1856,7 @@
    "name": "Watchcat 断网守护",
    "group": "定时与唤醒",
    "desc": "断网自动重连或定时重启",
-   "size": 1,
+   "size": 0.007,
    "pkgs": {
     "hanwckf": "luci-app-watchcat",
     "ImmortalWrt": "luci-app-watchcat",
@@ -1869,7 +1869,7 @@
    "name": "AirWHU 校园网",
    "group": "校园网认证",
    "desc": "武汉大学校园网认证",
-   "size": 1,
+   "size": 0.336,
    "pkgs": {
     "hanwckf": "luci-app-airwhu",
     "ImmortalWrt": "luci-app-airwhu"
@@ -1881,7 +1881,7 @@
    "name": "深澜校园网认证",
    "group": "校园网认证",
    "desc": "深澜系统自动登录认证",
-   "size": 5,
+   "size": 2.856,
    "pkgs": {
     "hanwckf": "luci-app-bitsrunlogin-go",
     "ImmortalWrt": "luci-app-bitsrunlogin-go"
@@ -1893,7 +1893,7 @@
    "name": "cd8021x 认证",
    "group": "校园网认证",
    "desc": "校园网 802.1x 拨号认证",
-   "size": 1,
+   "size": 1.065,
    "pkgs": {
     "hanwckf": "luci-app-cd8021x",
     "ImmortalWrt": "luci-app-cd8021x"
@@ -1905,7 +1905,7 @@
    "name": "锐捷认证 MentoHUST",
    "group": "校园网认证",
    "desc": "校园网锐捷802.1X自动认证",
-   "size": 1,
+   "size": 0.33,
    "pkgs": {
     "hanwckf": "luci-app-mentohust",
     "ImmortalWrt": "luci-app-mentohust"
@@ -1917,7 +1917,7 @@
    "name": "MiniEAP 认证",
    "group": "校园网认证",
    "desc": "校园网802.1X认证客户端",
-   "size": 1,
+   "size": 0.105,
    "pkgs": {
     "hanwckf": "luci-app-minieap",
     "ImmortalWrt": "luci-app-minieap"
@@ -1929,7 +1929,7 @@
    "name": "NJIT 校园网客户端",
    "group": "校园网认证",
    "desc": "802.1x 校园网上网认证",
-   "size": 1,
+   "size": 2.328,
    "pkgs": {
     "hanwckf": "luci-app-njitclient",
     "ImmortalWrt": "luci-app-njitclient"
@@ -1941,7 +1941,7 @@
    "name": "华工校园网 ScutClient",
    "group": "校园网认证",
    "desc": "华南理工 Dr.COM 认证客户端",
-   "size": 1,
+   "size": 0.287,
    "pkgs": {
     "hanwckf": "luci-app-scutclient",
     "ImmortalWrt": "luci-app-scutclient"
@@ -1953,7 +1953,7 @@
    "name": "H3C 认证 sysuh3c",
    "group": "校园网认证",
    "desc": "H3C 802.1X校园网认证客户端",
-   "size": 1,
+   "size": 0.01,
    "pkgs": {
     "hanwckf": "luci-app-sysuh3c",
     "ImmortalWrt": "luci-app-sysuh3c"
@@ -1965,7 +1965,7 @@
    "name": "Argon 主题设置",
    "group": "系统工具",
    "desc": "自定义 Argon 主题外观",
-   "size": 1,
+   "size": 0.077,
    "pkgs": {
     "hanwckf": "luci-app-argon-config",
     "ImmortalWrt": "luci-app-argon-config"
@@ -1978,7 +1978,7 @@
    "name": "CPU 调频",
    "group": "系统工具",
    "desc": "调整 CPU 频率与性能",
-   "size": 1,
+   "size": 0.004,
    "pkgs": {
     "hanwckf": "luci-app-cpufreq",
     "ImmortalWrt": "luci-app-cpufreq"
@@ -1991,7 +1991,7 @@
    "name": "Docker 管理 DockerMan",
    "group": "系统工具",
    "desc": "网页图形化管理Docker容器",
-   "size": 60,
+   "size": 69.392,
    "pkgs": {
     "hanwckf": "luci-app-dockerman",
     "ImmortalWrt": "luci-app-dockerman",
@@ -2006,7 +2006,7 @@
    "name": "网页终端 ttyd",
    "group": "系统工具",
    "desc": "浏览器里直接敲命令行",
-   "size": 1,
+   "size": 2.588,
    "pkgs": {
     "hanwckf": "luci-app-ttyd",
     "ImmortalWrt": "luci-app-ttyd",
@@ -2020,7 +2020,7 @@
    "name": "LuCI 权限管理",
    "group": "系统工具",
    "desc": "管理网页后台账号权限",
-   "size": 1,
+   "size": 0.338,
    "pkgs": {
     "hanwckf": "luci-app-acl",
     "ImmortalWrt": "luci-app-acl",
@@ -2033,7 +2033,7 @@
    "name": "ACME 证书",
    "group": "系统工具",
    "desc": "自动申请免费 HTTPS 证书",
-   "size": 2,
+   "size": 2.955,
    "pkgs": {
     "hanwckf": "luci-app-acme",
     "ImmortalWrt": "luci-app-acme",
@@ -2046,7 +2046,7 @@
    "name": "高级重启",
    "group": "系统工具",
    "desc": "切换双分区启动或重启",
-   "size": 1,
+   "size": 0.351,
    "pkgs": {
     "hanwckf": "luci-app-advanced-reboot",
     "ImmortalWrt": "luci-app-advanced-reboot",
@@ -2059,7 +2059,7 @@
    "name": "系统高级设置",
    "group": "系统工具",
    "desc": "网页直接编辑配置文件",
-   "size": 1,
+   "size": 0.002,
    "pkgs": {
     "hanwckf": "luci-app-advancedsetting",
     "ImmortalWrt": "luci-app-advancedsetting"
@@ -2071,7 +2071,7 @@
    "name": "在线固件升级",
    "group": "系统工具",
    "desc": "在线升级固件保留配置",
-   "size": 1,
+   "size": 0.346,
    "pkgs": {
     "hanwckf": "luci-app-attendedsysupgrade",
     "ImmortalWrt": "luci-app-attendedsysupgrade",
@@ -2084,7 +2084,7 @@
    "name": "自定义命令",
    "group": "系统工具",
    "desc": "网页一键执行常用命令",
-   "size": 1,
+   "size": 0.206,
    "pkgs": {
     "hanwckf": "luci-app-commands",
     "ImmortalWrt": "luci-app-commands",
@@ -2097,7 +2097,7 @@
    "name": "CPU 限制",
    "group": "系统工具",
    "desc": "限制进程 CPU 占用",
-   "size": 1,
+   "size": 0.274,
    "pkgs": {
     "hanwckf": "luci-app-cpulimit",
     "ImmortalWrt": "luci-app-cpulimit"
@@ -2109,7 +2109,7 @@
    "name": "网络诊断",
    "group": "系统工具",
    "desc": "基础网络诊断工具",
-   "size": 1,
+   "size": 0.265,
    "pkgs": {
     "hanwckf": "luci-app-diag-core",
     "ImmortalWrt": "luci-app-diag-core",
@@ -2122,7 +2122,7 @@
    "name": "Docker 容器引擎",
    "group": "系统工具",
    "desc": "在路由器上运行Docker容器",
-   "size": 60,
+   "size": 68.778,
    "pkgs": {
     "hanwckf": "luci-app-docker",
     "ImmortalWrt": "luci-app-docker"
@@ -2135,7 +2135,7 @@
    "name": "文件助手",
    "group": "系统工具",
    "desc": "网页上浏览管理路由器文件",
-   "size": 1,
+   "size": 0.142,
    "pkgs": {
     "hanwckf": "luci-app-fileassistant",
     "ImmortalWrt": "luci-app-fileassistant"
@@ -2147,7 +2147,7 @@
    "name": "文件传输",
    "group": "系统工具",
    "desc": "网页上传安装ipk插件包",
-   "size": 1,
+   "size": 1.847,
    "pkgs": {
     "hanwckf": "luci-app-filetransfer",
     "ImmortalWrt": "luci-app-filetransfer"
@@ -2159,7 +2159,7 @@
    "name": "LED 信号强度指示",
    "group": "系统工具",
    "desc": "用LED灯显示WiFi信号强度",
-   "size": 1,
+   "size": 0.107,
    "pkgs": {
     "hanwckf": "luci-app-ledtrig-rssi",
     "ImmortalWrt": "luci-app-ledtrig-rssi",
@@ -2172,7 +2172,7 @@
    "name": "LED 网口指示",
    "group": "系统工具",
    "desc": "用LED灯显示网口连接状态",
-   "size": 1,
+   "size": 0.001,
    "pkgs": {
     "hanwckf": "luci-app-ledtrig-switch",
     "ImmortalWrt": "luci-app-ledtrig-switch",
@@ -2185,7 +2185,7 @@
    "name": "LED USB指示",
    "group": "系统工具",
    "desc": "用LED灯显示USB设备状态",
-   "size": 1,
+   "size": 0.137,
    "pkgs": {
     "hanwckf": "luci-app-ledtrig-usbport",
     "ImmortalWrt": "luci-app-ledtrig-usbport",
@@ -2198,7 +2198,7 @@
    "name": "LXC 容器",
    "group": "系统工具",
    "desc": "运行轻量Linux系统容器",
-   "size": 10,
+   "size": 3.097,
    "pkgs": {
     "hanwckf": "luci-app-lxc",
     "ImmortalWrt": "luci-app-lxc",
@@ -2212,7 +2212,7 @@
    "name": "NTP 时间同步",
    "group": "系统工具",
    "desc": "自动校准路由器系统时间",
-   "size": 1,
+   "size": 1.634,
    "pkgs": {
     "hanwckf": "luci-app-ntpc",
     "ImmortalWrt": "luci-app-ntpc"
@@ -2224,7 +2224,7 @@
    "name": "释放内存",
    "group": "系统工具",
    "desc": "一键清理释放系统内存",
-   "size": 1,
+   "size": 0.001,
    "pkgs": {
     "hanwckf": "luci-app-ramfree",
     "ImmortalWrt": "luci-app-ramfree"
@@ -2236,7 +2236,7 @@
    "name": "uHTTPd 网页服务器",
    "group": "系统工具",
    "desc": "配置路由器内置网页服务",
-   "size": 1,
+   "size": 0.394,
    "pkgs": {
     "hanwckf": "luci-app-uhttpd",
     "ImmortalWrt": "luci-app-uhttpd",
@@ -2249,7 +2249,7 @@
    "name": "USB 3.0 禁用",
    "group": "系统工具",
    "desc": "关闭USB3.0减少2.4G干扰",
-   "size": 1,
+   "size": 0.134,
    "pkgs": {
     "hanwckf": "luci-app-usb3disable",
     "ImmortalWrt": "luci-app-usb3disable"
@@ -2261,7 +2261,7 @@
    "name": "KMS 激活服务器",
    "group": "系统工具",
    "desc": "局域网激活Windows和Office",
-   "size": 1,
+   "size": 0.026,
    "pkgs": {
     "hanwckf": "luci-app-vlmcsd",
     "ImmortalWrt": "luci-app-vlmcsd"
@@ -2273,7 +2273,7 @@
    "name": "网页管理设置",
    "group": "系统工具",
    "desc": "修改后台管理端口和方式",
-   "size": 1,
+   "size": 0.065,
    "pkgs": {
     "hanwckf": "luci-app-webadmin",
     "ImmortalWrt": "luci-app-webadmin"
@@ -2285,7 +2285,7 @@
    "name": "AHCP 服务",
    "group": "其他与高级",
    "desc": "自组网自动分配地址",
-   "size": 1,
+   "size": 1.047,
    "pkgs": {
     "hanwckf": "luci-app-ahcp",
     "ImmortalWrt": "luci-app-ahcp",
@@ -2307,7 +2307,7 @@
    "name": "Babeld 路由",
    "group": "其他与高级",
    "desc": "Babel 动态路由协议",
-   "size": 1,
+   "size": 0.422,
    "pkgs": {
     "hanwckf": "luci-app-babeld",
     "ImmortalWrt": "luci-app-babeld",
@@ -2320,7 +2320,7 @@
    "name": "BIRD1 路由 (IPv4)",
    "group": "其他与高级",
    "desc": "BIRD 动态路由 IPv4 版",
-   "size": 1,
+   "size": 0.806,
    "pkgs": {
     "hanwckf": "luci-app-bird1-ipv4",
     "ImmortalWrt": "luci-app-bird1-ipv4"
@@ -2332,7 +2332,7 @@
    "name": "BIRD1 路由 (IPv6)",
    "group": "其他与高级",
    "desc": "BIRD 动态路由 IPv6 版",
-   "size": 1,
+   "size": 0.829,
    "pkgs": {
     "hanwckf": "luci-app-bird1-ipv6",
     "ImmortalWrt": "luci-app-bird1-ipv6"
@@ -2344,7 +2344,7 @@
    "name": "BMX6 组网路由",
    "group": "其他与高级",
    "desc": "BMX6 自组网路由协议",
-   "size": 1,
+   "size": 1.848,
    "pkgs": {
     "hanwckf": "luci-app-bmx6",
     "ImmortalWrt": "luci-app-bmx6"
@@ -2356,7 +2356,7 @@
    "name": "BMX7 组网路由",
    "group": "其他与高级",
    "desc": "BMX7 自组网路由协议",
-   "size": 1,
+   "size": 1.086,
    "pkgs": {
     "hanwckf": "luci-app-bmx7",
     "ImmortalWrt": "luci-app-bmx7",
@@ -2369,7 +2369,7 @@
    "name": "CJDNS 加密组网",
    "group": "其他与高级",
    "desc": "加密 IPv6 自组网络",
-   "size": 3,
+   "size": 1.07,
    "pkgs": {
     "hanwckf": "luci-app-cjdns",
     "ImmortalWrt": "luci-app-cjdns"
@@ -2381,7 +2381,7 @@
    "name": "双通道 WiFi",
    "group": "其他与高级",
    "desc": "双通道 WiFi 流量分离",
-   "size": 1,
+   "size": 1.534,
    "pkgs": {
     "hanwckf": "luci-app-dcwapd",
     "ImmortalWrt": "luci-app-dcwapd",
@@ -2394,7 +2394,7 @@
    "name": "Dump1090 航班接收",
    "group": "其他与高级",
    "desc": "用SDR接收飞机ADS-B信号",
-   "size": 2,
+   "size": 3.65,
    "pkgs": {
     "hanwckf": "luci-app-dump1090",
     "ImmortalWrt": "luci-app-dump1090",
@@ -2407,7 +2407,7 @@
    "name": "HNCP 家庭组网",
    "group": "其他与高级",
    "desc": "HNCP协议自动配置家庭网络",
-   "size": 1,
+   "size": 0.055,
    "pkgs": {
     "hanwckf": "luci-app-hnet",
     "ImmortalWrt": "luci-app-hnet"
@@ -2419,7 +2419,7 @@
    "name": "Keepalived 高可用",
    "group": "其他与高级",
    "desc": "双机热备故障自动切换",
-   "size": 2,
+   "size": 4.395,
    "pkgs": {
     "ImmortalWrt": "luci-app-keepalived",
     "OpenWrt": "luci-app-keepalived"
@@ -2431,7 +2431,7 @@
    "name": "LoRaWAN 基站",
    "group": "其他与高级",
    "desc": "把路由器变成LoRaWAN网关",
-   "size": 3,
+   "size": 0.606,
    "pkgs": {
     "ImmortalWrt": "luci-app-lorawan-basicstation",
     "OpenWrt": "luci-app-lorawan-basicstation"
@@ -2443,7 +2443,7 @@
    "name": "Mosquitto MQTT",
    "group": "其他与高级",
    "desc": "物联网 MQTT 消息服务器",
-   "size": 2,
+   "size": 0.465,
    "pkgs": {
     "OpenWrt": "luci-app-mosquitto"
    },
@@ -2454,7 +2454,7 @@
    "name": "OLSR Mesh 路由",
    "group": "其他与高级",
    "desc": "无线 Mesh 组网路由协议",
-   "size": 1,
+   "size": 0.674,
    "pkgs": {
     "hanwckf": "luci-app-olsr",
     "ImmortalWrt": "luci-app-olsr",
@@ -2467,7 +2467,7 @@
    "name": "OLSR 服务发现",
    "group": "其他与高级",
    "desc": "发现 OLSR 网络中的服务",
-   "size": 1,
+   "size": 0.689,
    "pkgs": {
     "hanwckf": "luci-app-olsr-services",
     "ImmortalWrt": "luci-app-olsr-services",
@@ -2483,7 +2483,7 @@
    "name": "OLSR 拓扑图",
    "group": "其他与高级",
    "desc": "图形化查看 Mesh 网络拓扑",
-   "size": 1,
+   "size": 0.699,
    "pkgs": {
     "hanwckf": "luci-app-olsr-viz",
     "ImmortalWrt": "luci-app-olsr-viz",
@@ -2499,7 +2499,7 @@
    "name": "OLSRv2 Mesh 路由",
    "group": "其他与高级",
    "desc": "新一代 Mesh 组网路由协议",
-   "size": 1,
+   "size": 0.613,
    "pkgs": {
     "ImmortalWrt": "luci-app-olsrd2"
    },
@@ -2510,7 +2510,7 @@
    "name": "SIIT 转换向导",
    "group": "其他与高级",
    "desc": "IPv4/IPv6互转配置向导",
-   "size": 1,
+   "size": 0.581,
    "pkgs": {
     "hanwckf": "luci-app-siitwizard",
     "ImmortalWrt": "luci-app-siitwizard",
@@ -2523,7 +2523,7 @@
    "name": "xinetd 服务管理",
    "group": "其他与高级",
    "desc": "按需启动小型网络服务",
-   "size": 1,
+   "size": 0.067,
    "pkgs": {
     "hanwckf": "luci-app-xinetd",
     "ImmortalWrt": "luci-app-xinetd",
@@ -2536,7 +2536,7 @@
    "name": "Yggdrasil 网络",
    "group": "其他与高级",
    "desc": "加密IPv6网状组网实验",
-   "size": 4,
+   "size": 3.065,
    "pkgs": {
     "hanwckf": "luci-app-yggdrasil",
     "ImmortalWrt": "luci-app-yggdrasil",
@@ -2549,7 +2549,7 @@
    "name": "HomeProxy",
    "group": "魔法与加速",
    "desc": "基于sing-box的代理工具",
-   "size": 10,
+   "size": 13.122,
    "pkgs": {
     "ImmortalWrt": "luci-app-homeproxy"
    },
@@ -2561,7 +2561,7 @@
    "name": "OpenClash",
    "group": "魔法与加速",
    "desc": "功能全面的 Clash 代理客户端",
-   "size": 15,
+   "size": 12.856,
    "pkgs": {
     "hanwckf": "luci-app-openclash",
     "ImmortalWrt": "luci-app-openclash"
@@ -2574,7 +2574,7 @@
    "name": "PassWall",
    "group": "魔法与加速",
    "desc": "多协议智能分流代理工具",
-   "size": 25,
+   "size": 37.135,
    "pkgs": {
     "hanwckf": "luci-app-passwall",
     "ImmortalWrt": "luci-app-passwall"
@@ -2587,7 +2587,7 @@
    "name": "ShadowSocksR Plus+",
    "group": "魔法与加速",
    "desc": "老牌科学上网套件，协议全面",
-   "size": 15,
+   "size": 16.648,
    "pkgs": {
     "hanwckf": "luci-app-ssr-plus",
     "ImmortalWrt": "luci-app-ssr-plus"
@@ -2600,7 +2600,7 @@
    "name": "Turbo ACC 网络加速",
    "group": "魔法与加速",
    "desc": "硬件 NAT 流量分载加速,SDK 源已内置",
-   "size": 2,
+   "size": 0.01,
    "pkgs": {
     "hanwckf": "luci-app-turboacc"
    },
@@ -2615,7 +2615,7 @@
    "name": "Brook 服务端",
    "group": "魔法与加速",
    "desc": "搭建 Brook 代理服务器",
-   "size": 8,
+   "size": 6.631,
    "pkgs": {
     "hanwckf": "luci-app-brook-server",
     "ImmortalWrt": "luci-app-brook-server"
@@ -2627,7 +2627,7 @@
    "name": "GOST 隧道",
    "group": "魔法与加速",
    "desc": "多协议加密隧道转发工具",
-   "size": 8,
+   "size": 4.57,
    "pkgs": {
     "hanwckf": "luci-app-gost",
     "ImmortalWrt": "luci-app-gost"
@@ -2639,7 +2639,7 @@
    "name": "Kcptun 加速",
    "group": "魔法与加速",
    "desc": "KCP协议加速网络连接",
-   "size": 4,
+   "size": 0.302,
    "pkgs": {
     "hanwckf": "luci-app-kcptun",
     "ImmortalWrt": "luci-app-kcptun"
@@ -2651,7 +2651,7 @@
    "name": "MicroSocks 代理",
    "group": "魔法与加速",
    "desc": "极简SOCKS5代理服务",
-   "size": 1,
+   "size": 0.01,
    "pkgs": {
     "hanwckf": "luci-app-microsocks",
     "ImmortalWrt": "luci-app-microsocks"
@@ -2663,7 +2663,7 @@
    "name": "NaiveProxy",
    "group": "魔法与加速",
    "desc": "基于Chrome网络栈的代理",
-   "size": 8,
+   "size": 2.817,
    "pkgs": {
     "hanwckf": "luci-app-naiveproxy",
     "ImmortalWrt": "luci-app-naiveproxy"
@@ -2675,7 +2675,7 @@
    "name": "Polipo 缓存代理",
    "group": "魔法与加速",
    "desc": "小巧的 HTTP 缓存代理",
-   "size": 1,
+   "size": 0.681,
    "pkgs": {
     "hanwckf": "luci-app-polipo",
     "ImmortalWrt": "luci-app-polipo",
@@ -2688,7 +2688,7 @@
    "name": "Shadowsocks-libev",
    "group": "魔法与加速",
    "desc": "经典轻量的 SS 代理客户端",
-   "size": 2,
+   "size": 0.194,
    "pkgs": {
     "hanwckf": "luci-app-shadowsocks-libev",
     "ImmortalWrt": "luci-app-shadowsocks-libev",
@@ -2701,7 +2701,7 @@
    "name": "UDPspeeder V2",
    "group": "魔法与加速",
    "desc": "UDP加速抗丢包，游戏更流畅",
-   "size": 1,
+   "size": 0.674,
    "pkgs": {
     "hanwckf": "luci-app-speederv2",
     "ImmortalWrt": "luci-app-speederv2"
@@ -2713,7 +2713,7 @@
    "name": "Squid 缓存代理",
    "group": "魔法与加速",
    "desc": "HTTP缓存代理服务器",
-   "size": 3,
+   "size": 5.014,
    "pkgs": {
     "hanwckf": "luci-app-squid",
     "ImmortalWrt": "luci-app-squid",
@@ -2735,7 +2735,7 @@
    "name": "SSR 服务端(libev)",
    "group": "魔法与加速",
    "desc": "轻量SSR服务端，供远程连接",
-   "size": 1,
+   "size": 2.113,
    "pkgs": {
     "hanwckf": "luci-app-ssr-libev-server",
     "ImmortalWrt": "luci-app-ssr-libev-server"
@@ -2747,7 +2747,7 @@
    "name": "SSR 多用户服务端",
    "group": "魔法与加速",
    "desc": "多用户SSR服务端，账号管理",
-   "size": 2,
+   "size": 8.611,
    "pkgs": {
     "hanwckf": "luci-app-ssr-mudb-server",
     "ImmortalWrt": "luci-app-ssr-mudb-server"
@@ -2759,7 +2759,7 @@
    "name": "SSR 服务端(Python)",
    "group": "魔法与加速",
    "desc": "Python版SSR服务端",
-   "size": 15,
+   "size": 8.367,
    "pkgs": {
     "hanwckf": "luci-app-ssrserver-python",
     "ImmortalWrt": "luci-app-ssrserver-python"
@@ -2771,7 +2771,7 @@
    "name": "Tinyproxy 代理",
    "group": "魔法与加速",
    "desc": "小巧的HTTP代理服务",
-   "size": 1,
+   "size": 0.396,
    "pkgs": {
     "hanwckf": "luci-app-tinyproxy",
     "ImmortalWrt": "luci-app-tinyproxy",
@@ -2784,7 +2784,7 @@
    "name": "Tor 洋葱路由",
    "group": "魔法与加速",
    "desc": "洋葱路由匿名网络",
-   "size": 8,
+   "size": 3.589,
    "pkgs": {
     "OpenWrt": "luci-app-tor"
    },
@@ -2795,7 +2795,7 @@
    "name": "Trojan 服务端",
    "group": "魔法与加速",
    "desc": "搭建Trojan服务端供连接",
-   "size": 2,
+   "size": 2.146,
    "pkgs": {
     "hanwckf": "luci-app-trojan-server",
     "ImmortalWrt": "luci-app-trojan-server"
@@ -2807,7 +2807,7 @@
    "name": "udp2raw 隧道",
    "group": "魔法与加速",
    "desc": "UDP伪装TCP，防运营商限制",
-   "size": 1,
+   "size": 0.68,
    "pkgs": {
     "hanwckf": "luci-app-udp2raw",
     "ImmortalWrt": "luci-app-udp2raw"
@@ -2819,7 +2819,7 @@
    "name": "UU游戏加速器",
    "group": "魔法与加速",
    "desc": "主机游戏加速，联机更流畅",
-   "size": 8,
+   "size": 1.537,
    "pkgs": {
     "hanwckf": "luci-app-uugamebooster",
     "ImmortalWrt": "luci-app-uugamebooster"
@@ -2831,7 +2831,7 @@
    "name": "V2Ray 服务端",
    "group": "魔法与加速",
    "desc": "在路由器自建V2Ray服务",
-   "size": 8,
+   "size": 8.069,
    "pkgs": {
     "hanwckf": "luci-app-v2ray-server",
     "ImmortalWrt": "luci-app-v2ray-server"
@@ -2843,7 +2843,7 @@
    "name": "v2rayA",
    "group": "魔法与加速",
    "desc": "网页版V2Ray客户端易上手",
-   "size": 15,
+   "size": 19.835,
    "pkgs": {
     "hanwckf": "luci-app-v2raya",
     "ImmortalWrt": "luci-app-v2raya",
@@ -2856,7 +2856,7 @@
    "name": "Vssr (Hello World)",
    "group": "魔法与加速",
    "desc": "多协议科学上网客户端",
-   "size": 12,
+   "size": 23.718,
    "pkgs": {
     "hanwckf": "luci-app-vssr",
     "ImmortalWrt": "luci-app-vssr"
@@ -2868,7 +2868,7 @@
    "name": "迅雷快鸟",
    "group": "魔法与加速",
    "desc": "迅雷会员宽带提速服务",
-   "size": 1,
+   "size": 2.854,
    "pkgs": {
     "hanwckf": "luci-app-xlnetacc",
     "ImmortalWrt": "luci-app-xlnetacc"

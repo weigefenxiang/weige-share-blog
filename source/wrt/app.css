@@ -482,9 +482,21 @@ body.dense .plugin-name.fit-s2 { font-size: 13px; }
 .flag-required { color: var(--accent-text); background: var(--accent-bg); }
 
 /* 开发者模式:全量软件包搜索视图 / developer mode raw-package browser */
-.devpkg-head { cursor: default; }
+.devpkg-head {
+  width: 100%; border: 0; color: inherit; background: transparent;
+  cursor: pointer; text-align: left; font: inherit;
+}
+.devpkg-head:focus-visible { outline: 2px solid var(--accent); outline-offset: -3px; }
+.devpkg-chevron { margin-left: auto; transition: transform .18s ease; }
+.devpkg-head[aria-expanded="true"] .devpkg-chevron { transform: rotate(180deg); }
 .devpkg-body { padding: 12px 14px; }
 .devpkg-body input { margin: 8px 0 10px; }
+.devpkg-meta {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 8px 16px; flex-wrap: wrap;
+}
+.devpkg-meta .hint { margin: 0; min-width: 0; }
+.devpkg-meta a { flex: none; }
 .pkg-list {
   max-height: 340px; overflow: auto;
   display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 2px 14px;

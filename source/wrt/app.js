@@ -33,6 +33,7 @@ const state = {
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
 let DEVICES = null, PLUGINS = null, I18N = null;
+const DATA_CACHE_VERSION = 'v13-r2';
 let PLUG_I18N = null;                  // 插件名/说明多语言表,非中文界面按需加载 / plugin name/desc i18n table, lazy-loaded for non-Chinese UIs
 let plugI18nLoading = false;           // 防止重复请求 / guards against duplicate fetches
 let PKGDATA = null;                    // 开发者模式的全量软件包表,按需加载 / raw package table, lazy-loaded in developer mode
@@ -171,7 +172,7 @@ async function fetchData(path) {
   throw new Error('数据加载失败: ' + path);
 }
 async function loadJson(path) {
-  const key = 'wrt_cache:' + path;
+  const key = 'wrt_cache:' + DATA_CACHE_VERSION + ':' + path;
   const cached = localStorage.getItem(key);
   const refresh = async () => {
     const text = await (await fetchData(path)).text();
@@ -273,8 +274,8 @@ async function init() {
   }
 }
 
-/* 下拉里中文用精简双字名,其余语言用自称 / Chinese uses short two-char labels in the dropdown; other languages keep their native names */
-const LANG_SHORT = { 'zh-CN': '简中', 'zh-TW': '繁中' };
+/* 下拉里中文用单字简称,其余语言用自称 / Chinese uses one-character labels in the dropdown; other languages keep their native names */
+const LANG_SHORT = { 'zh-CN': '简', 'zh-TW': '繁' };
 function renderLangSel() {
   const sel = $('langSel');
   sel.textContent = '';
@@ -668,19 +669,31 @@ async function ensurePkgData() {
 function updateDevpkgBox() {
   const show = state.advanced && state.device && state.device.plugins !== 'seed';
   $('devpkgBox').hidden = !show;
-  if (show) ensurePkgData().then(renderPkgList);
+  if (!show) setDevpkgExpanded(false);
+  if (show) ensurePkgData().then(() => {
+    if (PKGDATA) {
+      $('devpkgCount').textContent = PKGDATA.count;
+      $('devpkgStatus').textContent = t('devpkg.empty', { n: PKGDATA.count });
+    }
+    if (!$('devpkgBody').hidden) renderPkgList();
+  });
 }
+function setDevpkgExpanded(expanded) {
+  $('devpkgBody').hidden = !expanded;
+  $('devpkgToggle').setAttribute('aria-expanded', String(expanded));
+  if (expanded) renderPkgList();
+}
+$('devpkgToggle').addEventListener('click', () => {
+  setDevpkgExpanded($('devpkgToggle').getAttribute('aria-expanded') !== 'true');
+});
 function renderPkgList() {
   const box = $('pkgList');
   box.textContent = '';
   if (!PKGDATA) return;
   $('devpkgCount').textContent = PKGDATA.count;
   const kw = $('pkgSearch').value.trim().toLowerCase();
+  $('devpkgStatus').textContent = kw.length < 2 ? t('devpkg.empty', { n: PKGDATA.count }) : '';
   if (kw.length < 2) {
-    const p = document.createElement('p');
-    p.className = 'hint';
-    p.textContent = t('devpkg.empty', { n: PKGDATA.count });
-    box.appendChild(p);
     return;
   }
   const names = Object.keys(PKGDATA.pkgs).filter((n) => n.toLowerCase().includes(kw));
