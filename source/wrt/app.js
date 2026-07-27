@@ -905,23 +905,34 @@ function applyToConfig(text, sel) {
     (sel.removed.length ? '# removed builtin (advanced): ' + sel.removed.map((p) => p.id).join(' ') + '\n' : '') + text;
 }
 
+async function generateConfigText() {
+  const raw = await (await fetchData(state.device.id + '/' + state.source.config)).text();
+  return applyToConfig(raw, effectiveSelection());
+}
+
+function localStamp() {
+  const now = new Date();
+  const pad = (n) => String(n).padStart(2, '0');
+  return String(now.getFullYear()).slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) +
+    '_' + pad(now.getHours()) + pad(now.getMinutes());
+}
+
+function downloadBlob(text, type, filename) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([text], { type }));
+  a.download = filename;
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
 async function downloadConfig() {
   const btn = $('dlBtn');
   btn.disabled = true;
   btn.textContent = t('btn.download.busy');
   try {
-    const raw = await (await fetchData(state.device.id + '/' + state.source.config)).text();
-    const text = applyToConfig(raw, effectiveSelection());
-    const blob = new Blob([text], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    const now = new Date();
-    const pad = (n) => String(n).padStart(2, '0');
-    const stamp = String(now.getFullYear()).slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) +
-      '_' + pad(now.getHours()) + pad(now.getMinutes());   // 浏览器本地时间 / browser-local time
-    a.download = [state.device.id, stamp, state.source.id, state.version.id, state.variant.id].join('-') + '.config';
-    a.click();
-    URL.revokeObjectURL(a.href);
+    const text = await generateConfigText();
+    downloadBlob(text, 'text/plain;charset=utf-8',
+      [state.device.id, localStamp(), state.source.id, state.version.id, state.variant.id].join('-') + '.config');
   } catch (err) {
     alert(t('btn.download.fail', { msg: err.message }));
   } finally {
@@ -973,23 +984,10 @@ function openSubmitModal() {
   const plugins = sel.normal.map((p) => p.id)
     .concat(sel.forced.map((p) => '+' + p.id))
     .concat(sel.removed.map((p) => '-' + p.id));
-  const payload = {
-    device: state.device.id, source: state.source.id, version: state.version.id,
-    variant: state.variant.id, plugins, tag, lanip: state.lanip,
-  };
-  if (state.rootpw) payload.rootpw = state.rootpw;   // 留空不进载荷 / omitted when empty
-  // 开发者模式的原始软件包操作:'-' 前缀表示移除内置 / raw package ops from developer mode; '-' prefix means remove a builtin
-  const rawOps = state.advanced ? [...devPkgs].concat([...devRemoved].map((n) => '-' + n)) : [];
-  if (rawOps.length) payload.packages = rawOps;
-  const title = '[build] ' + tag + ' · ' + payload.device + '/' + payload.source + '/' + payload.version + '/' + payload.variant;
-  const body = '提交后请勿修改本 issue,机器人会自动开始构建并在评论区回复进度与产物位置。\n\n' +
-    '```json\n' + JSON.stringify(payload, null, 2) + '\n```\n';
-  const issueUrl = 'https://github.com/' + repo + '/issues/new?title=' + encodeURIComponent(title) + '&body=' + encodeURIComponent(body);
-  const dispatchUrl = 'https://github.com/' + repo + '/actions/workflows/custom-build.yml';
-  const dispatchParams = 'device: ' + payload.device + '\nsource: ' + payload.source + '\nversion: ' + payload.version +
-    '\nvariant: ' + payload.variant + '\nplugins: ' + plugins.join(' ') + '\ntag: ' + tag + '\nlanip: ' + payload.lanip +
-    (payload.rootpw ? '\nrootpw: ' + payload.rootpw : '') +
-    (payload.packages ? '\npackages: ' + payload.packages.join(' ') : '');
+  const title = '[build] ' + tag + ' · ' + state.device.id + '/' + state.source.id + '/' +
+    state.version.id + '/' + state.variant.id;
+  const issueUrl = 'https://github.com/' + repo + '/issues/new?template=custom-build.yml&title=' +
+    encodeURIComponent(title);
 
   openModal(t('btn.submit'));
   const mb = $('modalBody');
@@ -1004,7 +1002,7 @@ function openSubmitModal() {
   });
   mb.appendChild(sum);
 
-  const card = (titleKey, descText, btnKey, href, extra) => {
+  const card = (titleKey, descText, btnKey, onClick) => {
     const c = document.createElement('div');
     c.className = 'method-card';
     const h = document.createElement('h4');
@@ -1013,21 +1011,43 @@ function openSubmitModal() {
     const p = document.createElement('p');
     p.textContent = descText;
     c.appendChild(p);
-    if (extra) c.appendChild(extra);
-    const a = document.createElement('a');
-    a.className = 'btn' + (btnKey === 'submit.m1.btn' ? ' btn-primary' : '');
-    a.href = href; a.target = '_blank'; a.rel = 'noopener';
-    a.textContent = t(btnKey);
-    c.appendChild(a);
+    const button = document.createElement('button');
+    button.className = 'btn btn-primary';
+    button.type = 'button';
+    button.textContent = t(btnKey);
+    button.addEventListener('click', onClick);
+    c.appendChild(button);
     mb.appendChild(c);
   };
-  card('submit.m1.title', state.mode === 'self' ? t('submit.m1.descSelf') : t('submit.m1.desc'), 'submit.m1.btn', issueUrl);
-  const ta = document.createElement('textarea');
-  ta.className = 'copy-area';
-  ta.readOnly = true;
-  ta.value = dispatchParams;
-  ta.addEventListener('click', () => ta.select());
-  card('submit.m2.title', t('submit.m2.desc'), 'submit.m2.btn', dispatchUrl, ta);
+  card('submit.m1.title', state.mode === 'self' ? t('submit.m1.descSelf') : t('submit.m1.desc'),
+    'submit.m1.btn', async (event) => {
+      const button = event.currentTarget;
+      const issueWindow = window.open('about:blank', '_blank');
+      button.disabled = true;
+      try {
+        const config = await generateConfigText();
+        const rawOps = state.advanced ? [...devPkgs].concat([...devRemoved].map((n) => '-' + n)) : [];
+        const payload = {
+          schema: 3,
+          generatedAt: new Date().toISOString(),
+          configId: [state.device.id, state.source.id, state.version.id, state.variant.id].join('/'),
+          device: state.device.id, source: state.source.id, version: state.version.id,
+          variant: state.variant.id, plugins, tag, lanip: state.lanip, config,
+        };
+        if (state.rootpw) payload.rootpw = state.rootpw;
+        if (rawOps.length) payload.packages = rawOps;
+        const filename = ['build-request', state.device.id, localStamp(), state.source.id,
+          state.version.id, state.variant.id].join('-') + '.json';
+        downloadBlob(JSON.stringify(payload, null, 2) + '\n', 'application/json;charset=utf-8', filename);
+        if (issueWindow) issueWindow.location.href = issueUrl;
+        else window.open(issueUrl, '_blank', 'noopener');
+      } catch (err) {
+        if (issueWindow) issueWindow.close();
+        alert(t('btn.download.fail', { msg: err.message }));
+      } finally {
+        button.disabled = false;
+      }
+    });
 
   const p3 = document.createElement('p');
   p3.textContent = t('submit.footer', { tag });
