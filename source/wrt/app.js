@@ -33,9 +33,12 @@ const state = {
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
 let DEVICES = null, PLUGINS = null, I18N = null;
+let PLUG_I18N = null;                  // 插件名/说明多语言表,非中文界面按需加载 / plugin name/desc i18n table, lazy-loaded for non-Chinese UIs
+let plugI18nLoading = false;           // 防止重复请求 / guards against duplicate fetches
 let PKGDATA = null;                    // 开发者模式的全量软件包表,按需加载 / raw package table, lazy-loaded in developer mode
 const devPkgs = new Set();             // 开发者勾选编入的原始包 / raw packages to build in (=y)
 const devRemoved = new Set();          // 开发者取消的已内置原始包 / builtin raw packages to remove
+let devAllowGrey = false;              // V10:灰色插件二级门禁,不落盘,每次都从未勾开始 / V10: second gate for grey plugins; never persisted, always starts unticked
 const collapsed = new Set();
 
 const $ = (id) => document.getElementById(id);
@@ -46,6 +49,8 @@ function pickLang() {
   if (state.lang && I18N.strings['app.title'] && I18N.strings['app.title'][state.lang]) return state.lang;
   const avail = I18N.languages.map((l) => l.id);
   for (const nav of navigator.languages || [navigator.language || '']) {
+    // 中文细分:zh-TW/zh-HK/zh-Hant* → 繁中,其余 zh 一律简中 / Chinese split: zh-TW/zh-HK/zh-Hant* → Traditional, any other zh → Simplified
+    if (/^zh(-|$)/i.test(nav)) return /^zh-(TW|HK|Hant)/i.test(nav) ? 'zh-TW' : 'zh-CN';
     if (avail.includes(nav)) return nav;
     const base = nav.split('-')[0];
     const hit = avail.find((a) => a === base || a.split('-')[0] === base);
@@ -61,7 +66,42 @@ function t(key, params) {
 }
 const isZh = () => String(state.lang).startsWith('zh');
 
+/* ============ 插件名/说明多语言 / Plugin name & description i18n ============ */
+/* 非中文界面惰性加载 plugins-i18n.json,一次性缓存;失败静默回退原文 / Lazily load plugins-i18n.json for non-Chinese UIs, cache once; fall back to original text silently on failure */
+function ensurePlugI18n() {
+  if (isZh() || PLUG_I18N || plugI18nLoading) return;
+  plugI18nLoading = true;
+  loadJson('plugins-i18n.json')
+    .then((d) => { PLUG_I18N = d; if (PLUGINS) renderGroups(); })
+    .catch(() => { /* 加载失败静默回退原文,下次语言切换可重试 / Silent fallback to original text; next language switch may retry */ })
+    .finally(() => { plugI18nLoading = false; });
+}
+/* 展示层取词:中文界面(简繁 zh* 均含)维持原行为(名称打码/说明原文,插件暂不繁译),其他语言走 目标语→en→原文 回退链且不打码 / Display-layer lookup: any Chinese UI (all zh*, Simplified & Traditional) keeps the original behavior (masked name / raw desc, plugins not yet translated to Traditional); other languages use target→en→original fallback without masking */
+function pName(p) {
+  if (isZh()) return maskText(p.name);
+  const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
+  const m = row && row.name;
+  return (m && (m[state.lang] || m[FALLBACK])) || p.name;
+}
+function pDesc(p) {
+  if (isZh()) return maskText(p.desc || '');
+  const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
+  const m = row && row.desc;
+  return (m && (m[state.lang] || m[FALLBACK])) || p.desc || '';
+}
+
+/* V8c:体积人性化显示,输入单位为 MB / V8c: human-readable size, input value in MB */
+function fmtSize(mb) {
+  mb = Number(mb) || 0;
+  if (mb >= 1000) return (Math.round(mb / 100) / 10) + ' GB';   // 一位小数,整数时自然去掉 .0 / one decimal; trailing .0 drops naturally
+  if (mb >= 0.95) return (Math.round(mb * 10) / 10) + ' MB';
+  const kb = mb * 1024;
+  if (kb >= 1) return Math.round(kb) + ' KB';
+  return Math.max(0, Math.round(kb * 1024)) + ' B';
+}
+
 function applyI18n() {
+  ensurePlugI18n();   // 非中文界面需要插件译名,未加载则触发并在完成后重渲染 / non-Chinese UIs need translated plugin names; trigger the load, re-render on completion
   document.documentElement.lang = state.lang;
   document.title = 'Wei.G · ' + t('app.title');   // 品牌名不随语言变 / brand name stays across languages
   document.querySelectorAll('[data-i18n]').forEach((el) => { el.textContent = t(el.dataset.i18n); });
@@ -209,6 +249,7 @@ async function init() {
     renderModes();
     applyI18n();
     $('advMode').checked = state.advanced;
+    resetAdvGrey();   // V10:门禁行随记忆的开发者模式显隐,但永远从未勾开始 / V10: gate row follows the remembered developer mode, but always starts unticked
     $('loading').hidden = true;
     $('form').hidden = false;
     $('actionbar').hidden = false;
@@ -219,13 +260,15 @@ async function init() {
   }
 }
 
+/* 下拉里中文用精简双字名,其余语言用自称 / Chinese uses short two-char labels in the dropdown; other languages keep their native names */
+const LANG_SHORT = { 'zh-CN': '简中', 'zh-TW': '繁中' };
 function renderLangSel() {
   const sel = $('langSel');
   sel.textContent = '';
   for (const l of I18N.languages) {
     const o = document.createElement('option');
     o.value = l.id;
-    o.textContent = l.native || l.name;
+    o.textContent = LANG_SHORT[l.id] || l.native || l.name;
     if (l.id === state.lang) o.selected = true;
     sel.appendChild(o);
   }
@@ -415,6 +458,14 @@ function pluginState(p) {
 }
 const byId = (id) => PLUGINS.plugins.find((x) => x.id === id);
 
+/* 搜索匹配串:原文名/说明/id/包名 + en 名 + 当前语言名,任何语言下输英文名或本语言名都能命中 / Search haystack: original name/desc/id/package name + English name + current-language name, so English or localized names match in any UI language */
+function searchHay(p) {
+  const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
+  const nm = row && row.name;
+  return [p.id, p.name, p.desc || '', (state.source && p.pkgs[state.source.id]) || p.pkg || '',
+    (nm && nm[FALLBACK]) || '', (nm && nm[state.lang]) || ''].join(' ').toLowerCase();
+}
+
 function renderGroups() {
   const box = $('groups');
   box.textContent = '';
@@ -425,7 +476,7 @@ function renderGroups() {
   for (const g of PLUGINS.groups) {
     const items = PLUGINS.plugins.filter((p) => p.group === g)
       .filter((p) => !hotOnly || p.hot)
-      .filter((p) => !kw || p.id.includes(kw) || p.name.toLowerCase().includes(kw) || (p.desc || '').toLowerCase().includes(kw));
+      .filter((p) => !kw || searchHay(p).includes(kw));
     if (!items.length) continue;
 
     const group = document.createElement('div');
@@ -460,6 +511,7 @@ function renderGroups() {
       if (collapsed.has(g)) collapsed.delete(g); else collapsed.add(g);
       group.classList.toggle('collapsed');
       head.setAttribute('aria-expanded', String(!collapsed.has(g)));
+      if (!collapsed.has(g)) fitPluginNames(group);   // 折叠时量不到高度,展开后补测 / heights are unmeasurable while collapsed, so re-check on expand
     });
     group.appendChild(head);
 
@@ -477,17 +529,39 @@ function renderGroups() {
   }
   updateLegend();
   updateGroupBadges();
+  fitPluginNames();
 }
+
+/* V11:插件名适配:默认单行,溢出先缩 1px,再分两行,再缩 1px(共 −2px),极端长名靠两行内省略号兜底 / V11: plugin-name fitting: single line by default; on overflow shrink 1px, then wrap to two lines, then shrink 1px more (−2px total); extreme names fall back to the two-line ellipsis */
+function fitOneName(el) {
+  el.classList.remove('fit-s1', 'two-line', 'fit-s2');
+  if (!el.clientWidth) return;   // 折叠分组量不到尺寸,展开时再补测 / collapsed groups are unmeasurable; re-checked on expand
+  const over = () => el.scrollWidth > el.clientWidth + 1 || el.scrollHeight > el.clientHeight + 1;
+  if (!over()) return;
+  el.classList.add('fit-s1');    // ① 字号 −1px / step 1: font −1px
+  if (!over()) return;
+  el.classList.add('two-line');  // ② 允许两行 / step 2: allow two lines
+  if (!over()) return;
+  el.classList.remove('fit-s1');
+  el.classList.add('fit-s2');    // ③ 再 −1px(共 −2px),到此为止 / step 3: another −1px (−2px total); stop here
+}
+function fitPluginNames(scope) {
+  (scope || document).querySelectorAll('.plugin-name').forEach(fitOneName);
+}
+/* 窗口尺寸变化后防抖重测 / debounced re-fit on window resize */
+let fitTimer = 0;
+window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fitPluginNames(), 150); });
 
 /* 插件项只显示名字以保持列表紧凑,说明收进气泡,点名字才弹出 / Plugin rows show only the name to keep the list compact; details live in a popover opened by clicking the name */
 function renderPlugin(p) {
   const st = pluginState(p);
   const adv = state.advanced;
+  const canForce = adv && devAllowGrey;   // V10:灰色项需开发者模式 + 二级门禁双开 / V10: grey items need developer mode AND the second gate
   // 必选项(locked):内置且任何模式都不可取消 / locked items stay checked & disabled even in advanced mode
   const lockedItem = p.locked && st === 'builtin';
   const item = document.createElement('div');
   item.className = 'plugin' +
-    (st === 'unavailable' ? (adv ? ' plugin-forceable' : ' plugin-disabled') : '') +
+    (st === 'unavailable' ? (canForce ? ' plugin-forceable' : ' plugin-disabled') : '') +
     (st === 'builtin' ? (adv && !lockedItem ? ' plugin-removable' : ' plugin-builtin') : '');
 
   const cbId = 'pcb-' + p.id;
@@ -496,11 +570,17 @@ function renderPlugin(p) {
   cb.id = cbId;
   cb.dataset.pid = p.id;
   cb.checked = st === 'builtin' ? !state.removed.has(p.id) : state.sel.has(p.id);
-  cb.disabled = lockedItem || (!adv && st !== 'ok');
-  cb.setAttribute('aria-label', maskText(p.name));
+  // V10:灰色项只看双开关,其余沿用旧规则 / V10: grey items obey the double gate; everything else keeps the old rule
+  cb.disabled = lockedItem || (st === 'unavailable' ? !canForce : (!adv && st !== 'ok'));
+  cb.setAttribute('aria-label', pName(p));
   cb.addEventListener('change', () => {
     if (st === 'builtin') {
-      if (cb.checked) state.removed.delete(p.id); else state.removed.add(p.id);
+      if (cb.checked) {
+        state.removed.delete(p.id);
+      } else {
+        state.removed.add(p.id);
+        if (p.warn) showToast(t(p.warn));   // 取消高风险内置项时同样提示 / warn when removing a risky builtin too
+      }
     } else if (cb.checked) {
       state.sel.add(p.id);
       applyRequires(p);
@@ -516,14 +596,14 @@ function renderPlugin(p) {
   const nameBtn = document.createElement('button');
   nameBtn.type = 'button';
   nameBtn.className = 'plugin-name';
-  nameBtn.appendChild(document.createTextNode(maskText(p.name)));
+  nameBtn.appendChild(document.createTextNode(pName(p)));
   if (p.hot) {
     const hot = document.createElement('span');
     hot.className = 'hot';
     hot.textContent = t('plugin.hot');
     nameBtn.appendChild(hot);
   }
-  if (adv && st === 'unavailable') {
+  if (canForce && st === 'unavailable') {
     const f = document.createElement('span');
     f.className = 'flag flag-force';
     f.textContent = t('adv.forced');
@@ -537,13 +617,13 @@ function renderPlugin(p) {
   }
   const detail = (st === 'builtin' ? t('plugin.builtin')
     : st === 'unavailable' ? t('plugin.unavailable')
-    : maskText(p.desc || '')) + (p.warn ? '\n' + t(p.warn) : '');
+    : pDesc(p)) + (p.warn ? '\n' + t(p.warn) : '');
   const pkg = p.pkgs[state.source.id] || p.pkg;
   nameBtn.title = detail;
   nameBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    showPopover(nameBtn, maskText(p.name), detail + '\n' + pkg + ' · ' + t('drawer.size', { n: p.size || 1 }));
+    showPopover(nameBtn, pName(p), detail + '\n' + pkg + ' · ' + t('drawer.size', { n: fmtSize(p.size || 1) }));
   });
   item.appendChild(nameBtn);
   return item;
@@ -558,13 +638,13 @@ function applyRequires(p) {
     state.sel.add(rid);
     const cb = document.querySelector('input[data-pid="' + rid + '"]');
     if (cb) cb.checked = true;
-    added.push(rp.name);
+    added.push(pName(rp));
   }
-  if (added.length) showToast(t('toast.depAdded', { list: maskText(added.join('、')) }));
+  if (added.length) showToast(t('toast.depAdded', { list: added.join('、') }));
 }
 function warnDependents(p) {
   const deps = PLUGINS.plugins.filter((q) => state.sel.has(q.id) && q.requires && q.requires.includes(p.id));
-  if (deps.length) showToast(t('toast.depWarn', { list: maskText(deps.map((q) => q.name).join('、')) }));
+  if (deps.length) showToast(t('toast.depWarn', { list: deps.map((q) => pName(q)).join('、') }));
 }
 
 /* ============ 开发者模式:全量软件包搜索 / developer mode: raw package browser ============ */
@@ -628,6 +708,34 @@ function renderPkgList() {
 let pkgSearchTimer = 0;
 $('pkgSearch').addEventListener('input', () => { clearTimeout(pkgSearchTimer); pkgSearchTimer = setTimeout(renderPkgList, 150); });
 
+/* V10:清掉已强制勾选的灰色项并轻提示,门禁取消与关闭开发者模式共用 / V10: drop force-selected grey items with a light toast; shared by gate-off and developer-mode-off */
+function clearForcedGrey() {
+  const dropped = [];
+  for (const id of [...state.sel]) {
+    const p = byId(id);
+    if (p && pluginState(p) !== 'ok') { state.sel.delete(id); dropped.push(pName(p)); }
+  }
+  if (dropped.length) showToast(t('drawer.inactive', { list: dropped.join('、') }));
+}
+/* V10:门禁复位:不记忆,开发者模式每次开/关都回到未勾 / V10: reset the gate; no memory — it returns to unticked on every developer-mode flip */
+function resetAdvGrey() {
+  devAllowGrey = false;
+  $('advGrey').checked = false;
+  $('advGreyRow').hidden = !state.advanced;
+}
+/* V10:灰色门禁子开关:勾选必须过确认弹窗,取消立即清理强制项 / V10: the grey-gate sub-toggle; ticking requires a confirm dialog, unticking cleans forced items at once */
+$('advGrey').addEventListener('change', () => {
+  if ($('advGrey').checked) {
+    if (!confirm(t('adv.grey.confirm'))) { $('advGrey').checked = false; return; }   // 取消则回弹不勾 / cancel bounces it back unticked
+    devAllowGrey = true;
+  } else {
+    devAllowGrey = false;
+    clearForcedGrey();
+  }
+  renderGroups();
+  updateStats();
+});
+
 /* 开发者模式开关(原"高级模式") / developer-mode toggle (formerly advanced mode) */
 $('advMode').addEventListener('change', () => {
   if ($('advMode').checked) {
@@ -637,11 +745,12 @@ $('advMode').addEventListener('change', () => {
   } else {
     state.advanced = false;
     // 关闭时清掉仅开发者模式才成立的选择,避免普通模式携带非法状态 / On turning off, drop selections only valid in developer mode so normal mode never carries illegal state
-    for (const id of [...state.sel]) { const p = byId(id); if (p && pluginState(p) !== 'ok') state.sel.delete(id); }
+    clearForcedGrey();
     state.removed.clear();
     devPkgs.clear();
     devRemoved.clear();
   }
+  resetAdvGrey();   // V10:门禁随开发者模式开/关一律复位 / V10: the gate resets on every developer-mode flip
   safeSet('wrt_adv', state.advanced ? '1' : '0');
   renderGroups();
   updateStats();
@@ -715,7 +824,7 @@ function openSelectedDrawer() {
     const row = document.createElement('div');
     row.className = 'sel-row';
     const name = document.createElement('span');
-    name.textContent = maskText(p.name);
+    name.textContent = pName(p);
     if (kind) {
       const f = document.createElement('span');
       f.className = 'flag ' + (kind === 'force' ? 'flag-force' : 'flag-remove');
@@ -724,12 +833,12 @@ function openSelectedDrawer() {
     }
     const sz = document.createElement('span');
     sz.className = 'sel-size';
-    sz.textContent = t('drawer.size', { n: p.size || 1 });
+    sz.textContent = t('drawer.size', { n: fmtSize(p.size || 1) });
     const rm = document.createElement('button');
     rm.type = 'button';
     rm.className = 'sel-rm';
     rm.textContent = '✕';
-    rm.setAttribute('aria-label', t('drawer.remove', { name: maskText(p.name) }));
+    rm.setAttribute('aria-label', t('drawer.remove', { name: pName(p) }));
     rm.addEventListener('click', () => {
       if (kind === 'remove') state.removed.delete(p.id); else state.sel.delete(p.id);
       const cb = document.querySelector('input[data-pid="' + p.id + '"]');
@@ -747,7 +856,7 @@ function openSelectedDrawer() {
   if (inactive.length) {
     const note = document.createElement('p');
     note.className = 'hint';
-    note.textContent = t('drawer.inactive', { list: maskText(inactive.map((p) => p.name).join('、')) });
+    note.textContent = t('drawer.inactive', { list: inactive.map((p) => pName(p)).join('、') });
     mb.appendChild(note);
   }
 }
@@ -793,7 +902,11 @@ async function downloadConfig() {
     const blob = new Blob([text], { type: 'text/plain' });
     const a = document.createElement('a');
     a.href = URL.createObjectURL(blob);
-    a.download = [state.device.id, state.source.id, state.version.id, state.variant.id].join('-') + '.config';
+    const now = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const stamp = String(now.getFullYear()).slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) +
+      '_' + pad(now.getHours()) + pad(now.getMinutes());   // 浏览器本地时间 / browser-local time
+    a.download = [state.device.id, stamp, state.source.id, state.version.id, state.variant.id].join('-') + '.config';
     a.click();
     URL.revokeObjectURL(a.href);
   } catch (err) {
@@ -873,7 +986,7 @@ function openSubmitModal() {
   sum.textContent = t('submit.summary', {
     device: state.device.name, source: state.source.label, version: state.version.label,
     variant: state.variant.name, n: plugins.length,
-    list: plugins.length ? ':' + maskText(sel.all.concat(sel.removed).map((p) => p.name).join('、')) : '',
+    list: plugins.length ? ':' + sel.all.concat(sel.removed).map((p) => pName(p)).join('、') : '',
     tag,
   });
   mb.appendChild(sum);
@@ -1010,19 +1123,36 @@ async function runSelfTest() {
 }
 $('selfTestBtn').addEventListener('click', () => { runSelfTest().catch((e) => showToast(t('toast.selfTestError', { msg: e.message }))); });
 
-/* ============ 密度切换:舒适(默认,字大)/紧凑 / Density toggle: comfortable (default) vs compact ============ */
-let dense = localStorage.getItem('wrt_density') === '1';
-function applyDensity() {
-  document.body.classList.toggle('dense', dense);
-  $('densityBtn').title = t(dense ? 'density.compact' : 'density.comfort');
-  $('densityBtn').setAttribute('aria-label', $('densityBtn').title);
+/* ============ V11:Aa 字号面板(整页缩放),替代旧密度切换 / V11: Aa font-size panel (whole-page zoom), replaces the old density toggle ============ */
+const FONT_DEF = 17, FONT_MIN = 14, FONT_MAX = 24;
+let fontPx = parseInt(localStorage.getItem('wrt_font'), 10);
+if (!fontPx && localStorage.getItem('wrt_density') === '1') { fontPx = 16; safeSet('wrt_font', '16'); }   // 旧紧凑档用户迁移为 16px / legacy compact-density users migrate to 16px
+try { localStorage.removeItem('wrt_density'); } catch (e) { /* 隐私模式可能抛错,忽略 / may throw in private mode; ignore */ }
+if (!(fontPx >= FONT_MIN && fontPx <= FONT_MAX)) fontPx = FONT_DEF;
+function applyFont(px, save) {
+  fontPx = Math.min(FONT_MAX, Math.max(FONT_MIN, Math.round(Number(px)) || FONT_DEF));
+  document.body.style.zoom = fontPx === FONT_DEF ? '' : String(fontPx / FONT_DEF);   // 17px = 原始大小 / 17px = original size
+  $('fontInput').value = fontPx;
+  if (save) safeSet('wrt_font', String(fontPx));
+  fitPluginNames();   // 缩放改变有效布局宽度,重测名称适配 / zoom changes the effective layout width; re-fit names
 }
-$('densityBtn').addEventListener('click', () => {
-  dense = !dense;
-  applyDensity();
-  safeSet('wrt_density', dense ? '1' : '0');
+function toggleFontPanel(show) {
+  const open = show !== undefined ? show : $('fontPanel').hidden;
+  if (!open && $('fontPanel').contains(document.activeElement)) $('densityBtn').focus();   // 关闭时焦点还给 Aa / hand focus back to Aa on close
+  $('fontPanel').hidden = !open;
+  $('densityBtn').setAttribute('aria-expanded', String(open));
+  if (open) $('fontDec').focus();
+}
+$('densityBtn').addEventListener('click', (e) => { e.stopPropagation(); toggleFontPanel(); });
+$('fontDec').addEventListener('click', () => applyFont(fontPx - 1, true));
+$('fontInc').addEventListener('click', () => applyFont(fontPx + 1, true));
+$('fontReset').addEventListener('click', () => applyFont(FONT_DEF, true));
+$('fontInput').addEventListener('change', () => applyFont($('fontInput').value, true));
+document.addEventListener('click', (e) => {
+  if (!$('fontPanel').hidden && !$('fontPanel').contains(e.target)) toggleFontPanel(false);   // 点外部关闭 / close on outside click
 });
-applyDensity();
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape') toggleFontPanel(false); });
+applyFont(fontPx, false);
 
 /* ============ 使用说明弹窗:序号徽章 + 引号关键词高亮 / Help modal: numbered badges + quoted-keyword highlights ============ */
 $('helpBtn').addEventListener('click', () => {
@@ -1056,8 +1186,11 @@ $('helpBtn').addEventListener('click', () => {
   }
 });
 
-/* ============ 悬浮坞收起/展开(桌面端,记忆状态) / dock collapse toggle (desktop, persisted) ============ */
-if (localStorage.getItem('wrt_dock') === '1') $('sideDock').classList.add('collapsed');
+/* ============ 悬浮坞收起/展开(记忆状态;手机首次默认只留 ⚙) / dock collapse toggle (persisted; first mobile visit starts as gear only) ============ */
+const savedDock = localStorage.getItem('wrt_dock');
+if (savedDock === '1' || (savedDock === null && matchMedia('(max-width: 560px)').matches)) {
+  $('sideDock').classList.add('collapsed');
+}
 $('dockToggle').setAttribute('aria-expanded', String(!$('sideDock').classList.contains('collapsed')));
 $('dockToggle').addEventListener('click', () => {
   const collapsed = $('sideDock').classList.toggle('collapsed');

@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=4">
+<link rel="stylesheet" href="app.css?v=6">
 </head>
 <body>
 <header class="site-header">
@@ -35,8 +35,20 @@
   <div class="dock-items">
     <select id="langSel" class="lang-sel" aria-label="界面语言"></select>
     <button class="text-btn" id="selfTestBtn" type="button" data-i18n="btn.selfTest" data-i18n-title="btn.selfTest.title">自检</button>
-    <button class="icon-btn" id="densityBtn" type="button" aria-label="显示密度">Aa</button>
+    <button class="icon-btn" id="densityBtn" type="button" data-i18n-title="font.label" data-i18n-aria="font.label" aria-haspopup="dialog" aria-expanded="false" aria-controls="fontPanel">Aa</button>
     <button class="icon-btn" id="themeBtn" type="button" aria-label="主题">◐</button>
+  </div>
+</div>
+
+<!-- V11:Aa 字号面板,毛玻璃小卡,点外部关闭 / V11: Aa font-size panel, small glassy card, closes on outside click -->
+<div class="font-panel" id="fontPanel" hidden role="dialog" aria-labelledby="fontLabel">
+  <span class="font-title" id="fontLabel" data-i18n="font.label">字号</span>
+  <div class="font-row">
+    <button type="button" class="icon-btn font-btn" id="fontDec" aria-label="A−">A−</button>
+    <input type="number" id="fontInput" class="font-input" min="14" max="24" step="1" inputmode="numeric" aria-labelledby="fontLabel">
+    <span class="font-unit" aria-hidden="true">px</span>
+    <button type="button" class="icon-btn font-btn" id="fontInc" aria-label="A+">A+</button>
+    <button type="button" class="text-btn font-reset" id="fontReset" data-i18n="font.reset">重置</button>
   </div>
 </div>
 
@@ -88,6 +100,11 @@
       <div class="toolbar">
         <input type="search" id="searchBox" data-i18n-ph="search.placeholder" data-i18n-aria="search.aria">
         <label class="hot-only"><input type="checkbox" id="hotOnly"> <span data-i18n="filter.hotOnly">只看热门</span></label>
+      </div>
+      <!-- V10:灰色插件二级门禁,仅开发者模式可见,永远从未勾状态开始 / V10: second gate for grey plugins, developer-mode only, always starts unticked -->
+      <div class="adv-grey" id="advGreyRow" hidden>
+        <label class="adv-grey-toggle" for="advGrey"><input type="checkbox" id="advGrey"> <span data-i18n="adv.grey.toggle">允许强制勾选灰色插件</span></label>
+        <span class="hint" data-i18n="adv.grey.hint"></span>
       </div>
       <div class="group devpkg" id="devpkgBox" hidden>
         <div class="group-head devpkg-head"><span class="group-ico" aria-hidden="true">📦</span><span data-i18n="devpkg.title"></span><span class="group-count" id="devpkgCount"></span></div>
@@ -168,6 +185,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=4"></script>
+<script src="app.js?v=6"></script>
 </body>
 </html>

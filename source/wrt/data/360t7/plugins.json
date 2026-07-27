@@ -24,14 +24,13 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "block-mount",
-    "ImmortalWrt": "block-mount",
-    "padavanonly": "block-mount"
+    "ImmortalWrt": "block-mount"
    },
    "pkg": "block-mount",
    "hot": true,
+   "warn": "warn.blockMount",
    "builtin": {
-    "hanwckf": true,
-    "padavanonly": true
+    "hanwckf": true
    }
   },
   {
@@ -42,15 +41,14 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "dnsmasq-full",
-    "ImmortalWrt": "dnsmasq-full",
-    "padavanonly": "dnsmasq-full"
+    "ImmortalWrt": "dnsmasq-full"
    },
    "pkg": "dnsmasq-full",
    "hot": true,
+   "warn": "warn.dnsmasqFull",
    "builtin": {
     "hanwckf": true,
-    "ImmortalWrt": true,
-    "padavanonly": true
+    "ImmortalWrt": true
    }
   },
   {
@@ -61,8 +59,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "openssh-sftp-server",
-    "ImmortalWrt": "openssh-sftp-server",
-    "padavanonly": "openssh-sftp-server"
+    "ImmortalWrt": "openssh-sftp-server"
    },
    "pkg": "openssh-sftp-server",
    "hot": true,
@@ -78,15 +75,13 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "busybox",
-    "ImmortalWrt": "busybox",
-    "padavanonly": "busybox"
+    "ImmortalWrt": "busybox"
    },
    "pkg": "busybox",
    "locked": true,
    "builtin": {
     "hanwckf": true,
-    "ImmortalWrt": true,
-    "padavanonly": true
+    "ImmortalWrt": true
    }
   },
   {
@@ -97,13 +92,11 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "curl",
-    "ImmortalWrt": "curl",
-    "padavanonly": "curl"
+    "ImmortalWrt": "curl"
    },
    "pkg": "curl",
    "builtin": {
-    "hanwckf": true,
-    "padavanonly": true
+    "hanwckf": true
    }
   },
   {
@@ -114,15 +107,13 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "dropbear",
-    "ImmortalWrt": "dropbear",
-    "padavanonly": "dropbear"
+    "ImmortalWrt": "dropbear"
    },
    "pkg": "dropbear",
    "locked": true,
    "builtin": {
     "hanwckf": true,
-    "ImmortalWrt": true,
-    "padavanonly": true
+    "ImmortalWrt": true
    }
   },
   {
@@ -133,15 +124,13 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "firewall",
-    "ImmortalWrt": "firewall4",
-    "padavanonly": "firewall"
+    "ImmortalWrt": "firewall4"
    },
    "pkg": "firewall",
    "locked": true,
    "builtin": {
     "hanwckf": true,
-    "ImmortalWrt": true,
-    "padavanonly": true
+    "ImmortalWrt": true
    }
   },
   {
@@ -152,15 +141,13 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "fstools",
-    "ImmortalWrt": "fstools",
-    "padavanonly": "fstools"
+    "ImmortalWrt": "fstools"
    },
    "pkg": "fstools",
    "locked": true,
    "builtin": {
     "hanwckf": true,
-    "ImmortalWrt": true,
-    "padavanonly": true
+    "ImmortalWrt": true
    }
   },
   {
@@ -171,8 +158,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "htop",
-    "ImmortalWrt": "htop",
-    "padavanonly": "htop"
+    "ImmortalWrt": "htop"
    },
    "pkg": "htop",
    "builtin": {
@@ -187,8 +173,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "kmod-usb-storage",
-    "ImmortalWrt": "kmod-usb-storage",
-    "padavanonly": "kmod-usb-storage"
+    "ImmortalWrt": "kmod-usb-storage"
    },
    "pkg": "kmod-usb-storage"
   },
@@ -200,13 +185,11 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "nano",
-    "ImmortalWrt": "nano",
-    "padavanonly": "nano"
+    "ImmortalWrt": "nano"
    },
    "pkg": "nano",
    "builtin": {
-    "hanwckf": true,
-    "padavanonly": true
+    "hanwckf": true
    }
   },
   {
@@ -217,8 +200,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "tcpdump",
-    "ImmortalWrt": "tcpdump",
-    "padavanonly": "tcpdump"
+    "ImmortalWrt": "tcpdump"
    },
    "pkg": "tcpdump",
    "builtin": {
@@ -234,7 +216,6 @@
    "pkgs": {
     "hanwckf": "luci-app-adblock",
     "ImmortalWrt": "luci-app-adblock",
-    "padavanonly": "luci-app-adblock",
     "OpenWrt": "luci-app-adblock"
    },
    "pkg": "luci-app-adblock",
@@ -249,7 +230,6 @@
    "pkgs": {
     "hanwckf": "luci-app-smartdns",
     "ImmortalWrt": "luci-app-smartdns",
-    "padavanonly": "luci-app-smartdns",
     "OpenWrt": "luci-app-smartdns"
    },
    "pkg": "luci-app-smartdns",
@@ -274,8 +254,7 @@
    "size": 4,
    "pkgs": {
     "hanwckf": "luci-app-adbyby-plus",
-    "ImmortalWrt": "luci-app-adbyby-plus",
-    "padavanonly": "luci-app-adbyby-plus"
+    "ImmortalWrt": "luci-app-adbyby-plus"
    },
    "pkg": "luci-app-adbyby-plus"
   },
@@ -288,7 +267,6 @@
    "pkgs": {
     "hanwckf": "luci-app-dnscrypt-proxy",
     "ImmortalWrt": "luci-app-dnscrypt-proxy",
-    "padavanonly": "luci-app-dnscrypt-proxy",
     "OpenWrt": "luci-app-dnscrypt-proxy"
    },
    "pkg": "luci-app-dnscrypt-proxy"
@@ -301,8 +279,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-dnsforwarder",
-    "ImmortalWrt": "luci-app-dnsforwarder",
-    "padavanonly": "luci-app-dnsforwarder"
+    "ImmortalWrt": "luci-app-dnsforwarder"
    },
    "pkg": "luci-app-dnsforwarder"
   },
@@ -315,7 +292,6 @@
    "pkgs": {
     "hanwckf": "luci-app-https-dns-proxy",
     "ImmortalWrt": "luci-app-https-dns-proxy",
-    "padavanonly": "luci-app-https-dns-proxy",
     "OpenWrt": "luci-app-https-dns-proxy"
    },
    "pkg": "luci-app-https-dns-proxy"
@@ -342,7 +318,6 @@
    "pkgs": {
     "hanwckf": "luci-app-privoxy",
     "ImmortalWrt": "luci-app-privoxy",
-    "padavanonly": "luci-app-privoxy",
     "OpenWrt": "luci-app-privoxy"
    },
    "pkg": "luci-app-privoxy"
@@ -355,8 +330,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-simple-adblock",
-    "ImmortalWrt": "luci-app-simple-adblock",
-    "padavanonly": "luci-app-simple-adblock"
+    "ImmortalWrt": "luci-app-simple-adblock"
    },
    "pkg": "luci-app-simple-adblock"
   },
@@ -369,7 +343,6 @@
    "pkgs": {
     "hanwckf": "luci-app-unbound",
     "ImmortalWrt": "luci-app-unbound",
-    "padavanonly": "luci-app-unbound",
     "OpenWrt": "luci-app-unbound"
    },
    "pkg": "luci-app-unbound"
@@ -383,7 +356,6 @@
    "pkgs": {
     "hanwckf": "luci-app-ddns",
     "ImmortalWrt": "luci-app-ddns",
-    "padavanonly": "luci-app-ddns",
     "OpenWrt": "luci-app-ddns"
    },
    "pkg": "luci-app-ddns",
@@ -411,7 +383,6 @@
    "pkgs": {
     "hanwckf": "luci-app-frpc",
     "ImmortalWrt": "luci-app-frpc",
-    "padavanonly": "luci-app-frpc",
     "OpenWrt": "luci-app-frpc"
    },
    "pkg": "luci-app-frpc",
@@ -425,8 +396,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-wireguard",
-    "ImmortalWrt": "luci-proto-wireguard",
-    "padavanonly": "luci-app-wireguard"
+    "ImmortalWrt": "luci-proto-wireguard"
    },
    "pkg": "luci-app-wireguard",
    "hot": true
@@ -439,8 +409,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-zerotier",
-    "ImmortalWrt": "luci-app-zerotier",
-    "padavanonly": "luci-app-zerotier"
+    "ImmortalWrt": "luci-app-zerotier"
    },
    "pkg": "luci-app-zerotier",
    "hot": true
@@ -453,8 +422,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-aliddns",
-    "ImmortalWrt": "luci-app-aliddns",
-    "padavanonly": "luci-app-aliddns"
+    "ImmortalWrt": "luci-app-aliddns"
    },
    "pkg": "luci-app-aliddns"
   },
@@ -491,7 +459,6 @@
    "pkgs": {
     "hanwckf": "luci-app-frps",
     "ImmortalWrt": "luci-app-frps",
-    "padavanonly": "luci-app-frps",
     "OpenWrt": "luci-app-frps"
    },
    "pkg": "luci-app-frps"
@@ -504,8 +471,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-ipsec-vpnd",
-    "ImmortalWrt": "luci-app-ipsec-vpnd",
-    "padavanonly": "luci-app-ipsec-vpnd"
+    "ImmortalWrt": "luci-app-ipsec-vpnd"
    },
    "pkg": "luci-app-ipsec-vpnd"
   },
@@ -517,8 +483,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-ipsec-vpnserver-manyusers",
-    "ImmortalWrt": "luci-app-ipsec-vpnserver-manyusers",
-    "padavanonly": "luci-app-ipsec-vpnserver-manyusers"
+    "ImmortalWrt": "luci-app-ipsec-vpnserver-manyusers"
    },
    "pkg": "luci-app-ipsec-vpnserver-manyusers"
   },
@@ -541,8 +506,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-n2n",
-    "ImmortalWrt": "luci-app-n2n",
-    "padavanonly": "luci-app-n2n_v2"
+    "ImmortalWrt": "luci-app-n2n"
    },
    "pkg": "luci-app-n2n"
   },
@@ -567,8 +531,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-ngrokc",
-    "ImmortalWrt": "luci-app-ngrokc",
-    "padavanonly": "luci-app-ngrokc"
+    "ImmortalWrt": "luci-app-ngrokc"
    },
    "pkg": "luci-app-ngrokc"
   },
@@ -580,8 +543,7 @@
    "size": 5,
    "pkgs": {
     "hanwckf": "luci-app-nps",
-    "ImmortalWrt": "luci-app-nps",
-    "padavanonly": "luci-app-nps"
+    "ImmortalWrt": "luci-app-nps"
    },
    "pkg": "luci-app-nps"
   },
@@ -594,7 +556,6 @@
    "pkgs": {
     "hanwckf": "luci-app-ocserv",
     "ImmortalWrt": "luci-app-ocserv",
-    "padavanonly": "luci-app-ocserv",
     "OpenWrt": "luci-app-ocserv"
    },
    "pkg": "luci-app-ocserv"
@@ -608,7 +569,6 @@
    "pkgs": {
     "hanwckf": "luci-app-openvpn",
     "ImmortalWrt": "luci-app-openvpn",
-    "padavanonly": "luci-app-openvpn",
     "OpenWrt": "luci-app-openvpn"
    },
    "pkg": "luci-app-openvpn"
@@ -621,8 +581,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-openvpn-server",
-    "ImmortalWrt": "luci-app-openvpn-server",
-    "padavanonly": "luci-app-openvpn-server"
+    "ImmortalWrt": "luci-app-openvpn-server"
    },
    "pkg": "luci-app-openvpn-server"
   },
@@ -635,7 +594,6 @@
    "pkgs": {
     "hanwckf": "luci-app-pagekitec",
     "ImmortalWrt": "luci-app-pagekitec",
-    "padavanonly": "luci-app-pagekitec",
     "OpenWrt": "luci-app-pagekitec"
    },
    "pkg": "luci-app-pagekitec"
@@ -661,8 +619,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-softethervpn",
-    "ImmortalWrt": "luci-app-softethervpn",
-    "padavanonly": "luci-app-softethervpn"
+    "ImmortalWrt": "luci-app-softethervpn"
    },
    "pkg": "luci-app-softethervpn"
   },
@@ -674,8 +631,7 @@
    "size": 10,
    "pkgs": {
     "hanwckf": "luci-app-softethervpn5",
-    "ImmortalWrt": "luci-app-softethervpn5",
-    "padavanonly": "luci-app-softethervpn5"
+    "ImmortalWrt": "luci-app-softethervpn5"
    },
    "pkg": "luci-app-softethervpn5"
   },
@@ -711,7 +667,6 @@
    "pkgs": {
     "hanwckf": "luci-app-aria2",
     "ImmortalWrt": "luci-app-aria2",
-    "padavanonly": "luci-app-aria2",
     "OpenWrt": "luci-app-aria2"
    },
    "pkg": "luci-app-aria2",
@@ -725,8 +680,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-diskman",
-    "ImmortalWrt": "luci-app-diskman",
-    "padavanonly": "luci-app-diskman"
+    "ImmortalWrt": "luci-app-diskman"
    },
    "pkg": "luci-app-diskman",
    "hot": true
@@ -740,7 +694,6 @@
    "pkgs": {
     "hanwckf": "luci-app-ksmbd",
     "ImmortalWrt": "luci-app-ksmbd",
-    "padavanonly": "luci-app-ksmbd",
     "OpenWrt": "luci-app-ksmbd"
    },
    "pkg": "luci-app-ksmbd",
@@ -754,8 +707,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-qbittorrent",
-    "ImmortalWrt": "luci-app-qbittorrent",
-    "padavanonly": "luci-app-qbittorrent"
+    "ImmortalWrt": "luci-app-qbittorrent"
    },
    "pkg": "luci-app-qbittorrent",
    "hot": true
@@ -769,7 +721,6 @@
    "pkgs": {
     "hanwckf": "luci-app-samba4",
     "ImmortalWrt": "luci-app-samba4",
-    "padavanonly": "luci-app-samba4",
     "OpenWrt": "luci-app-samba4"
    },
    "pkg": "luci-app-samba4",
@@ -784,7 +735,6 @@
    "pkgs": {
     "hanwckf": "luci-app-transmission",
     "ImmortalWrt": "luci-app-transmission",
-    "padavanonly": "luci-app-transmission",
     "OpenWrt": "luci-app-transmission"
    },
    "pkg": "luci-app-transmission",
@@ -798,8 +748,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-amule",
-    "ImmortalWrt": "luci-app-amule",
-    "padavanonly": "luci-app-amule"
+    "ImmortalWrt": "luci-app-amule"
    },
    "pkg": "luci-app-amule"
   },
@@ -811,8 +760,7 @@
    "size": 10,
    "pkgs": {
     "hanwckf": "luci-app-baidupcs-web",
-    "ImmortalWrt": "luci-app-baidupcs-web",
-    "padavanonly": "luci-app-baidupcs-web"
+    "ImmortalWrt": "luci-app-baidupcs-web"
    },
    "pkg": "luci-app-baidupcs-web"
   },
@@ -824,8 +772,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-cifs",
-    "ImmortalWrt": "luci-app-cifs",
-    "padavanonly": "luci-app-cifs"
+    "ImmortalWrt": "luci-app-cifs"
    },
    "pkg": "luci-app-cifs"
   },
@@ -837,8 +784,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-cifs-mount",
-    "ImmortalWrt": "luci-app-cifs-mount",
-    "padavanonly": "luci-app-cifs-mount"
+    "ImmortalWrt": "luci-app-cifs-mount"
    },
    "pkg": "luci-app-cifs-mount"
   },
@@ -850,8 +796,7 @@
    "size": 10,
    "pkgs": {
     "hanwckf": "luci-app-filebrowser",
-    "ImmortalWrt": "luci-app-filebrowser",
-    "padavanonly": "luci-app-filebrowser"
+    "ImmortalWrt": "luci-app-filebrowser"
    },
    "pkg": "luci-app-filebrowser"
   },
@@ -863,8 +808,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-gowebdav",
-    "ImmortalWrt": "luci-app-gowebdav",
-    "padavanonly": "luci-app-gowebdav"
+    "ImmortalWrt": "luci-app-gowebdav"
    },
    "pkg": "luci-app-gowebdav"
   },
@@ -877,7 +821,6 @@
    "pkgs": {
     "hanwckf": "luci-app-hd-idle",
     "ImmortalWrt": "luci-app-hd-idle",
-    "padavanonly": "luci-app-hd-idle",
     "OpenWrt": "luci-app-hd-idle"
    },
    "pkg": "luci-app-hd-idle"
@@ -890,8 +833,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-kodexplorer",
-    "ImmortalWrt": "luci-app-kodexplorer",
-    "padavanonly": "luci-app-kodexplorer"
+    "ImmortalWrt": "luci-app-kodexplorer"
    },
    "pkg": "luci-app-kodexplorer"
   },
@@ -903,8 +845,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-nfs",
-    "ImmortalWrt": "luci-app-nfs",
-    "padavanonly": "luci-app-nfs"
+    "ImmortalWrt": "luci-app-nfs"
    },
    "pkg": "luci-app-nfs"
   },
@@ -917,7 +858,6 @@
    "pkgs": {
     "hanwckf": "luci-app-radicale",
     "ImmortalWrt": "luci-app-radicale",
-    "padavanonly": "luci-app-radicale",
     "OpenWrt": "luci-app-radicale"
    },
    "pkg": "luci-app-radicale"
@@ -943,8 +883,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-rclone",
-    "ImmortalWrt": "luci-app-rclone",
-    "padavanonly": "luci-app-rclone"
+    "ImmortalWrt": "luci-app-rclone"
    },
    "pkg": "luci-app-rclone"
   },
@@ -954,9 +893,7 @@
    "group": "存储与下载",
    "desc": "查看硬盘SMART健康状态",
    "size": 1,
-   "pkgs": {
-    "padavanonly": "luci-app-smartinfo"
-   },
+   "pkgs": {},
    "pkg": "luci-app-smartinfo"
   },
   {
@@ -967,8 +904,7 @@
    "size": 10,
    "pkgs": {
     "hanwckf": "luci-app-syncthing",
-    "ImmortalWrt": "luci-app-syncthing",
-    "padavanonly": "luci-app-syncthing"
+    "ImmortalWrt": "luci-app-syncthing"
    },
    "pkg": "luci-app-syncthing"
   },
@@ -980,8 +916,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-verysync",
-    "ImmortalWrt": "luci-app-verysync",
-    "padavanonly": "luci-app-verysync"
+    "ImmortalWrt": "luci-app-verysync"
    },
    "pkg": "luci-app-verysync"
   },
@@ -993,8 +928,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-vsftpd",
-    "ImmortalWrt": "luci-app-vsftpd",
-    "padavanonly": "luci-app-vsftpd"
+    "ImmortalWrt": "luci-app-vsftpd"
    },
    "pkg": "luci-app-vsftpd"
   },
@@ -1007,7 +941,6 @@
    "pkgs": {
     "hanwckf": "luci-app-minidlna",
     "ImmortalWrt": "luci-app-minidlna",
-    "padavanonly": "luci-app-minidlna",
     "OpenWrt": "luci-app-minidlna"
    },
    "pkg": "luci-app-minidlna",
@@ -1021,8 +954,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-unblockmusic",
-    "ImmortalWrt": "luci-app-unblockneteasemusic",
-    "padavanonly": "luci-app-unblockmusic"
+    "ImmortalWrt": "luci-app-unblockneteasemusic"
    },
    "pkg": "luci-app-unblockmusic",
    "hot": true
@@ -1035,8 +967,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-airplay2",
-    "ImmortalWrt": "luci-app-airplay2",
-    "padavanonly": "luci-app-airplay2"
+    "ImmortalWrt": "luci-app-airplay2"
    },
    "pkg": "luci-app-airplay2"
   },
@@ -1046,9 +977,7 @@
    "group": "多媒体与外设",
    "desc": "USB 打印机网络共享",
    "size": 8,
-   "pkgs": {
-    "padavanonly": "luci-app-cupsd"
-   },
+   "pkgs": {},
    "pkg": "luci-app-cupsd"
   },
   {
@@ -1060,7 +989,6 @@
    "pkgs": {
     "hanwckf": "luci-app-mjpg-streamer",
     "ImmortalWrt": "luci-app-mjpg-streamer",
-    "padavanonly": "luci-app-mjpg-streamer",
     "OpenWrt": "luci-app-mjpg-streamer"
    },
    "pkg": "luci-app-mjpg-streamer"
@@ -1073,8 +1001,7 @@
    "size": 5,
    "pkgs": {
     "hanwckf": "luci-app-music-remote-center",
-    "ImmortalWrt": "luci-app-music-remote-center",
-    "padavanonly": "luci-app-music-remote-center"
+    "ImmortalWrt": "luci-app-music-remote-center"
    },
    "pkg": "luci-app-music-remote-center"
   },
@@ -1086,8 +1013,7 @@
    "size": 4,
    "pkgs": {
     "hanwckf": "luci-app-nginx-pingos",
-    "ImmortalWrt": "luci-app-nginx-pingos",
-    "padavanonly": "luci-app-nginx-pingos"
+    "ImmortalWrt": "luci-app-nginx-pingos"
    },
    "pkg": "luci-app-nginx-pingos"
   },
@@ -1112,8 +1038,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-oled",
-    "ImmortalWrt": "luci-app-oled",
-    "padavanonly": "luci-app-oled"
+    "ImmortalWrt": "luci-app-oled"
    },
    "pkg": "luci-app-oled"
   },
@@ -1125,8 +1050,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-oscam",
-    "ImmortalWrt": "luci-app-oscam",
-    "padavanonly": "luci-app-oscam"
+    "ImmortalWrt": "luci-app-oscam"
    },
    "pkg": "luci-app-oscam"
   },
@@ -1139,7 +1063,6 @@
    "pkgs": {
     "hanwckf": "luci-app-p910nd",
     "ImmortalWrt": "luci-app-p910nd",
-    "padavanonly": "luci-app-p910nd",
     "OpenWrt": "luci-app-p910nd"
    },
    "pkg": "luci-app-p910nd"
@@ -1152,8 +1075,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-ps3netsrv",
-    "ImmortalWrt": "luci-app-ps3netsrv",
-    "padavanonly": "luci-app-ps3netsrv"
+    "ImmortalWrt": "luci-app-ps3netsrv"
    },
    "pkg": "luci-app-ps3netsrv"
   },
@@ -1179,7 +1101,6 @@
    "pkgs": {
     "hanwckf": "luci-app-shairplay",
     "ImmortalWrt": "luci-app-shairplay",
-    "padavanonly": "luci-app-shairplay",
     "OpenWrt": "luci-app-shairplay"
    },
    "pkg": "luci-app-shairplay"
@@ -1192,8 +1113,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-smstool",
-    "ImmortalWrt": "luci-app-smstool",
-    "padavanonly": "luci-app-smstool"
+    "ImmortalWrt": "luci-app-smstool"
    },
    "pkg": "luci-app-smstool"
   },
@@ -1204,8 +1124,7 @@
    "desc": "Go 内核版本,与标准版二选一",
    "size": 4,
    "pkgs": {
-    "hanwckf": "luci-app-unblockneteasemusic-go",
-    "padavanonly": "luci-app-unblockneteasemusic-go"
+    "hanwckf": "luci-app-unblockneteasemusic-go"
    },
    "pkg": "luci-app-unblockneteasemusic-go"
   },
@@ -1217,8 +1136,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-usb-printer",
-    "ImmortalWrt": "luci-app-usb-printer",
-    "padavanonly": "luci-app-usb-printer"
+    "ImmortalWrt": "luci-app-usb-printer"
    },
    "pkg": "luci-app-usb-printer"
   },
@@ -1231,7 +1149,6 @@
    "pkgs": {
     "hanwckf": "luci-app-mwan3",
     "ImmortalWrt": "luci-app-mwan3",
-    "padavanonly": "luci-app-mwan3",
     "OpenWrt": "luci-app-mwan3"
    },
    "pkg": "luci-app-mwan3",
@@ -1246,7 +1163,6 @@
    "pkgs": {
     "hanwckf": "luci-app-sqm",
     "ImmortalWrt": "luci-app-sqm",
-    "padavanonly": "luci-app-sqm",
     "OpenWrt": "luci-app-sqm"
    },
    "pkg": "luci-app-sqm",
@@ -1261,7 +1177,6 @@
    "pkgs": {
     "hanwckf": "luci-app-upnp",
     "ImmortalWrt": "luci-app-upnp",
-    "padavanonly": "luci-app-upnp",
     "OpenWrt": "luci-app-upnp"
    },
    "pkg": "luci-app-upnp",
@@ -1276,7 +1191,6 @@
    "pkgs": {
     "hanwckf": "luci-app-dawn",
     "ImmortalWrt": "luci-app-dawn",
-    "padavanonly": "luci-app-dawn",
     "OpenWrt": "luci-app-dawn"
    },
    "pkg": "luci-app-dawn"
@@ -1290,7 +1204,6 @@
    "pkgs": {
     "hanwckf": "luci-app-dynapoint",
     "ImmortalWrt": "luci-app-dynapoint",
-    "padavanonly": "luci-app-dynapoint",
     "OpenWrt": "luci-app-dynapoint"
    },
    "pkg": "luci-app-dynapoint"
@@ -1303,8 +1216,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-eqos",
-    "ImmortalWrt": "luci-app-eqos",
-    "padavanonly": "luci-app-eqos"
+    "ImmortalWrt": "luci-app-eqos"
    },
    "pkg": "luci-app-eqos"
   },
@@ -1316,8 +1228,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-guest-wifi",
-    "ImmortalWrt": "luci-app-guest-wifi",
-    "padavanonly": "luci-app-guest-wifi"
+    "ImmortalWrt": "luci-app-guest-wifi"
    },
    "pkg": "luci-app-guest-wifi"
   },
@@ -1329,8 +1240,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-haproxy-tcp",
-    "ImmortalWrt": "luci-app-haproxy-tcp",
-    "padavanonly": "luci-app-haproxy-tcp"
+    "ImmortalWrt": "luci-app-haproxy-tcp"
    },
    "pkg": "luci-app-haproxy-tcp"
   },
@@ -1342,8 +1252,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-iptvhelper",
-    "ImmortalWrt": "luci-app-iptvhelper",
-    "padavanonly": "luci-app-iptvhelper"
+    "ImmortalWrt": "luci-app-iptvhelper"
    },
    "pkg": "luci-app-iptvhelper"
   },
@@ -1378,8 +1287,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-mwan3helper",
-    "ImmortalWrt": "luci-app-mwan3helper",
-    "padavanonly": "luci-app-mwan3helper"
+    "ImmortalWrt": "luci-app-mwan3helper"
    },
    "pkg": "luci-app-mwan3helper",
    "requires": [
@@ -1395,7 +1303,6 @@
    "pkgs": {
     "hanwckf": "luci-app-nft-qos",
     "ImmortalWrt": "luci-app-nft-qos",
-    "padavanonly": "luci-app-nft-qos",
     "OpenWrt": "luci-app-nft-qos"
    },
    "pkg": "luci-app-nft-qos"
@@ -1445,8 +1352,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-pppoe-relay",
-    "ImmortalWrt": "luci-app-pppoe-relay",
-    "padavanonly": "luci-app-pppoe-relay"
+    "ImmortalWrt": "luci-app-pppoe-relay"
    },
    "pkg": "luci-app-pppoe-relay"
   },
@@ -1458,8 +1364,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-pppoe-server",
-    "ImmortalWrt": "luci-app-pppoe-server",
-    "padavanonly": "luci-app-pppoe-server"
+    "ImmortalWrt": "luci-app-pppoe-server"
    },
    "pkg": "luci-app-pppoe-server"
   },
@@ -1472,7 +1377,6 @@
    "pkgs": {
     "hanwckf": "luci-app-qos",
     "ImmortalWrt": "luci-app-qos",
-    "padavanonly": "luci-app-qos",
     "OpenWrt": "luci-app-qos"
    },
    "pkg": "luci-app-qos"
@@ -1486,7 +1390,6 @@
    "pkgs": {
     "hanwckf": "luci-app-rp-pppoe-server",
     "ImmortalWrt": "luci-app-rp-pppoe-server",
-    "padavanonly": "luci-app-rp-pppoe-server",
     "OpenWrt": "luci-app-rp-pppoe-server"
    },
    "pkg": "luci-app-rp-pppoe-server"
@@ -1499,8 +1402,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-socat",
-    "ImmortalWrt": "luci-app-socat",
-    "padavanonly": "luci-app-socat"
+    "ImmortalWrt": "luci-app-socat"
    },
    "pkg": "luci-app-socat"
   },
@@ -1512,8 +1414,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-syncdial",
-    "ImmortalWrt": "luci-app-syncdial",
-    "padavanonly": "luci-app-syncdial"
+    "ImmortalWrt": "luci-app-syncdial"
    },
    "pkg": "luci-app-syncdial"
   },
@@ -1526,7 +1427,6 @@
    "pkgs": {
     "hanwckf": "luci-app-travelmate",
     "ImmortalWrt": "luci-app-travelmate",
-    "padavanonly": "luci-app-travelmate",
     "OpenWrt": "luci-app-travelmate"
    },
    "pkg": "luci-app-travelmate"
@@ -1540,7 +1440,6 @@
    "pkgs": {
     "hanwckf": "luci-app-udpxy",
     "ImmortalWrt": "luci-app-udpxy",
-    "padavanonly": "luci-app-udpxy",
     "OpenWrt": "luci-app-udpxy"
    },
    "pkg": "luci-app-udpxy"
@@ -1563,8 +1462,7 @@
    "desc": "按IP端口灵活分流VPN流量",
    "size": 1,
    "pkgs": {
-    "hanwckf": "luci-app-vpn-policy-routing",
-    "padavanonly": "luci-app-vpn-policy-routing"
+    "hanwckf": "luci-app-vpn-policy-routing"
    },
    "pkg": "luci-app-vpn-policy-routing"
   },
@@ -1575,8 +1473,7 @@
    "desc": "指定网站或设备不走VPN",
    "size": 1,
    "pkgs": {
-    "hanwckf": "luci-app-vpnbypass",
-    "padavanonly": "luci-app-vpnbypass"
+    "hanwckf": "luci-app-vpnbypass"
    },
    "pkg": "luci-app-vpnbypass"
   },
@@ -1588,8 +1485,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-netdata",
-    "ImmortalWrt": "luci-app-netdata",
-    "padavanonly": "luci-app-netdata"
+    "ImmortalWrt": "luci-app-netdata"
    },
    "pkg": "luci-app-netdata",
    "hot": true
@@ -1603,7 +1499,6 @@
    "pkgs": {
     "hanwckf": "luci-app-nlbwmon",
     "ImmortalWrt": "luci-app-nlbwmon",
-    "padavanonly": "luci-app-nlbwmon",
     "OpenWrt": "luci-app-nlbwmon"
    },
    "pkg": "luci-app-nlbwmon",
@@ -1617,8 +1512,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-serverchan",
-    "ImmortalWrt": "luci-app-serverchan",
-    "padavanonly": "luci-app-serverchan"
+    "ImmortalWrt": "luci-app-serverchan"
    },
    "pkg": "luci-app-serverchan",
    "hot": true
@@ -1629,9 +1523,7 @@
    "group": "监控统计",
    "desc": "查看每台设备实时流量",
    "size": 1,
-   "pkgs": {
-    "padavanonly": "luci-app-wrtbwmon"
-   },
+   "pkgs": {},
    "pkg": "luci-app-wrtbwmon",
    "hot": true
   },
@@ -1656,7 +1548,6 @@
    "pkgs": {
     "hanwckf": "luci-app-cshark",
     "ImmortalWrt": "luci-app-cshark",
-    "padavanonly": "luci-app-cshark",
     "OpenWrt": "luci-app-cshark"
    },
    "pkg": "luci-app-cshark"
@@ -1667,9 +1558,7 @@
    "group": "监控统计",
    "desc": "查看当前联网的设备",
    "size": 1,
-   "pkgs": {
-    "padavanonly": "luci-app-onliner"
-   },
+   "pkgs": {},
    "pkg": "luci-app-onliner"
   },
   {
@@ -1694,7 +1583,6 @@
    "pkgs": {
     "hanwckf": "luci-app-statistics",
     "ImmortalWrt": "luci-app-statistics",
-    "padavanonly": "luci-app-statistics",
     "OpenWrt": "luci-app-statistics"
    },
    "pkg": "luci-app-statistics"
@@ -1708,7 +1596,6 @@
    "pkgs": {
     "hanwckf": "luci-app-vnstat",
     "ImmortalWrt": "luci-app-vnstat",
-    "padavanonly": "luci-app-vnstat",
     "OpenWrt": "luci-app-vnstat"
    },
    "pkg": "luci-app-vnstat"
@@ -1734,8 +1621,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-appfilter",
-    "ImmortalWrt": "luci-app-appfilter",
-    "padavanonly": "luci-app-appfilter"
+    "ImmortalWrt": "luci-app-appfilter"
    },
    "pkg": "luci-app-appfilter",
    "hot": true
@@ -1748,8 +1634,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-timecontrol",
-    "ImmortalWrt": "luci-app-timecontrol",
-    "padavanonly": "luci-app-timecontrol"
+    "ImmortalWrt": "luci-app-timecontrol"
    },
    "pkg": "luci-app-timecontrol",
    "hot": true
@@ -1762,8 +1647,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-accesscontrol",
-    "ImmortalWrt": "luci-app-accesscontrol",
-    "padavanonly": "luci-app-accesscontrol"
+    "ImmortalWrt": "luci-app-accesscontrol"
    },
    "pkg": "luci-app-accesscontrol"
   },
@@ -1775,8 +1659,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-arpbind",
-    "ImmortalWrt": "luci-app-arpbind",
-    "padavanonly": "luci-app-arpbind"
+    "ImmortalWrt": "luci-app-arpbind"
    },
    "pkg": "luci-app-arpbind"
   },
@@ -1802,7 +1685,6 @@
    "pkgs": {
     "hanwckf": "luci-app-bcp38",
     "ImmortalWrt": "luci-app-bcp38",
-    "padavanonly": "luci-app-bcp38",
     "OpenWrt": "luci-app-bcp38"
    },
    "pkg": "luci-app-bcp38"
@@ -1815,8 +1697,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-beardropper",
-    "ImmortalWrt": "luci-app-beardropper",
-    "padavanonly": "luci-app-beardropper"
+    "ImmortalWrt": "luci-app-beardropper"
    },
    "pkg": "luci-app-beardropper"
   },
@@ -1829,7 +1710,6 @@
    "pkgs": {
     "hanwckf": "luci-app-clamav",
     "ImmortalWrt": "luci-app-clamav",
-    "padavanonly": "luci-app-clamav",
     "OpenWrt": "luci-app-clamav"
    },
    "pkg": "luci-app-clamav"
@@ -1865,7 +1745,6 @@
    "pkgs": {
     "hanwckf": "luci-app-fwknopd",
     "ImmortalWrt": "luci-app-fwknopd",
-    "padavanonly": "luci-app-fwknopd",
     "OpenWrt": "luci-app-fwknopd"
    },
    "pkg": "luci-app-fwknopd"
@@ -1879,7 +1758,6 @@
    "pkgs": {
     "hanwckf": "luci-app-splash",
     "ImmortalWrt": "luci-app-splash",
-    "padavanonly": "luci-app-splash",
     "OpenWrt": "luci-app-splash"
    },
    "pkg": "luci-app-splash"
@@ -1892,8 +1770,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-webrestriction",
-    "ImmortalWrt": "luci-app-webrestriction",
-    "padavanonly": "luci-app-webrestriction"
+    "ImmortalWrt": "luci-app-webrestriction"
    },
    "pkg": "luci-app-webrestriction"
   },
@@ -1905,8 +1782,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-weburl",
-    "ImmortalWrt": "luci-app-weburl",
-    "padavanonly": "luci-app-weburl"
+    "ImmortalWrt": "luci-app-weburl"
    },
    "pkg": "luci-app-weburl"
   },
@@ -1918,8 +1794,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-autoreboot",
-    "ImmortalWrt": "luci-app-autoreboot",
-    "padavanonly": "luci-app-autoreboot"
+    "ImmortalWrt": "luci-app-autoreboot"
    },
    "pkg": "luci-app-autoreboot",
    "hot": true
@@ -1933,7 +1808,6 @@
    "pkgs": {
     "hanwckf": "luci-app-wifischedule",
     "ImmortalWrt": "luci-app-wifischedule",
-    "padavanonly": "luci-app-wifischedule",
     "OpenWrt": "luci-app-wifischedule"
    },
    "pkg": "luci-app-wifischedule",
@@ -1948,7 +1822,6 @@
    "pkgs": {
     "hanwckf": "luci-app-wol",
     "ImmortalWrt": "luci-app-wol",
-    "padavanonly": "luci-app-wol",
     "OpenWrt": "luci-app-wol"
    },
    "pkg": "luci-app-wol",
@@ -1962,8 +1835,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-mwol",
-    "ImmortalWrt": "luci-app-mwol",
-    "padavanonly": "luci-app-mwol"
+    "ImmortalWrt": "luci-app-mwol"
    },
    "pkg": "luci-app-mwol"
   },
@@ -1975,8 +1847,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-timewol",
-    "ImmortalWrt": "luci-app-timewol",
-    "padavanonly": "luci-app-timewol"
+    "ImmortalWrt": "luci-app-timewol"
    },
    "pkg": "luci-app-timewol"
   },
@@ -1989,7 +1860,6 @@
    "pkgs": {
     "hanwckf": "luci-app-watchcat",
     "ImmortalWrt": "luci-app-watchcat",
-    "padavanonly": "luci-app-watchcat",
     "OpenWrt": "luci-app-watchcat"
    },
    "pkg": "luci-app-watchcat"
@@ -2002,8 +1872,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-airwhu",
-    "ImmortalWrt": "luci-app-airwhu",
-    "padavanonly": "luci-app-airwhu"
+    "ImmortalWrt": "luci-app-airwhu"
    },
    "pkg": "luci-app-airwhu"
   },
@@ -2027,8 +1896,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-cd8021x",
-    "ImmortalWrt": "luci-app-cd8021x",
-    "padavanonly": "luci-app-cd8021x"
+    "ImmortalWrt": "luci-app-cd8021x"
    },
    "pkg": "luci-app-cd8021x"
   },
@@ -2040,8 +1908,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-mentohust",
-    "ImmortalWrt": "luci-app-mentohust",
-    "padavanonly": "luci-app-mentohust"
+    "ImmortalWrt": "luci-app-mentohust"
    },
    "pkg": "luci-app-mentohust"
   },
@@ -2053,8 +1920,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-minieap",
-    "ImmortalWrt": "luci-app-minieap",
-    "padavanonly": "luci-app-minieap"
+    "ImmortalWrt": "luci-app-minieap"
    },
    "pkg": "luci-app-minieap"
   },
@@ -2066,8 +1932,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-njitclient",
-    "ImmortalWrt": "luci-app-njitclient",
-    "padavanonly": "luci-app-njitclient"
+    "ImmortalWrt": "luci-app-njitclient"
    },
    "pkg": "luci-app-njitclient"
   },
@@ -2079,8 +1944,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-scutclient",
-    "ImmortalWrt": "luci-app-scutclient",
-    "padavanonly": "luci-app-scutclient"
+    "ImmortalWrt": "luci-app-scutclient"
    },
    "pkg": "luci-app-scutclient"
   },
@@ -2092,8 +1956,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-sysuh3c",
-    "ImmortalWrt": "luci-app-sysuh3c",
-    "padavanonly": "luci-app-sysuh3c"
+    "ImmortalWrt": "luci-app-sysuh3c"
    },
    "pkg": "luci-app-sysuh3c"
   },
@@ -2105,8 +1968,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-argon-config",
-    "ImmortalWrt": "luci-app-argon-config",
-    "padavanonly": "luci-app-argon-config"
+    "ImmortalWrt": "luci-app-argon-config"
    },
    "pkg": "luci-app-argon-config",
    "hot": true
@@ -2119,8 +1981,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-cpufreq",
-    "ImmortalWrt": "luci-app-cpufreq",
-    "padavanonly": "luci-app-cpufreq"
+    "ImmortalWrt": "luci-app-cpufreq"
    },
    "pkg": "luci-app-cpufreq",
    "hot": true
@@ -2149,7 +2010,6 @@
    "pkgs": {
     "hanwckf": "luci-app-ttyd",
     "ImmortalWrt": "luci-app-ttyd",
-    "padavanonly": "luci-app-ttyd",
     "OpenWrt": "luci-app-ttyd"
    },
    "pkg": "luci-app-ttyd",
@@ -2177,7 +2037,6 @@
    "pkgs": {
     "hanwckf": "luci-app-acme",
     "ImmortalWrt": "luci-app-acme",
-    "padavanonly": "luci-app-acme",
     "OpenWrt": "luci-app-acme"
    },
    "pkg": "luci-app-acme"
@@ -2191,7 +2050,6 @@
    "pkgs": {
     "hanwckf": "luci-app-advanced-reboot",
     "ImmortalWrt": "luci-app-advanced-reboot",
-    "padavanonly": "luci-app-advanced-reboot",
     "OpenWrt": "luci-app-advanced-reboot"
    },
    "pkg": "luci-app-advanced-reboot"
@@ -2204,8 +2062,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-advancedsetting",
-    "ImmortalWrt": "luci-app-advancedsetting",
-    "padavanonly": "luci-app-advancedsetting"
+    "ImmortalWrt": "luci-app-advancedsetting"
    },
    "pkg": "luci-app-advancedsetting"
   },
@@ -2218,7 +2075,6 @@
    "pkgs": {
     "hanwckf": "luci-app-attendedsysupgrade",
     "ImmortalWrt": "luci-app-attendedsysupgrade",
-    "padavanonly": "luci-app-attendedsysupgrade",
     "OpenWrt": "luci-app-attendedsysupgrade"
    },
    "pkg": "luci-app-attendedsysupgrade"
@@ -2232,7 +2088,6 @@
    "pkgs": {
     "hanwckf": "luci-app-commands",
     "ImmortalWrt": "luci-app-commands",
-    "padavanonly": "luci-app-commands",
     "OpenWrt": "luci-app-commands"
    },
    "pkg": "luci-app-commands"
@@ -2245,8 +2100,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-cpulimit",
-    "ImmortalWrt": "luci-app-cpulimit",
-    "padavanonly": "luci-app-cpulimit"
+    "ImmortalWrt": "luci-app-cpulimit"
    },
    "pkg": "luci-app-cpulimit"
   },
@@ -2259,7 +2113,6 @@
    "pkgs": {
     "hanwckf": "luci-app-diag-core",
     "ImmortalWrt": "luci-app-diag-core",
-    "padavanonly": "luci-app-diag-core",
     "OpenWrt": "luci-app-diag-core"
    },
    "pkg": "luci-app-diag-core"
@@ -2272,8 +2125,7 @@
    "size": 60,
    "pkgs": {
     "hanwckf": "luci-app-docker",
-    "ImmortalWrt": "luci-app-docker",
-    "padavanonly": "luci-app-docker"
+    "ImmortalWrt": "luci-app-docker"
    },
    "pkg": "luci-app-docker",
    "warn": "warn.docker"
@@ -2286,8 +2138,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-fileassistant",
-    "ImmortalWrt": "luci-app-fileassistant",
-    "padavanonly": "luci-app-fileassistant"
+    "ImmortalWrt": "luci-app-fileassistant"
    },
    "pkg": "luci-app-fileassistant"
   },
@@ -2299,8 +2150,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-filetransfer",
-    "ImmortalWrt": "luci-app-filetransfer",
-    "padavanonly": "luci-app-filetransfer"
+    "ImmortalWrt": "luci-app-filetransfer"
    },
    "pkg": "luci-app-filetransfer"
   },
@@ -2352,7 +2202,6 @@
    "pkgs": {
     "hanwckf": "luci-app-lxc",
     "ImmortalWrt": "luci-app-lxc",
-    "padavanonly": "luci-app-lxc",
     "OpenWrt": "luci-app-lxc"
    },
    "pkg": "luci-app-lxc",
@@ -2366,8 +2215,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-ntpc",
-    "ImmortalWrt": "luci-app-ntpc",
-    "padavanonly": "luci-app-ntpc"
+    "ImmortalWrt": "luci-app-ntpc"
    },
    "pkg": "luci-app-ntpc"
   },
@@ -2379,8 +2227,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-ramfree",
-    "ImmortalWrt": "luci-app-ramfree",
-    "padavanonly": "luci-app-ramfree"
+    "ImmortalWrt": "luci-app-ramfree"
    },
    "pkg": "luci-app-ramfree"
   },
@@ -2393,7 +2240,6 @@
    "pkgs": {
     "hanwckf": "luci-app-uhttpd",
     "ImmortalWrt": "luci-app-uhttpd",
-    "padavanonly": "luci-app-uhttpd",
     "OpenWrt": "luci-app-uhttpd"
    },
    "pkg": "luci-app-uhttpd"
@@ -2406,8 +2252,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-usb3disable",
-    "ImmortalWrt": "luci-app-usb3disable",
-    "padavanonly": "luci-app-usb3disable"
+    "ImmortalWrt": "luci-app-usb3disable"
    },
    "pkg": "luci-app-usb3disable"
   },
@@ -2419,8 +2264,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-vlmcsd",
-    "ImmortalWrt": "luci-app-vlmcsd",
-    "padavanonly": "luci-app-vlmcsd"
+    "ImmortalWrt": "luci-app-vlmcsd"
    },
    "pkg": "luci-app-vlmcsd"
   },
@@ -2432,8 +2276,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-webadmin",
-    "ImmortalWrt": "luci-app-webadmin",
-    "padavanonly": "luci-app-webadmin"
+    "ImmortalWrt": "luci-app-webadmin"
    },
    "pkg": "luci-app-webadmin"
   },
@@ -2446,7 +2289,6 @@
    "pkgs": {
     "hanwckf": "luci-app-ahcp",
     "ImmortalWrt": "luci-app-ahcp",
-    "padavanonly": "luci-app-ahcp",
     "OpenWrt": "luci-app-ahcp"
    },
    "pkg": "luci-app-ahcp"
@@ -2457,9 +2299,7 @@
    "group": "其他与高级",
    "desc": "搭建 VoIP 电话系统",
    "size": 15,
-   "pkgs": {
-    "padavanonly": "luci-app-asterisk"
-   },
+   "pkgs": {},
    "pkg": "luci-app-asterisk"
   },
   {
@@ -2483,8 +2323,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-bird1-ipv4",
-    "ImmortalWrt": "luci-app-bird1-ipv4",
-    "padavanonly": "luci-app-bird1-ipv4"
+    "ImmortalWrt": "luci-app-bird1-ipv4"
    },
    "pkg": "luci-app-bird1-ipv4"
   },
@@ -2496,8 +2335,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-bird1-ipv6",
-    "ImmortalWrt": "luci-app-bird1-ipv6",
-    "padavanonly": "luci-app-bird1-ipv6"
+    "ImmortalWrt": "luci-app-bird1-ipv6"
    },
    "pkg": "luci-app-bird1-ipv6"
   },
@@ -2509,8 +2347,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-bmx6",
-    "ImmortalWrt": "luci-app-bmx6",
-    "padavanonly": "luci-app-bmx6"
+    "ImmortalWrt": "luci-app-bmx6"
    },
    "pkg": "luci-app-bmx6"
   },
@@ -2535,8 +2372,7 @@
    "size": 3,
    "pkgs": {
     "hanwckf": "luci-app-cjdns",
-    "ImmortalWrt": "luci-app-cjdns",
-    "padavanonly": "luci-app-cjdns"
+    "ImmortalWrt": "luci-app-cjdns"
    },
    "pkg": "luci-app-cjdns"
   },
@@ -2562,7 +2398,6 @@
    "pkgs": {
     "hanwckf": "luci-app-dump1090",
     "ImmortalWrt": "luci-app-dump1090",
-    "padavanonly": "luci-app-dump1090",
     "OpenWrt": "luci-app-dump1090"
    },
    "pkg": "luci-app-dump1090"
@@ -2575,8 +2410,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-hnet",
-    "ImmortalWrt": "luci-app-hnet",
-    "padavanonly": "luci-app-hnet"
+    "ImmortalWrt": "luci-app-hnet"
    },
    "pkg": "luci-app-hnet"
   },
@@ -2624,7 +2458,6 @@
    "pkgs": {
     "hanwckf": "luci-app-olsr",
     "ImmortalWrt": "luci-app-olsr",
-    "padavanonly": "luci-app-olsr",
     "OpenWrt": "luci-app-olsr"
    },
    "pkg": "luci-app-olsr"
@@ -2638,7 +2471,6 @@
    "pkgs": {
     "hanwckf": "luci-app-olsr-services",
     "ImmortalWrt": "luci-app-olsr-services",
-    "padavanonly": "luci-app-olsr-services",
     "OpenWrt": "luci-app-olsr-services"
    },
    "pkg": "luci-app-olsr-services",
@@ -2655,7 +2487,6 @@
    "pkgs": {
     "hanwckf": "luci-app-olsr-viz",
     "ImmortalWrt": "luci-app-olsr-viz",
-    "padavanonly": "luci-app-olsr-viz",
     "OpenWrt": "luci-app-olsr-viz"
    },
    "pkg": "luci-app-olsr-viz",
@@ -2670,8 +2501,7 @@
    "desc": "新一代 Mesh 组网路由协议",
    "size": 1,
    "pkgs": {
-    "ImmortalWrt": "luci-app-olsrd2",
-    "padavanonly": "luci-app-olsrd2"
+    "ImmortalWrt": "luci-app-olsrd2"
    },
    "pkg": "luci-app-olsrd2"
   },
@@ -2684,7 +2514,6 @@
    "pkgs": {
     "hanwckf": "luci-app-siitwizard",
     "ImmortalWrt": "luci-app-siitwizard",
-    "padavanonly": "luci-app-siitwizard",
     "OpenWrt": "luci-app-siitwizard"
    },
    "pkg": "luci-app-siitwizard"
@@ -2735,8 +2564,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-openclash",
-    "ImmortalWrt": "luci-app-openclash",
-    "padavanonly": "luci-app-openclash"
+    "ImmortalWrt": "luci-app-openclash"
    },
    "pkg": "luci-app-openclash",
    "hot": true
@@ -2749,8 +2577,7 @@
    "size": 25,
    "pkgs": {
     "hanwckf": "luci-app-passwall",
-    "ImmortalWrt": "luci-app-passwall",
-    "padavanonly": "luci-app-passwall"
+    "ImmortalWrt": "luci-app-passwall"
    },
    "pkg": "luci-app-passwall",
    "hot": true
@@ -2763,8 +2590,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-ssr-plus",
-    "ImmortalWrt": "luci-app-ssr-plus",
-    "padavanonly": "luci-app-ssr-plus"
+    "ImmortalWrt": "luci-app-ssr-plus"
    },
    "pkg": "luci-app-ssr-plus",
    "hot": true
@@ -2776,14 +2602,12 @@
    "desc": "硬件 NAT 流量分载加速,SDK 源已内置",
    "size": 2,
    "pkgs": {
-    "hanwckf": "luci-app-turboacc",
-    "padavanonly": "luci-app-turboacc-mtk"
+    "hanwckf": "luci-app-turboacc"
    },
    "pkg": "luci-app-turboacc",
    "hot": true,
    "builtin": {
-    "hanwckf": true,
-    "padavanonly": true
+    "hanwckf": true
    }
   },
   {
@@ -2794,8 +2618,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-brook-server",
-    "ImmortalWrt": "luci-app-brook-server",
-    "padavanonly": "luci-app-brook-server"
+    "ImmortalWrt": "luci-app-brook-server"
    },
    "pkg": "luci-app-brook-server"
   },
@@ -2807,8 +2630,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-gost",
-    "ImmortalWrt": "luci-app-gost",
-    "padavanonly": "luci-app-gost"
+    "ImmortalWrt": "luci-app-gost"
    },
    "pkg": "luci-app-gost"
   },
@@ -2820,8 +2642,7 @@
    "size": 4,
    "pkgs": {
     "hanwckf": "luci-app-kcptun",
-    "ImmortalWrt": "luci-app-kcptun",
-    "padavanonly": "luci-app-kcptun"
+    "ImmortalWrt": "luci-app-kcptun"
    },
    "pkg": "luci-app-kcptun"
   },
@@ -2845,8 +2666,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-naiveproxy",
-    "ImmortalWrt": "luci-app-naiveproxy",
-    "padavanonly": "luci-app-naiveproxy"
+    "ImmortalWrt": "luci-app-naiveproxy"
    },
    "pkg": "luci-app-naiveproxy"
   },
@@ -2859,7 +2679,6 @@
    "pkgs": {
     "hanwckf": "luci-app-polipo",
     "ImmortalWrt": "luci-app-polipo",
-    "padavanonly": "luci-app-polipo",
     "OpenWrt": "luci-app-polipo"
    },
    "pkg": "luci-app-polipo"
@@ -2873,7 +2692,6 @@
    "pkgs": {
     "hanwckf": "luci-app-shadowsocks-libev",
     "ImmortalWrt": "luci-app-shadowsocks-libev",
-    "padavanonly": "luci-app-shadowsocks-libev",
     "OpenWrt": "luci-app-shadowsocks-libev"
    },
    "pkg": "luci-app-shadowsocks-libev"
@@ -2886,8 +2704,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-speederv2",
-    "ImmortalWrt": "luci-app-speederv2",
-    "padavanonly": "luci-app-speederv2"
+    "ImmortalWrt": "luci-app-speederv2"
    },
    "pkg": "luci-app-speederv2"
   },
@@ -2900,7 +2717,6 @@
    "pkgs": {
     "hanwckf": "luci-app-squid",
     "ImmortalWrt": "luci-app-squid",
-    "padavanonly": "luci-app-squid",
     "OpenWrt": "luci-app-squid"
    },
    "pkg": "luci-app-squid"
@@ -2911,9 +2727,7 @@
    "group": "魔法与加速",
    "desc": "在路由器上开SOCKS5代理",
    "size": 1,
-   "pkgs": {
-    "padavanonly": "luci-app-ssocks"
-   },
+   "pkgs": {},
    "pkg": "luci-app-ssocks"
   },
   {
@@ -2924,8 +2738,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-ssr-libev-server",
-    "ImmortalWrt": "luci-app-ssr-libev-server",
-    "padavanonly": "luci-app-ssr-libev-server"
+    "ImmortalWrt": "luci-app-ssr-libev-server"
    },
    "pkg": "luci-app-ssr-libev-server"
   },
@@ -2937,8 +2750,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-ssr-mudb-server",
-    "ImmortalWrt": "luci-app-ssr-mudb-server",
-    "padavanonly": "luci-app-ssr-mudb-server"
+    "ImmortalWrt": "luci-app-ssr-mudb-server"
    },
    "pkg": "luci-app-ssr-mudb-server"
   },
@@ -2950,8 +2762,7 @@
    "size": 15,
    "pkgs": {
     "hanwckf": "luci-app-ssrserver-python",
-    "ImmortalWrt": "luci-app-ssrserver-python",
-    "padavanonly": "luci-app-ssrserver-python"
+    "ImmortalWrt": "luci-app-ssrserver-python"
    },
    "pkg": "luci-app-ssrserver-python"
   },
@@ -2964,7 +2775,6 @@
    "pkgs": {
     "hanwckf": "luci-app-tinyproxy",
     "ImmortalWrt": "luci-app-tinyproxy",
-    "padavanonly": "luci-app-tinyproxy",
     "OpenWrt": "luci-app-tinyproxy"
    },
    "pkg": "luci-app-tinyproxy"
@@ -2988,8 +2798,7 @@
    "size": 2,
    "pkgs": {
     "hanwckf": "luci-app-trojan-server",
-    "ImmortalWrt": "luci-app-trojan-server",
-    "padavanonly": "luci-app-trojan-server"
+    "ImmortalWrt": "luci-app-trojan-server"
    },
    "pkg": "luci-app-trojan-server"
   },
@@ -3001,8 +2810,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-udp2raw",
-    "ImmortalWrt": "luci-app-udp2raw",
-    "padavanonly": "luci-app-udp2raw"
+    "ImmortalWrt": "luci-app-udp2raw"
    },
    "pkg": "luci-app-udp2raw"
   },
@@ -3014,8 +2822,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-uugamebooster",
-    "ImmortalWrt": "luci-app-uugamebooster",
-    "padavanonly": "luci-app-uugamebooster"
+    "ImmortalWrt": "luci-app-uugamebooster"
    },
    "pkg": "luci-app-uugamebooster"
   },
@@ -3027,8 +2834,7 @@
    "size": 8,
    "pkgs": {
     "hanwckf": "luci-app-v2ray-server",
-    "ImmortalWrt": "luci-app-v2ray-server",
-    "padavanonly": "luci-app-v2ray-server"
+    "ImmortalWrt": "luci-app-v2ray-server"
    },
    "pkg": "luci-app-v2ray-server"
   },
@@ -3053,8 +2859,7 @@
    "size": 12,
    "pkgs": {
     "hanwckf": "luci-app-vssr",
-    "ImmortalWrt": "luci-app-vssr",
-    "padavanonly": "luci-app-vssr"
+    "ImmortalWrt": "luci-app-vssr"
    },
    "pkg": "luci-app-vssr"
   },
@@ -3066,8 +2871,7 @@
    "size": 1,
    "pkgs": {
     "hanwckf": "luci-app-xlnetacc",
-    "ImmortalWrt": "luci-app-xlnetacc",
-    "padavanonly": "luci-app-xlnetacc"
+    "ImmortalWrt": "luci-app-xlnetacc"
    },
    "pkg": "luci-app-xlnetacc"
   }

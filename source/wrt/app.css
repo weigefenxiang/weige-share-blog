@@ -105,11 +105,11 @@ input:focus-visible { border-color: var(--accent); }
 .header-row { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
 .brand { display: flex; align-items: center; gap: 12px; min-width: 0; }
 .brand-icon { width: 30px; height: 30px; color: var(--accent); flex: none; }
-.brand h1 { margin: 0; font-size: 20px; font-weight: 600; line-height: 1.3; }
+.brand h1 { margin: 0; font-size: 22px; font-weight: 600; line-height: 1.3; }   /* V8b:桌面基准档加大,断点缩小值不变 / V8b: bigger desktop base; breakpoint sizes unchanged */
 .brand .sub { margin: 0; font-size: 12.5px; color: var(--text2); }
 .header-actions { margin-left: auto; display: flex; align-items: center; gap: 8px; flex: none; }
 
-/* 右下角悬浮坞:语言/自检/密度/主题;手机端整体隐藏 / bottom-right floating dock (lang/self-test/density/theme); fully hidden on mobile */
+/* 右下角悬浮坞:语言/自检/字号/主题;手机端默认收成 ⚙ / bottom-right floating dock (lang/self-test/font/theme); gear-only by default on mobile */
 .side-dock {
   position: fixed; right: max(14px, env(safe-area-inset-right));
   bottom: calc(86px + env(safe-area-inset-bottom));   /* 避开吸底操作栏 / clears the sticky action bar */
@@ -138,20 +138,21 @@ input:focus-visible { border-color: var(--accent); }
   border: 1px solid var(--border); background: var(--card); color: var(--text2);
   text-decoration: none; font-size: 18px;
 }
-.icon-btn:hover { color: var(--accent-text); border-color: var(--accent); background: var(--accent-bg); }
+/* V11-⑥:hover 文字与 SVG(currentColor)一起变主题蓝,浅深主题随变量自适应 / V11-6: on hover, text and SVG (currentColor) turn accent blue together; both themes follow the variables */
+.icon-btn:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 .text-btn {
   padding: 8px 13px; border-radius: 8px; font-size: 15px;
   border: 1px solid var(--border); background: var(--card); color: var(--text2);
   white-space: nowrap;
 }
-.text-btn:hover { color: var(--accent-text); border-color: var(--accent); }
+.text-btn:hover { color: var(--accent); border-color: var(--accent); }
 .lang-sel {
   padding: 8px 9px; border-radius: 8px; font-size: 15px;
   border: 1px solid var(--border); background: var(--card); color: var(--text2);
   max-width: 110px;
   transition: color .15s ease, border-color .15s ease, background-color .15s ease;
 }
-.lang-sel:hover { color: var(--accent-text); border-color: var(--accent); background: var(--accent-bg); }
+.lang-sel:hover { color: var(--accent); border-color: var(--accent); background: var(--accent-bg); }
 
 /* 刷机风险横幅 */
 .risk-bar { background: var(--gold-bg); border-bottom: 1px solid var(--border); }
@@ -277,12 +278,23 @@ input:focus-visible { border-color: var(--accent); }
 }
 .plugin:hover { background: var(--card2); }
 .plugin input { flex: none; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
-/* 名字是按钮:单击弹出说明气泡 */
+/* 名字是按钮:单击弹出说明气泡;V11 默认单行省略号,JS 按 缩1px→两行→再缩1px 三步适配 / name is a button opening the info popover; V11 defaults to one ellipsized line, JS fits in three steps: −1px → two lines → −1px more */
 .plugin-name {
   min-width: 0; text-align: left;
   border: none; background: none; padding: 4px 0;
   font: inherit; color: var(--text); cursor: help;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 16px;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  line-height: 1.4;
+}
+.plugin-name.fit-s1 { font-size: 15px; }   /* V11 第①步:−1px / V11 step 1: −1px */
+.plugin-name.fit-s2 { font-size: 14px; }   /* V11 第③步:共 −2px / V11 step 3: −2px total */
+.plugin-name.two-line {                    /* V11 第②步:两行 clamp,极端长名省略号兜底 / V11 step 2: two-line clamp; extreme names fall back to the ellipsis */
+  white-space: normal;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-word;
 }
 .plugin-name:hover { color: var(--accent-text); }
 .plugin .hot { color: var(--gold); background: var(--gold-bg); font-size: 12.5px; margin-left: 5px; border-radius: 4px; padding: 0 4px; }
@@ -425,8 +437,11 @@ input:focus-visible { border-color: var(--accent); }
 @media (max-width: 560px) {
   .brand h1 { font-size: 16px; }
   .brand .sub { display: none; }
-  /* 手机端:悬浮坞整体隐藏(用户定);语言/主题在桌面端设置会被记住 / mobile: the dock is fully hidden per user decision */
-  .side-dock { display: none; }
+  /* 手机端保留 ⚙ 收展,首次进入由 JS 默认收起 / keep the gear toggle on mobile; JS collapses it on first visit */
+  .side-dock {
+    right: max(8px, env(safe-area-inset-right));
+    bottom: calc(132px + env(safe-area-inset-bottom));
+  }
   .plugin-grid { grid-template-columns: 1fr; }
   .plugin { border-right: none; padding: 12px 14px; }
   .plugin input { width: 18px; height: 18px; }
@@ -454,12 +469,16 @@ input:focus-visible { border-color: var(--accent); }
   .text-btn { padding: 6px 10px; font-size: 12.5px; }
 }
 
-/* 密度:紧凑档(默认为舒适档) / compact density overrides (comfortable is default) */
+/* 密度:紧凑档 CSS 保留但已退役,V11 起 JS 不再触发(改用 Aa 字号面板) / compact density CSS kept but retired; since V11 JS never toggles it (Aa font panel took over) */
 body.dense { font-size: 16.5px; }
 body.dense .pill { font-size: 15px; min-height: 38px; }
 body.dense .plugin { font-size: 15px; padding: 7px 12px; }
 body.dense .group-head { font-size: 15px; padding: 10px 12px; }
 body.dense .plugin-grid { grid-template-columns: repeat(auto-fill, minmax(132px, 1fr)); }
+/* 紧凑档下的 V11 三态字号(同样保留备用) / V11 fit sizes under compact density (kept for the same reason) */
+body.dense .plugin-name { font-size: 15px; }
+body.dense .plugin-name.fit-s1 { font-size: 14px; }
+body.dense .plugin-name.fit-s2 { font-size: 13px; }
 .flag-required { color: var(--accent-text); background: var(--accent-bg); }
 
 /* 开发者模式:全量软件包搜索视图 / developer mode raw-package browser */
@@ -474,3 +493,39 @@ body.dense .plugin-grid { grid-template-columns: repeat(auto-fill, minmax(132px,
 .pkg-item input { flex: none; width: 15px; height: 15px; accent-color: var(--warn); }
 .pkg-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-family: ui-monospace, Consolas, monospace; }
 .pkg-item .flag { flex: none; }
+
+/* V10:灰色插件二级门禁行,仅开发者模式可见 / V10: second-gate row for grey plugins, developer-mode only */
+.adv-grey {
+  display: flex; align-items: center; gap: 10px; flex-wrap: wrap;
+  padding: 8px 12px; margin-bottom: 10px;
+  background: var(--card2); border-radius: var(--radius);
+  border: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent);
+  font-size: 15px;
+}
+.adv-grey-toggle { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; color: var(--danger); font-weight: 600; }
+.adv-grey-toggle input { accent-color: var(--danger); width: 16px; height: 16px; }
+.adv-grey .hint { margin: 0; }
+
+/* V11:Aa 字号面板,毛玻璃小卡,悬浮坞左侧 / V11: Aa font-size panel, small glassy card beside the dock */
+.font-panel {
+  position: fixed; z-index: 46;
+  right: calc(64px + env(safe-area-inset-right));
+  bottom: calc(86px + env(safe-area-inset-bottom));   /* 与坞同高 / aligned with the dock */
+  max-width: calc(100vw - 88px);
+  padding: 10px 12px; border-radius: 12px;
+  background: color-mix(in srgb, var(--card) 88%, transparent);
+  border: 1px solid var(--border);
+  box-shadow: 0 6px 24px rgba(16, 24, 40, .18);
+  backdrop-filter: blur(8px);
+}
+.font-title { display: block; font-size: 13px; color: var(--text3); margin-bottom: 6px; }
+.font-row { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+.font-btn { width: 36px; height: 36px; font-size: 14px; flex: none; }
+.font-input {
+  width: 58px; text-align: center;
+  padding: 6px 4px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); color: var(--text); font: inherit; font-size: 16px;   /* ≥16px 防 iOS 聚焦放大 / ≥16px avoids the iOS focus zoom */
+}
+.font-input:focus-visible { border-color: var(--accent); outline: none; }
+.font-unit { font-size: 12.5px; color: var(--text3); }
+.font-reset { flex: none; }

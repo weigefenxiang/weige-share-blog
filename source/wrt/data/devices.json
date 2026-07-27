@@ -111,51 +111,6 @@
      ]
     },
     {
-     "id": "padavanonly",
-     "label": "padavanonly",
-     "repo": "padavanonly/immortalwrtARM",
-     "config": "padavanonly.config",
-     "diy1": "diy-immortalwrt.sh",
-     "diy2": "diy2-360T7-padavanonly.sh",
-     "desc": "MTK SDK 驱动的另一移植分支,与 hanwckf 同源异流,机型适配多,自带 turboacc-mtk 加速",
-     "versions": [
-      {
-       "id": "mt7981",
-       "label": "mt7981",
-       "branch": "mt7981",
-       "note": "该源 MT7981 专用分支"
-      }
-     ],
-     "variants": [
-      {
-       "id": "large",
-       "name": "108M 大分区",
-       "note": "需要先刷好不死 U-Boot(108M 布局),可用空间充裕",
-       "capacity": 60
-      },
-      {
-       "id": "stock",
-       "name": "原厂分区",
-       "note": "保持原厂 U-Boot 分区布局,免改分区直刷,可用空间小",
-       "capacity": 24,
-       "patch": [
-        {
-         "from": "# CONFIG_TARGET_mediatek_mt7981_DEVICE_mt7981-360-t7 is not set",
-         "to": "CONFIG_TARGET_mediatek_mt7981_DEVICE_mt7981-360-t7=y"
-        },
-        {
-         "from": "CONFIG_TARGET_mediatek_mt7981_DEVICE_mt7981-360-t7-108M=y",
-         "to": "# CONFIG_TARGET_mediatek_mt7981_DEVICE_mt7981-360-t7-108M is not set"
-        },
-        {
-         "from": "CONFIG_TARGET_PROFILE=\"DEVICE_mt7981-360-t7-108M\"",
-         "to": "CONFIG_TARGET_PROFILE=\"DEVICE_mt7981-360-t7\""
-        }
-       ]
-      }
-     ]
-    },
-    {
      "id": "OpenWrt",
      "label": "OpenWrt 官方",
      "repo": "openwrt/openwrt",
