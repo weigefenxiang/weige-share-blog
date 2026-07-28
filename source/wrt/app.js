@@ -30,11 +30,34 @@ const state = {
   mode: localStorage.getItem('wrt_mode') || 'official',
   owner: localStorage.getItem('wrt_owner') || '',
   lanip: localStorage.getItem('wrt_lanip') || '192.168.1.1',   // 后台登录地址,默认 192.168.1.1 / admin LAN IP, defaults to 192.168.1.1
+  rootpw: '',
+  rootpwAuto: false,
+  timezone: 'CST-8',
+  theme: 'luci-theme-argon',
+  ntp: 'cn',
+  opkg: 'auto',
+  siteVersion: 'v--------',
+  importedConfig: null,
+  importedConfigId: '',
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
 let DEVICES = null, PLUGINS = null, I18N = null;
 const DATA_CACHE_VERSION = 'v13-r2';
+const TIMEZONES = [
+  ['CST-8', 'Asia/Shanghai (UTC+8)'], ['UTC0', 'UTC'],
+  ['JST-9', 'Asia/Tokyo (UTC+9)'], ['EST5EDT,M3.2.0,M11.1.0', 'America/New_York'],
+];
+const NTP_PRESETS = {
+  cn: ['ntp.aliyun.com', 'time1.cloud.tencent.com', 'cn.ntp.org.cn', 'cn.pool.ntp.org'],
+  global: ['0.openwrt.pool.ntp.org', '1.openwrt.pool.ntp.org', '2.openwrt.pool.ntp.org', '3.openwrt.pool.ntp.org'],
+  cloudflare: ['time.cloudflare.com', 'time.google.com', 'time.apple.com', 'pool.ntp.org'],
+};
+const OPKG_PRESETS = {
+  auto: '@default', pku: 'mirrors.pku.edu.cn/immortalwrt',
+  tuna: 'mirrors.tuna.tsinghua.edu.cn/openwrt', official: 'downloads.openwrt.org',
+};
 let PLUG_I18N = null;                  // 插件名/说明多语言表,非中文界面按需加载 / plugin name/desc i18n table, lazy-loaded for non-Chinese UIs
+let CONFIG_MANIFEST = null;
 let plugI18nLoading = false;           // 防止重复请求 / guards against duplicate fetches
 let PKGDATA = null;                    // 开发者模式的全量软件包表,按需加载 / raw package table, lazy-loaded in developer mode
 const devPkgs = new Set();             // 开发者勾选编入的原始包 / raw packages to build in (=y)
@@ -132,6 +155,9 @@ function applyI18n() {
   hint.appendChild(mkA('https://github.com/' + OFFICIAL_REPO + '#fork-自建', t('mode.self.tutorial')));
   applyThemeIcon();
   if (PLUGINS) { renderDevices(); renderSources(); renderGroups(); updateStats(); updateLoginInfo(); }
+  if ($('deviceFold')) $('deviceFold').textContent = t($('devicePicker').hidden ? 'fold.show' : 'fold.hide');
+  updateDeviceSummary();
+  renderFirmwareSettings();
 }
 function targetRepoBase() { return OFFICIAL_REPO; }
 
@@ -257,10 +283,17 @@ async function init() {
     I18N = await loadJson('i18n.json');
     state.lang = pickLang();
     renderLangSel();
-    DEVICES = await loadJson('devices.json');
+    [DEVICES, CONFIG_MANIFEST] = await Promise.all([loadJson('devices.json'), loadJson('config-manifest.json')]);
+    try {
+      const stamp = await loadJson('site-version.json');
+      if (/^v\d{8}$/.test(stamp.version)) state.siteVersion = stamp.version;
+    } catch (e) { /* 旧部署没有版本文件时保持占位符 / old deployments keep the placeholder */ }
+    $('siteVersion').textContent = state.siteVersion;
     const first = DEVICES.devices.find((d) => d.enabled === true) || DEVICES.devices[0];
     await switchDevice(first, true);
     renderModes();
+    renderFirmwareSettings();
+    initDeviceFold();
     applyI18n();
     $('advMode').checked = state.advanced;
     resetAdvGrey();   // V10:门禁行随记忆的开发者模式显隐,但永远从未勾开始 / V10: gate row follows the remembered developer mode, but always starts unticked
@@ -350,13 +383,50 @@ function renderDevices() {
     row.appendChild(pill);
     if (state.device && d.id === state.device.id) setActive(row, pill);
   }
+  updateDeviceSummary();
+}
+
+function updateDeviceSummary() {
+  if (!state.device || !$('deviceSummary')) return;
+  $('deviceSummary').textContent = t('device.selected', {
+    brand: state.device.brand, model: state.device.name,
+  });
+}
+function setDeviceFold(folded) {
+  $('devicePicker').hidden = folded;
+  $('deviceSummary').hidden = !folded;
+  $('deviceFold').setAttribute('aria-expanded', String(!folded));
+  $('deviceFold').textContent = t(folded ? 'fold.show' : 'fold.hide');
+  safeSet('wrt_device_fold', folded ? '1' : '0');
+}
+function initDeviceFold() {
+  setDeviceFold(localStorage.getItem('wrt_device_fold') === '1');
+  $('deviceFold').addEventListener('click', () => setDeviceFold(!$('devicePicker').hidden));
+  $('deviceSummary').addEventListener('click', () => setDeviceFold(false));
+}
+
+function applySourceDefaults(previousSource) {
+  const box = $('rootpwBox');
+  if (state.source.id === 'lede') {
+    if (!box.value || state.rootpwAuto) {
+      box.value = state.rootpw = '@empty';
+      state.rootpwAuto = true;
+    }
+  } else if (state.rootpwAuto && (!previousSource || previousSource.id === 'lede')) {
+    box.value = state.rootpw = '';
+    state.rootpwAuto = false;
+  }
+  renderFirmwareSettings();
 }
 
 function renderSources() {
   const row = $('sourceRow');
   row.textContent = '';
-  state.device.sources.forEach((s, i) => {
+  const previousSource = state.source;
+  const preferred = state.device.sources.find((s) => previousSource && s.id === previousSource.id) || state.device.sources[0];
+  state.device.sources.forEach((s) => {
     const pill = makePill(s.label, s.label + ' · ' + s.repo, s.desc, () => {
+      const previousSource = state.source;
       state.source = s;
       setActive(row, pill);
       renderVersions();
@@ -365,10 +435,13 @@ function renderSources() {
       updateStats();
       updateLoginInfo();
       updateDevpkgBox();
+      applySourceDefaults(previousSource);
     });
     row.appendChild(pill);
-    if (i === 0) { state.source = s; setActive(row, pill); }
+    if (s.id === preferred.id) setActive(row, pill);
   });
+  state.source = preferred;
+  applySourceDefaults(previousSource);
   renderVersions();
   renderVariants();
 }
@@ -427,11 +500,55 @@ function renderModes() {
     else { $('lanipBox').value = state.lanip = '192.168.1.1'; safeSet('wrt_lanip', state.lanip); showToast(t('lanip.invalid')); }
   });
   // 初始密码:可选;@empty 表示清空该源自带的初始密码;不持久化(是密码) / optional initial password; @empty blanks a shipped password; never persisted
-  $('rootpwBox').addEventListener('change', () => {
+  $('rootpwBox').addEventListener('input', () => {
+    state.rootpwAuto = false;
     const v = $('rootpwBox').value.trim();
     if (v === '' || v === '@empty' || /^[A-Za-z0-9@#%^&*_+=.,:!?-]{4,32}$/.test(v)) state.rootpw = v;
-    else { $('rootpwBox').value = ''; state.rootpw = ''; showToast(t('rootpw.invalid')); }
   });
+  $('rootpwBox').addEventListener('change', () => {
+    const v = $('rootpwBox').value.trim();
+    if (!(v === '' || v === '@empty' || /^[A-Za-z0-9@#%^&*_+=.,:!?-]{4,32}$/.test(v))) {
+      $('rootpwBox').value = ''; state.rootpw = ''; showToast(t('rootpw.invalid'));
+    }
+  });
+  $('timezoneBox').addEventListener('change', () => { state.timezone = $('timezoneBox').value; });
+  $('fwThemeBox').addEventListener('change', () => { state.theme = $('fwThemeBox').value; });
+  $('ntpBox').addEventListener('change', () => { state.ntp = $('ntpBox').value; });
+  $('opkgBox').addEventListener('change', () => { state.opkg = $('opkgBox').value; });
+}
+
+function fillSelect(id, entries, current) {
+  const box = $(id);
+  box.textContent = '';
+  for (const [value, label] of entries) {
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label;
+    option.selected = value === current;
+    box.appendChild(option);
+  }
+  if (![...box.options].some((o) => o.selected)) box.selectedIndex = 0;
+  return box.value;
+}
+function renderFirmwareSettings() {
+  if (!state.source) return;
+  state.timezone = fillSelect('timezoneBox', TIMEZONES, state.timezone);
+  const themes = ['OpenWrt', 'lede'].includes(state.source.id)
+    ? [['luci-theme-bootstrap', 'Bootstrap']]
+    : [['luci-theme-argon', 'Argon'], ['luci-theme-bootstrap', 'Bootstrap'],
+      ['luci-theme-material', 'Material'], ['luci-theme-openwrt-2020', 'OpenWrt 2020']];
+  if (!themes.some(([id]) => id === state.theme)) {
+    state.theme = ['OpenWrt', 'lede'].includes(state.source.id) ? 'luci-theme-bootstrap' : 'luci-theme-argon';
+  }
+  state.theme = fillSelect('fwThemeBox', themes, state.theme);
+  state.ntp = fillSelect('ntpBox', [
+    ['cn', t('fw.ntp.cn')], ['global', t('fw.ntp.global')], ['cloudflare', t('fw.ntp.cloud')],
+  ], state.ntp);
+  const opkgEntries = [['auto', t('fw.opkg.auto')]];
+  if (state.source.id === 'OpenWrt') opkgEntries.push(['official', 'downloads.openwrt.org'], ['tuna', 'TUNA']);
+  else if (state.source.id !== 'lede') opkgEntries.push(['pku', 'PKU']);
+  if (!opkgEntries.some(([id]) => id === state.opkg)) state.opkg = 'auto';
+  state.opkg = fillSelect('opkgBox', opkgEntries, state.opkg);
 }
 
 /* 当前源的登录信息提示,root 与密码状态着色强调 / per-source login hint with colored emphasis on "root" and the password value */
@@ -910,16 +1027,25 @@ function applyToConfig(text, sel) {
     for (const name of devPkgs) setY(name);
     for (const name of devRemoved) text = text.replace('CONFIG_PACKAGE_' + name + '=y', '# CONFIG_PACKAGE_' + name + ' is not set');
   }
+  // 固件 LuCI 主题是 Kconfig 选择:先关闭配置中已有主题,再只打开用户所选主题 / firmware theme is a Kconfig choice
+  text = text.replace(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=[ym]$/gm, '# CONFIG_PACKAGE_$1 is not set');
+  setY(state.theme);
   return '# Generated by WeiG-OpenWrt-AutoBuild web customizer\n' +
+    '# page-version=' + state.siteVersion + '\n' +
     '# device=' + state.device.id + ' source=' + src + ' version=' + state.version.id +
     ' (' + state.version.branch + ') variant=' + state.variant.id + '\n' +
+    '# firmware-settings: timezone=' + state.timezone + ' theme=' + state.theme +
+    ' ntp=' + state.ntp + ' opkg=' + state.opkg + '\n' +
     '# plugins: ' + (sel.normal.map((p) => p.id).join(' ') || '(none)') + '\n' +
     (sel.forced.length ? '# forced (advanced): ' + sel.forced.map((p) => p.id).join(' ') + '\n' : '') +
     (sel.removed.length ? '# removed builtin (advanced): ' + sel.removed.map((p) => p.id).join(' ') + '\n' : '') + text;
 }
 
 async function generateConfigText() {
-  const raw = await (await fetchData(state.device.id + '/' + state.source.config)).text();
+  const configId = [state.device.id, state.source.id, state.version.id, state.variant.id].join('/');
+  const raw = state.importedConfig && state.importedConfigId === configId
+    ? state.importedConfig
+    : await (await fetchData(state.device.id + '/' + state.source.config)).text();
   return applyToConfig(raw, effectiveSelection());
 }
 
@@ -953,6 +1079,109 @@ async function downloadConfig() {
     btn.textContent = t('btn.download');
   }
 }
+
+/* ============ 加载 .config / build-request.json / config.buildinfo ============ */
+function targetLines(text) {
+  return text.replace(/\r\n/g, '\n').split('\n').filter((line) =>
+    /^CONFIG_TARGET_(?:BOARD|SUBTARGET|PROFILE)=/.test(line) ||
+    /^CONFIG_TARGET_.*_DEVICE_.*=y$/.test(line)).sort();
+}
+function configCandidates(text) {
+  const header = text.match(/^# device=([^\s]+) source=([^\s]+) version=([^\s]+).* variant=([^\s]+)$/m);
+  if (header) {
+    const id = [header[1], header[2], header[3], header[4]].join('/');
+    if (CONFIG_MANIFEST.configs[id]) return [id];
+  }
+  const signature = JSON.stringify(targetLines(text));
+  return Object.entries(CONFIG_MANIFEST.configs)
+    .filter(([, item]) => JSON.stringify([...item.target].sort()) === signature)
+    .map(([id]) => id);
+}
+function askConfigCandidate(candidates) {
+  if (candidates.length === 1) return candidates[0];
+  if (!candidates.length) throw new Error(t('import.noMatch'));
+  const list = candidates.map((id, i) => `${i + 1}. ${id}`).join('\n');
+  const answer = prompt(t('import.choose', { list }));
+  if (answer === null) return '';
+  const n = Number(answer);
+  if (!Number.isInteger(n) || n < 1 || n > candidates.length) throw new Error(t('import.badChoice'));
+  return candidates[n - 1];
+}
+async function selectConfigId(configId) {
+  const [deviceId, sourceId, versionId, variantId] = configId.split('/');
+  const device = DEVICES.devices.find((d) => d.id === deviceId && d.enabled === true);
+  if (!device) throw new Error(t('import.deviceUnavailable', { id: deviceId }));
+  if (!state.device || state.device.id !== deviceId) await switchDevice(device, false);
+  renderSources();
+  const sourceIndex = state.device.sources.findIndex((s) => s.id === sourceId);
+  if (sourceIndex < 0) throw new Error(t('import.noMatch'));
+  $('sourceRow').children[sourceIndex].click();
+  const versionIndex = state.source.versions.findIndex((v) => v.id === versionId);
+  const variantIndex = state.source.variants.findIndex((v) => v.id === variantId);
+  if (versionIndex < 0 || variantIndex < 0) throw new Error(t('import.noMatch'));
+  $('versionRow').children[versionIndex].click();
+  $('variantRow').children[variantIndex].click();
+}
+function restoreSelections(config, payload) {
+  state.sel.clear();
+  state.removed.clear();
+  const explicit = payload && Array.isArray(payload.plugins) ? payload.plugins : null;
+  for (const p of PLUGINS.plugins) {
+    const pkg = p.pkgs[state.source.id] || p.pkg;
+    const raw = explicit && explicit.find((id) => id.replace(/^[+-]/, '') === p.id);
+    if (raw) {
+      if (raw.startsWith('-')) state.removed.add(p.id);
+      else state.sel.add(p.id);
+    } else if (!explicit && new RegExp('^CONFIG_PACKAGE_' + pkg.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '=[ym]$', 'm').test(config)) {
+      state.sel.add(p.id);
+    }
+  }
+  if (payload) {
+    if (payload.tag) $('tagBox').value = String(payload.tag).slice(0, 24);
+    if (LANIP_RE.test(String(payload.lanip || ''))) $('lanipBox').value = state.lanip = payload.lanip;
+    if (payload.rootpw === '@empty' || /^[A-Za-z0-9@#%^&*_+=.,:!?-]{4,32}$/.test(String(payload.rootpw || ''))) {
+      $('rootpwBox').value = state.rootpw = payload.rootpw;
+      state.rootpwAuto = false;
+    }
+    const fw = payload.firmware || {};
+    if (TIMEZONES.some(([id]) => id === fw.timezone)) state.timezone = fw.timezone;
+    if (/^luci-theme-[A-Za-z0-9._+-]+$/.test(String(fw.theme || ''))) state.theme = fw.theme;
+    if (NTP_PRESETS[fw.ntp]) state.ntp = fw.ntp;
+    if (Object.hasOwn(OPKG_PRESETS, fw.opkg)) state.opkg = fw.opkg;
+  }
+  renderFirmwareSettings();
+  renderGroups();
+  updateStats();
+}
+async function importConfigFile(file) {
+  if (!file || file.size < 32 || file.size > 2 * 1024 * 1024) throw new Error(t('import.size'));
+  let text = await file.text();
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  if (text.includes('\0')) throw new Error(t('import.binary'));
+  let payload = null;
+  if (/\.json$/i.test(file.name) || text.trimStart().startsWith('{')) {
+    try { payload = JSON.parse(text); } catch (e) { throw new Error(t('import.jsonInvalid', { msg: e.message })); }
+    if (typeof payload.config !== 'string') throw new Error(t('import.jsonNoConfig'));
+    text = payload.config;
+  }
+  text = text.replace(/\r\n/g, '\n');
+  const candidates = configCandidates(text);
+  if (payload && payload.configId && !candidates.includes(payload.configId)) throw new Error(t('import.noMatch'));
+  const configId = payload && candidates.includes(payload.configId)
+    ? payload.configId : askConfigCandidate(candidates);
+  if (!configId) return;
+  await selectConfigId(configId);
+  state.importedConfig = text.endsWith('\n') ? text : text + '\n';
+  state.importedConfigId = configId;
+  restoreSelections(state.importedConfig, payload);
+  showToast(t('import.ok', { id: configId }));
+}
+$('importBtn').addEventListener('click', () => $('configImport').click());
+$('configImport').addEventListener('change', async () => {
+  const file = $('configImport').files[0];
+  $('configImport').value = '';
+  try { await importConfigFile(file); } catch (e) { alert(t('import.fail', { msg: e.message })); }
+});
 
 /* ============ 提交云编译 / Submit a cloud build ============ */
 function targetRepo() {
@@ -1007,11 +1236,14 @@ function openSubmitModal() {
   mb.textContent = '';
   const sum = document.createElement('div');
   sum.className = 'summary-box';
-  sum.textContent = t('submit.summary', {
-    device: state.device.name, source: state.source.label, version: state.version.label,
-    variant: state.variant.name, n: plugins.length,
-    list: plugins.length ? ':' + sel.all.concat(sel.removed).map((p) => pName(p)).join('、') : '',
-    tag,
+  sum.textContent = t('submit.confirm', {
+    brand: state.device.brand, device: state.device.name, source: state.source.label,
+    version: state.version.label, variant: state.variant.name, n: plugins.length, tag,
+    timezone: $('timezoneBox').selectedOptions[0].textContent,
+    theme: $('fwThemeBox').selectedOptions[0].textContent,
+    ntp: $('ntpBox').selectedOptions[0].textContent,
+    opkg: $('opkgBox').selectedOptions[0].textContent,
+    pageVersion: state.siteVersion,
   });
   mb.appendChild(sum);
 
@@ -1041,11 +1273,15 @@ function openSubmitModal() {
         const config = await generateConfigText();
         const rawOps = state.advanced ? [...devPkgs].concat([...devRemoved].map((n) => '-' + n)) : [];
         const payload = {
-          schema: 3,
+          schema: 4,
           generatedAt: new Date().toISOString(),
+          pageVersion: state.siteVersion,
           configId: [state.device.id, state.source.id, state.version.id, state.variant.id].join('/'),
           device: state.device.id, source: state.source.id, version: state.version.id,
           variant: state.variant.id, plugins, tag, lanip: state.lanip, config,
+          firmware: {
+            timezone: state.timezone, theme: state.theme, ntp: state.ntp, opkg: state.opkg,
+          },
         };
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;

@@ -15,7 +15,7 @@
       <img class="brand-icon" src="Wei.G-favicon_little.png" alt="Wei.G" width="34" height="34">
       <div>
         <h1><span class="brand-name">Wei.G</span> <span data-i18n="app.title">OpenWrt 固件在线定制</span></h1>
-        <p class="sub" data-i18n="app.subtitle">选好插件,云端自动编译,免费自取</p>
+        <p class="sub" data-i18n="app.subtitle">选好插件,云端自动编译,喝杯卡布奇诺，迎接开元盛世</p>
       </div>
     </div>
     <div class="header-actions">
@@ -54,8 +54,14 @@
 
 <div class="risk-bar" id="riskBar" hidden>
   <div class="wrap risk-row">
-    <span class="risk-ico" aria-hidden="true">⚠️</span>
-    <p class="risk-text" id="riskText" data-i18n="risk.text"></p>
+    <div class="risk-text" id="riskText">
+      <strong class="risk-line risk-q0" data-i18n="risk.q0">⚠️刷机前三问:</strong>
+      <span class="risk-line risk-q1" data-i18n="risk.q1">① 我的路由器真是这个型号吗?</span>
+      <span class="risk-line risk-q2" data-i18n="risk.q2">② 固件选对了吗?</span>
+      <span class="risk-line risk-q3" data-i18n="risk.q3">③ 变砖我会救吗?</span>
+      <span class="risk-tail" data-i18n="risk.tail">任何一个不确定,请放下手，今晚不用跪键盘。</span>
+      <span class="risk-disclaimer" data-i18n="risk.disclaimer">固件由社区爱好者提供,刷坏自理，风险自负。</span>
+    </div>
     <button type="button" class="btn risk-ok" id="riskOk" data-i18n="risk.ok">知道了</button>
   </div>
 </div>
@@ -67,10 +73,15 @@
   </div>
 
   <div id="form" hidden>
-    <section class="step">
-      <h2><span class="stepnum">⓪</span> <span data-i18n="step.brand">选择品牌</span> <span class="hint" data-i18n="step.device.hint"></span></h2>
-      <div class="picker-row"><span class="picker-label" data-i18n="device.brandLabel">品牌</span><div class="pill-row" id="brandRow"></div></div>
-      <div class="picker-row model-row"><span class="picker-label" data-i18n="device.modelLabel">型号</span><div class="pill-row" id="deviceRow"></div></div>
+    <section class="step device-step" id="deviceStep">
+      <h2><span class="stepnum">⓪</span> <span data-i18n="step.brand">选择品牌</span> <span class="hint" data-i18n="step.device.hint"></span>
+        <button class="fold-btn" id="deviceFold" type="button" aria-expanded="true" aria-controls="devicePicker" data-i18n="fold.hide">隐藏</button>
+      </h2>
+      <button class="device-summary" id="deviceSummary" type="button" hidden></button>
+      <div id="devicePicker">
+        <div class="picker-row"><span class="picker-label" data-i18n="device.brandLabel">品牌</span><div class="pill-row" id="brandRow"></div></div>
+        <div class="picker-row model-row"><span class="picker-label" data-i18n="device.modelLabel">型号</span><div class="pill-row" id="deviceRow"></div></div>
+      </div>
     </section>
 
     <section class="step">
@@ -127,7 +138,13 @@
       <p class="hint" id="loginInfo"></p>
       <label class="field-label" for="rootpwBox" data-i18n="rootpw.label" style="margin-top:10px"></label>
       <input type="text" id="rootpwBox" maxlength="32" autocapitalize="off" autocorrect="off" autocomplete="off">
-      <p class="hint" data-i18n="rootpw.hint"></p>
+      <p class="hint rootpw-warning"><strong data-i18n="rootpw.public">⚠️ 提交内容公开可见,密码公开！！</strong><span data-i18n="rootpw.hint">临时登录密码,刷机后必须立即修改! (lede 源 填 @empty 清成空密码）</span></p>
+      <div class="firmware-settings">
+        <label><span data-i18n="fw.timezone">时区</span><select id="timezoneBox"></select></label>
+        <label><span data-i18n="fw.theme">固件主题</span><select id="fwThemeBox"></select></label>
+        <label><span data-i18n="fw.ntp">NTP 服务器</span><select id="ntpBox"></select></label>
+        <label><span data-i18n="fw.opkg">opkg 镜像</span><select id="opkgBox"></select></label>
+      </div>
       <div class="mode-row">
         <span class="mode-label" data-i18n="mode.label">构建仓库:</span>
         <div class="pill-row" id="modeRow">
@@ -152,6 +169,9 @@
       <span class="cap-text" id="capText"></span>
     </div>
     <div class="actions">
+      <span class="site-version" id="siteVersion">v--------</span>
+      <input id="configImport" type="file" accept=".json,.config,.buildinfo,text/plain,application/json" hidden>
+      <button type="button" class="btn" id="importBtn" data-i18n="btn.import">加载配置</button>
       <button type="button" class="btn" id="dlBtn" data-i18n="btn.download">下载 .config</button>
       <button type="button" class="btn btn-primary" id="submitBtn" data-i18n="btn.submit">提交云编译</button>
     </div>
@@ -159,11 +179,20 @@
 </div>
 
 <footer class="site-footer wrap">
-  <p data-i18n="footer.note"></p>
+  <p><span data-i18n="footer.thanksLabel">【鸣谢】</span>
+     <a href="https://openwrt.org/" target="_blank" rel="noopener">OpenWrt</a> /
+     <a href="https://immortalwrt.org/" target="_blank" rel="noopener">ImmortalWrt</a> /
+     <a href="https://github.com/hanwckf/immortalwrt-mt798x" target="_blank" rel="noopener">hanwckf</a> /
+     <a href="https://github.com/coolsnowwolf/lede" target="_blank" rel="noopener">Lean</a> /
+     <a href="packages.html" target="_blank" rel="noopener" data-i18n="footer.pluginAuthors">全部插件作者</a>
+  </p>
+  <p><span data-i18n="footer.actionsPrefix">固件在</span>
+     <a href="https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild/actions" target="_blank" rel="noopener">Actions</a>
+     <span data-i18n="footer.note">页按“构建标识”命名,下载底部的 artifact。本站纯静态、开源、无后端、不收集任何信息。</span>
+  </p>
   <p><a id="footRepo" href="https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild" target="_blank" rel="noopener">GitHub</a> ·
-     <a href="https://www.weigeshare.cc.cd" target="_blank" rel="noopener">Weige Share Blog</a> ·
-     <a href="packages.html" target="_blank" rel="noopener" data-i18n="pkgpage.title">软件包用途说明</a> ·
-     <span data-i18n="footer.thanks"></span></p>
+     <a href="https://www.weigeshare.cc.cd/" target="_blank" rel="noopener">Weige Share Blog</a> ·
+     <a href="packages.html" target="_blank" rel="noopener" data-i18n="pkgpage.title">软件包用途说明</a></p>
 </footer>
 
 <div class="popover" id="popover" hidden role="tooltip">
