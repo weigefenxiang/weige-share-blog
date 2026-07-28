@@ -73,17 +73,17 @@
    "vi": "Tùy chỉnh firmware OpenWrt trực tuyến"
   },
   "app.subtitle": {
-   "zh-CN": "选好插件,云端自动编译,喝杯卡布奇诺，迎接开元盛世",
-   "zh-TW": "選好套件,雲端自動編譯,喝杯卡布奇諾，迎接開源盛世",
-   "en": "Choose plugins, build in the cloud, enjoy a cappuccino, and welcome the open-source era",
-   "ru": "Выберите плагины, соберите в облаке, выпейте капучино и встречайте эпоху открытого ПО",
-   "es": "Elige complementos, compila en la nube, toma un capuchino y celebra la era del código abierto",
-   "pt": "Escolha plugins, compile na nuvem, tome um cappuccino e celebre a era do código aberto",
-   "ja": "プラグインを選び、クラウドで自動ビルド。カプチーノを飲みながらオープンソースの時代を迎えよう",
-   "ko": "플러그인을 고르고 클라우드에서 자동 빌드하세요. 카푸치노와 함께 오픈 소스 시대를 맞이하세요",
-   "de": "Plugins wählen, in der Cloud bauen, Cappuccino trinken und das Open-Source-Zeitalter begrüßen",
-   "fr": "Choisissez les modules, compilez dans le cloud, prenez un cappuccino et célébrez l’ère du libre",
-   "vi": "Chọn plugin, tự động biên dịch trên đám mây, thưởng thức cappuccino và chào đón kỷ nguyên mã nguồn mở"
+   "zh-CN": "选好插件,云端自动编译,喝杯卡布奇诺，迎接开“源”盛世",
+   "zh-TW": "選好套件,雲端自動編譯,喝杯卡布奇諾，迎接開「源」盛世",
+   "en": "Pick your packages, let the cloud build, enjoy a cappuccino, and welcome the open-source era",
+   "ru": "Выберите пакеты, запустите облачную сборку, выпейте капучино и встречайте эпоху открытого кода",
+   "es": "Elige los paquetes, compila en la nube, toma un capuchino y da la bienvenida a la era del código abierto",
+   "pt": "Escolha os pacotes, compile na nuvem, tome um cappuccino e celebre a era do código aberto",
+   "ja": "パッケージを選び、クラウドで自動ビルド。カプチーノを飲みながらオープンソースの時代を迎えよう",
+   "ko": "패키지를 고르고 클라우드에서 자동 빌드한 뒤, 카푸치노와 함께 오픈 소스 시대를 맞이하세요",
+   "de": "Pakete auswählen, in der Cloud bauen, einen Cappuccino genießen und das Open-Source-Zeitalter begrüßen",
+   "fr": "Choisissez les paquets, compilez dans le cloud, savourez un cappuccino et accueillez l’ère du logiciel libre",
+   "vi": "Chọn gói, để đám mây tự biên dịch, nhâm nhi cappuccino và chào đón kỷ nguyên mã nguồn mở"
   },
   "app.desc": {
    "zh-CN": "OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取",
@@ -1137,6 +1137,58 @@
    "de": "Anfrage laden und GitHub öffnen",
    "fr": "Télécharger la requête et ouvrir GitHub",
    "vi": "Tải yêu cầu và mở GitHub"
+  },
+  "submit.existing.title": {
+   "zh-CN": "使用已有配置",
+   "zh-TW": "使用現有設定",
+   "en": "Use an existing configuration",
+   "ru": "Использовать готовую конфигурацию",
+   "es": "Usar una configuración existente",
+   "pt": "Usar uma configuração existente",
+   "ja": "既存の設定を使用",
+   "ko": "기존 설정 사용",
+   "de": "Vorhandene Konfiguration verwenden",
+   "fr": "Utiliser une configuration existante",
+   "vi": "Dùng cấu hình có sẵn"
+  },
+  "submit.existing.desc": {
+   "zh-CN": "选择 .config、config.buildinfo 或旧请求 JSON;网页识别机型并恢复选择后,会回到本确认页。",
+   "zh-TW": "選擇 .config、config.buildinfo 或舊版請求 JSON；網頁識別機型並還原選擇後，會回到本確認頁。",
+   "en": "Choose a .config, config.buildinfo, or an older request JSON. The page identifies the target, restores the selections, and returns here.",
+   "ru": "Выберите .config, config.buildinfo или старый JSON-запрос. Страница определит устройство, восстановит выбор и вернёт вас сюда.",
+   "es": "Elige un .config, config.buildinfo o un JSON de solicitud anterior. La página identificará el equipo, restaurará la selección y volverá aquí.",
+   "pt": "Escolha um .config, config.buildinfo ou JSON de solicitação antigo. A página identificará o dispositivo, restaurará as escolhas e voltará aqui.",
+   "ja": ".config、config.buildinfo、または以前のリクエスト JSON を選択します。ページが機種を識別して選択を復元し、この確認画面に戻ります。",
+   "ko": ".config, config.buildinfo 또는 이전 요청 JSON을 선택하세요. 페이지가 기기를 식별하고 선택 항목을 복원한 뒤 이 확인 화면으로 돌아옵니다.",
+   "de": "Wähle eine .config, config.buildinfo oder eine ältere Anfrage-JSON. Die Seite erkennt das Gerät, stellt die Auswahl wieder her und kehrt hierher zurück.",
+   "fr": "Choisissez un .config, config.buildinfo ou un ancien JSON de requête. La page identifiera l’appareil, restaurera les choix et reviendra ici.",
+   "vi": "Chọn .config, config.buildinfo hoặc JSON yêu cầu cũ. Trang sẽ nhận diện thiết bị, khôi phục lựa chọn rồi quay lại màn hình xác nhận này."
+  },
+  "submit.download.title": {
+   "zh-CN": "仅下载 .config",
+   "zh-TW": "僅下載 .config",
+   "en": "Download .config only",
+   "ru": "Только скачать .config",
+   "es": "Descargar solo .config",
+   "pt": "Baixar apenas o .config",
+   "ja": ".config のみダウンロード",
+   "ko": ".config만 다운로드",
+   "de": "Nur .config herunterladen",
+   "fr": "Télécharger uniquement le .config",
+   "vi": "Chỉ tải .config"
+  },
+  "submit.download.desc": {
+   "zh-CN": "只保存当前完整配置,不打开 GitHub,也不会启动云编译。",
+   "zh-TW": "只儲存目前的完整設定，不開啟 GitHub，也不會啟動雲端編譯。",
+   "en": "Save the complete current configuration without opening GitHub or starting a cloud build.",
+   "ru": "Сохранить полную текущую конфигурацию, не открывая GitHub и не запуская облачную сборку.",
+   "es": "Guarda la configuración completa actual sin abrir GitHub ni iniciar una compilación en la nube.",
+   "pt": "Salva a configuração completa atual sem abrir o GitHub nem iniciar uma compilação na nuvem.",
+   "ja": "GitHub を開かずクラウドビルドも開始せず、現在の完全な設定だけを保存します。",
+   "ko": "GitHub를 열거나 클라우드 빌드를 시작하지 않고 현재 전체 설정만 저장합니다.",
+   "de": "Speichert die vollständige aktuelle Konfiguration, ohne GitHub zu öffnen oder einen Cloud-Build zu starten.",
+   "fr": "Enregistre la configuration complète actuelle sans ouvrir GitHub ni lancer de compilation cloud.",
+   "vi": "Chỉ lưu cấu hình đầy đủ hiện tại, không mở GitHub và không bắt đầu biên dịch đám mây."
   },
   "submit.footer": {
    "zh-CN": "构建完成后,产物(固件 + 最终 .config)在该次 run 的 Artifacts 里,按标识\"{tag}\"命名;失败时也会上传错误日志。",

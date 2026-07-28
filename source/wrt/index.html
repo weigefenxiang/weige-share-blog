@@ -15,7 +15,7 @@
       <img class="brand-icon" src="Wei.G-favicon_little.png" alt="Wei.G" width="34" height="34">
       <div>
         <h1><span class="brand-name">Wei.G</span> <span data-i18n="app.title">OpenWrt 固件在线定制</span></h1>
-        <p class="sub" data-i18n="app.subtitle">选好插件,云端自动编译,喝杯卡布奇诺，迎接开元盛世</p>
+        <p class="sub" data-i18n="app.subtitle">选好插件,云端自动编译,喝杯卡布奇诺，迎接开“源”盛世</p>
       </div>
     </div>
     <div class="header-actions">
@@ -140,7 +140,7 @@
       <input type="text" id="rootpwBox" maxlength="32" autocapitalize="off" autocorrect="off" autocomplete="off">
       <p class="hint rootpw-warning"><strong data-i18n="rootpw.public">⚠️ 提交内容公开可见,密码公开！！</strong><span data-i18n="rootpw.hint">临时登录密码,刷机后必须立即修改! (lede 源 填 @empty 清成空密码）</span></p>
       <div class="firmware-settings">
-        <label><span data-i18n="fw.timezone">时区</span><select id="timezoneBox"></select></label>
+        <label><span data-i18n="fw.timezone">时区</span><input type="search" id="timezoneBox" list="timezoneList" autocomplete="off" spellcheck="false"><datalist id="timezoneList"></datalist></label>
         <label><span data-i18n="fw.theme">固件主题</span><select id="fwThemeBox"></select></label>
         <label><span data-i18n="fw.ntp">NTP 服务器</span><select id="ntpBox"></select></label>
         <label><span data-i18n="fw.opkg">opkg 镜像</span><select id="opkgBox"></select></label>
@@ -169,10 +169,8 @@
       <span class="cap-text" id="capText"></span>
     </div>
     <div class="actions">
-      <span class="site-version" id="siteVersion">v--------</span>
       <input id="configImport" type="file" accept=".json,.config,.buildinfo,text/plain,application/json" hidden>
       <button type="button" class="btn" id="importBtn" data-i18n="btn.import">加载配置</button>
-      <button type="button" class="btn" id="dlBtn" data-i18n="btn.download">下载 .config</button>
       <button type="button" class="btn btn-primary" id="submitBtn" data-i18n="btn.submit">提交云编译</button>
     </div>
   </div>
@@ -193,6 +191,7 @@
   <p><a id="footRepo" href="https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild" target="_blank" rel="noopener">GitHub</a> ·
      <a href="https://www.weigeshare.cc.cd/" target="_blank" rel="noopener">Weige Share Blog</a> ·
      <a href="packages.html" target="_blank" rel="noopener" data-i18n="pkgpage.title">软件包用途说明</a></p>
+  <p class="footer-version"><span class="site-version" id="siteVersion">v--------</span></p>
 </footer>
 
 <div class="popover" id="popover" hidden role="tooltip">

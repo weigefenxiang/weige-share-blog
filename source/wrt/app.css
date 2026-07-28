@@ -336,7 +336,7 @@ input:focus-visible { border-color: var(--accent); }
   gap: 10px; margin-top: 14px;
 }
 .firmware-settings label { display: grid; gap: 5px; min-width: 0; color: var(--text3); font-size: 14px; }
-.firmware-settings select {
+.firmware-settings select, .firmware-settings input {
   width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px;
   background: var(--card); color: var(--text); padding: 9px 8px;
 }
@@ -378,6 +378,7 @@ input:focus-visible { border-color: var(--accent); }
 .site-footer { padding: 20px 16px 28px; font-size: 14px; color: var(--text3); }
 .site-footer p { margin: 4px 0; }
 .site-footer a { color: var(--accent-text); }
+.site-footer .footer-version { margin-top: 8px; text-align: right; }
 
 .popover {
   position: absolute; z-index: 40; max-width: 320px;
@@ -483,7 +484,6 @@ input:focus-visible { border-color: var(--accent); }
   .stats { width: 100%; justify-content: space-between; }
   .actions { margin-left: 0; width: 100%; }
   .actions .btn { flex: 1; min-height: 44px; }
-  .site-version { flex: none; }
   .risk-row { align-items: flex-start; }
   .firmware-settings { grid-template-columns: 1fr; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */

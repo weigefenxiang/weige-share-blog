@@ -32,7 +32,7 @@ const state = {
   lanip: localStorage.getItem('wrt_lanip') || '192.168.1.1',   // 后台登录地址,默认 192.168.1.1 / admin LAN IP, defaults to 192.168.1.1
   rootpw: '',
   rootpwAuto: false,
-  timezone: 'CST-8',
+  timezone: 'Asia/Shanghai',
   theme: 'luci-theme-argon',
   ntp: 'cn',
   opkg: 'auto',
@@ -41,12 +41,8 @@ const state = {
   importedConfigId: '',
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
-let DEVICES = null, PLUGINS = null, I18N = null;
+let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
 const DATA_CACHE_VERSION = 'v13-r2';
-const TIMEZONES = [
-  ['CST-8', 'Asia/Shanghai (UTC+8)'], ['UTC0', 'UTC'],
-  ['JST-9', 'Asia/Tokyo (UTC+9)'], ['EST5EDT,M3.2.0,M11.1.0', 'America/New_York'],
-];
 const NTP_PRESETS = {
   cn: ['ntp.aliyun.com', 'time1.cloud.tencent.com', 'cn.ntp.org.cn', 'cn.pool.ntp.org'],
   global: ['0.openwrt.pool.ntp.org', '1.openwrt.pool.ntp.org', '2.openwrt.pool.ntp.org', '3.openwrt.pool.ntp.org'],
@@ -89,29 +85,32 @@ function t(key, params) {
   return s;
 }
 const isZh = () => String(state.lang).startsWith('zh');
+const isZhCn = () => state.lang === 'zh-CN';
 
 /* ============ 插件名/说明多语言 / Plugin name & description i18n ============ */
 /* 非中文界面惰性加载 plugins-i18n.json,一次性缓存;失败静默回退原文 / Lazily load plugins-i18n.json for non-Chinese UIs, cache once; fall back to original text silently on failure */
 function ensurePlugI18n() {
-  if (isZh() || PLUG_I18N || plugI18nLoading) return;
+  if (isZhCn() || PLUG_I18N || plugI18nLoading) return;
   plugI18nLoading = true;
   loadJson('plugins-i18n.json')
     .then((d) => { PLUG_I18N = d; if (PLUGINS) renderGroups(); })
     .catch(() => { /* 加载失败静默回退原文,下次语言切换可重试 / Silent fallback to original text; next language switch may retry */ })
     .finally(() => { plugI18nLoading = false; });
 }
-/* 展示层取词:中文界面(简繁 zh* 均含)维持原行为(名称打码/说明原文,插件暂不繁译),其他语言走 目标语→en→原文 回退链且不打码 / Display-layer lookup: any Chinese UI (all zh*, Simplified & Traditional) keeps the original behavior (masked name / raw desc, plugins not yet translated to Traditional); other languages use target→en→original fallback without masking */
+/* 简中使用元数据原文;繁中与其他语言使用独立译文。中文界面继续执行敏感词显示处理 / zh-CN uses metadata originals; zh-TW and other languages use their own translations. Chinese UIs keep display masking. */
 function pName(p) {
-  if (isZh()) return maskText(p.name);
+  if (isZhCn()) return maskText(p.name);
   const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
   const m = row && row.name;
-  return (m && (m[state.lang] || m[FALLBACK])) || p.name;
+  const value = (m && (m[state.lang] || m[FALLBACK])) || p.name;
+  return isZh() ? maskText(value) : value;
 }
 function pDesc(p) {
-  if (isZh()) return maskText(p.desc || '');
+  if (isZhCn()) return maskText(p.desc || '');
   const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
   const m = row && row.desc;
-  return (m && (m[state.lang] || m[FALLBACK])) || p.desc || '';
+  const value = (m && (m[state.lang] || m[FALLBACK])) || p.desc || '';
+  return isZh() ? maskText(value) : value;
 }
 
 /* V8c:体积人性化显示,输入单位为 MB / V8c: human-readable size, input value in MB */
@@ -283,7 +282,9 @@ async function init() {
     I18N = await loadJson('i18n.json');
     state.lang = pickLang();
     renderLangSel();
-    [DEVICES, CONFIG_MANIFEST] = await Promise.all([loadJson('devices.json'), loadJson('config-manifest.json')]);
+    [DEVICES, CONFIG_MANIFEST, TIMEZONES] = await Promise.all([
+      loadJson('devices.json'), loadJson('config-manifest.json'), loadJson('timezones.json'),
+    ]);
     try {
       const stamp = await loadJson('site-version.json');
       if (/^v\d{8}$/.test(stamp.version)) state.siteVersion = stamp.version;
@@ -511,7 +512,12 @@ function renderModes() {
       $('rootpwBox').value = ''; state.rootpw = ''; showToast(t('rootpw.invalid'));
     }
   });
-  $('timezoneBox').addEventListener('change', () => { state.timezone = $('timezoneBox').value; });
+  $('timezoneBox').addEventListener('change', () => {
+    const typed = $('timezoneBox').value.trim();
+    const zone = TIMEZONES.zones.find((item) => item.zonename === typed || timezoneLabel(item) === typed);
+    if (zone) state.timezone = zone.zonename;
+    $('timezoneBox').value = timezoneLabel(currentTimezone());
+  });
   $('fwThemeBox').addEventListener('change', () => { state.theme = $('fwThemeBox').value; });
   $('ntpBox').addEventListener('change', () => { state.ntp = $('ntpBox').value; });
   $('opkgBox').addEventListener('change', () => { state.opkg = $('opkgBox').value; });
@@ -530,9 +536,38 @@ function fillSelect(id, entries, current) {
   if (![...box.options].some((o) => o.selected)) box.selectedIndex = 0;
   return box.value;
 }
+function timezoneOffset(zonename) {
+  try {
+    const part = new Intl.DateTimeFormat('en', {
+      timeZone: zonename, timeZoneName: 'longOffset', hour: '2-digit',
+    }).formatToParts(new Date()).find((item) => item.type === 'timeZoneName');
+    if (!part || part.value === 'GMT') return '+00:00';
+    const match = part.value.match(/^GMT([+-])(\d{1,2})(?::(\d{2}))?$/);
+    return match ? match[1] + match[2].padStart(2, '0') + ':' + (match[3] || '00') : '+00:00';
+  } catch (e) { return '+00:00'; }
+}
+function timezoneLabel(zone) {
+  return `(UTC${timezoneOffset(zone.zonename)}) ${zone.zonename}`;
+}
+function currentTimezone() {
+  return TIMEZONES.zones.find((zone) => zone.zonename === state.timezone) ||
+    TIMEZONES.zones.find((zone) => zone.zonename === 'Asia/Shanghai');
+}
+function renderTimezones() {
+  const list = $('timezoneList');
+  list.textContent = '';
+  for (const zone of TIMEZONES.zones) {
+    const option = document.createElement('option');
+    option.value = timezoneLabel(zone);
+    list.appendChild(option);
+  }
+  const zone = currentTimezone();
+  state.timezone = zone.zonename;
+  $('timezoneBox').value = timezoneLabel(zone);
+}
 function renderFirmwareSettings() {
   if (!state.source) return;
-  state.timezone = fillSelect('timezoneBox', TIMEZONES, state.timezone);
+  renderTimezones();
   const themes = ['OpenWrt', 'lede'].includes(state.source.id)
     ? [['luci-theme-bootstrap', 'Bootstrap']]
     : [['luci-theme-argon', 'Argon'], ['luci-theme-bootstrap', 'Bootstrap'],
@@ -1030,11 +1065,12 @@ function applyToConfig(text, sel) {
   // 固件 LuCI 主题是 Kconfig 选择:先关闭配置中已有主题,再只打开用户所选主题 / firmware theme is a Kconfig choice
   text = text.replace(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=[ym]$/gm, '# CONFIG_PACKAGE_$1 is not set');
   setY(state.theme);
+  const zone = currentTimezone();
   return '# Generated by WeiG-OpenWrt-AutoBuild web customizer\n' +
     '# page-version=' + state.siteVersion + '\n' +
     '# device=' + state.device.id + ' source=' + src + ' version=' + state.version.id +
     ' (' + state.version.branch + ') variant=' + state.variant.id + '\n' +
-    '# firmware-settings: timezone=' + state.timezone + ' theme=' + state.theme +
+    '# firmware-settings: zonename=' + zone.zonename + ' timezone=' + zone.timezone + ' theme=' + state.theme +
     ' ntp=' + state.ntp + ' opkg=' + state.opkg + '\n' +
     '# plugins: ' + (sel.normal.map((p) => p.id).join(' ') || '(none)') + '\n' +
     (sel.forced.length ? '# forced (advanced): ' + sel.forced.map((p) => p.id).join(' ') + '\n' : '') +
@@ -1064,8 +1100,7 @@ function downloadBlob(text, type, filename) {
   setTimeout(() => URL.revokeObjectURL(a.href), 1000);
 }
 
-async function downloadConfig() {
-  const btn = $('dlBtn');
+async function downloadConfig(btn) {
   btn.disabled = true;
   btn.textContent = t('btn.download.busy');
   try {
@@ -1144,7 +1179,10 @@ function restoreSelections(config, payload) {
       state.rootpwAuto = false;
     }
     const fw = payload.firmware || {};
-    if (TIMEZONES.some(([id]) => id === fw.timezone)) state.timezone = fw.timezone;
+    const zone = TIMEZONES.zones.find((item) => item.zonename === fw.zonename) ||
+      TIMEZONES.zones.find((item) => item.zonename === fw.timezone) ||
+      TIMEZONES.zones.find((item) => item.timezone === fw.timezone);
+    if (zone) state.timezone = zone.zonename;
     if (/^luci-theme-[A-Za-z0-9._+-]+$/.test(String(fw.theme || ''))) state.theme = fw.theme;
     if (NTP_PRESETS[fw.ntp]) state.ntp = fw.ntp;
     if (Object.hasOwn(OPKG_PRESETS, fw.opkg)) state.opkg = fw.opkg;
@@ -1177,10 +1215,18 @@ async function importConfigFile(file) {
   showToast(t('import.ok', { id: configId }));
 }
 $('importBtn').addEventListener('click', () => $('configImport').click());
+let reopenSubmitAfterImport = false;
 $('configImport').addEventListener('change', async () => {
   const file = $('configImport').files[0];
   $('configImport').value = '';
-  try { await importConfigFile(file); } catch (e) { alert(t('import.fail', { msg: e.message })); }
+  try {
+    await importConfigFile(file);
+    if (reopenSubmitAfterImport) openSubmitModal();
+  } catch (e) {
+    alert(t('import.fail', { msg: e.message }));
+  } finally {
+    reopenSubmitAfterImport = false;
+  }
 });
 
 /* ============ 提交云编译 / Submit a cloud build ============ */
@@ -1239,7 +1285,7 @@ function openSubmitModal() {
   sum.textContent = t('submit.confirm', {
     brand: state.device.brand, device: state.device.name, source: state.source.label,
     version: state.version.label, variant: state.variant.name, n: plugins.length, tag,
-    timezone: $('timezoneBox').selectedOptions[0].textContent,
+    timezone: $('timezoneBox').value,
     theme: $('fwThemeBox').selectedOptions[0].textContent,
     ntp: $('ntpBox').selectedOptions[0].textContent,
     opkg: $('opkgBox').selectedOptions[0].textContent,
@@ -1298,11 +1344,20 @@ function openSubmitModal() {
       }
     });
 
+  card('submit.existing.title', t('submit.existing.desc'), 'btn.import', () => {
+    reopenSubmitAfterImport = true;
+    closeModal();
+    $('configImport').click();
+  });
+
+  card('submit.download.title', t('submit.download.desc'), 'btn.download', (event) => {
+    downloadConfig(event.currentTarget);
+  });
+
   const p3 = document.createElement('p');
   p3.textContent = t('submit.footer', { tag });
   mb.appendChild(p3);
 }
-$('dlBtn').addEventListener('click', downloadConfig);
 $('submitBtn').addEventListener('click', openSubmitModal);
 
 /* ============ 一键自检 / One-click self test ============ */
