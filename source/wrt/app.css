@@ -114,17 +114,25 @@ input:focus-visible { border-color: var(--accent); }
   position: fixed; right: max(14px, env(safe-area-inset-right));
   bottom: calc(86px + env(safe-area-inset-bottom));   /* 避开吸底操作栏 / clears the sticky action bar */
   z-index: 45;
-  display: flex; flex-direction: column; align-items: stretch; gap: 8px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
   padding: 8px; border-radius: 14px;
   background: color-mix(in srgb, var(--card) 88%, transparent);
   border: 1px solid var(--border);
   box-shadow: 0 6px 24px rgba(16, 24, 40, .14);
   backdrop-filter: blur(8px);
 }
-.side-dock .dock-items { display: flex; flex-direction: column; gap: 8px; }
-.side-dock .lang-sel { max-width: 96px; text-align: center; text-align-last: center; }
+.side-dock .dock-items { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.side-dock .lang-sel {
+  width: 40px; max-width: 40px; height: 40px; padding: 0 3px;
+  text-align: center; text-align-last: center; overflow: hidden;
+  transition: width .18s ease, max-width .18s ease;
+}
+.side-dock .lang-sel:focus {
+  width: min(156px, calc(100vw - 44px)); max-width: min(156px, calc(100vw - 44px));
+}
 .side-dock .lang-sel option { text-align: center; }
 .side-dock .icon-btn { align-self: center; }
+.side-dock .dock-selftest { width: 40px; height: 40px; font-size: 16px; font-weight: 700; }
 .side-dock .dock-toggle { width: 30px; height: 30px; font-size: 14px; opacity: .8; }
 .side-dock.collapsed { padding: 6px; }
 .side-dock.collapsed .dock-items { display: none; }   /* 收起时只剩 ⚙ / collapsed = gear only */
@@ -235,6 +243,11 @@ input:focus-visible { border-color: var(--accent); }
 }
 .help-text { min-width: 0; color: var(--text); }
 .help-text em { font-style: normal; font-weight: 600; color: var(--accent-text); }
+.help-links {
+  display: flex; flex-wrap: wrap; gap: 8px 14px; margin: 4px 0 2px 42px;
+  padding-top: 10px; border-top: 1px solid var(--border); font-size: 14px;
+}
+.help-links a { color: var(--accent-text); overflow-wrap: anywhere; }
 /* 登录信息行:root 蓝、密码状态金色,整行比普通 hint 大一档 / login info line: accent root, gold password, one size up from hints */
 #loginInfo { font-size: 15.5px; color: var(--text2); }
 .login-user { font-style: normal; font-weight: 700; color: var(--accent-text); }
@@ -332,13 +345,29 @@ input:focus-visible { border-color: var(--accent); }
 .rootpw-warning strong { color: #dc2626; }
 .rootpw-warning span { color: #b45309; }
 .firmware-settings {
-  display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
+  display: grid;
+  grid-template-columns: minmax(250px, 2.25fr) minmax(125px, .9fr) minmax(145px, 1.05fr) minmax(135px, 1fr);
   gap: 10px; margin-top: 14px;
 }
 .firmware-settings label { display: grid; gap: 5px; min-width: 0; color: var(--text3); font-size: 14px; }
 .firmware-settings select, .firmware-settings input {
   width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px;
   background: var(--card); color: var(--text); padding: 9px 8px;
+}
+.timezone-combo { position: relative; display: block; min-width: 0; }
+.timezone-menu {
+  position: absolute; z-index: 35; top: calc(100% + 5px); left: 0;
+  width: max(100%, 360px); max-width: min(620px, calc(100vw - 32px)); max-height: 280px;
+  overflow: auto; padding: 5px; border: 1px solid var(--border); border-radius: 10px;
+  background: var(--card); box-shadow: 0 10px 28px rgba(16, 24, 40, .18);
+}
+.timezone-option {
+  display: block; width: 100%; border: 0; border-radius: 7px; padding: 7px 9px;
+  background: transparent; color: var(--text); text-align: left; font: inherit;
+  font-size: 14px; line-height: 1.45; overflow-wrap: anywhere;
+}
+.timezone-option:hover, .timezone-option.active {
+  background: var(--accent-bg); color: var(--accent-text);
 }
 .mode-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .mode-label { font-size: 13.5px; color: var(--text2); }
@@ -407,6 +436,14 @@ input:focus-visible { border-color: var(--accent); }
 .modal-body h4 { margin: 0 0 6px; font-size: 15.5px; }
 .modal-body p { margin: 6px 0; color: var(--text2); }
 .modal-body .btn { display: inline-block; text-decoration: none; margin: 6px 8px 6px 0; }
+.import-error {
+  padding: 10px 12px; border: 1px solid color-mix(in srgb, var(--danger) 45%, var(--border));
+  border-radius: var(--radius); background: color-mix(in srgb, var(--danger) 9%, var(--card));
+  color: var(--text); overflow-wrap: anywhere;
+}
+.import-log-note { font-size: 13px; }
+.modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.modal-actions .btn { margin: 0; }
 .summary-box {
   background: var(--card2); border-radius: var(--radius);
   padding: 10px 12px; font-size: 12.5px; line-height: 1.7; color: var(--text2);
@@ -464,7 +501,7 @@ input:focus-visible { border-color: var(--accent); }
 
 @media (max-width: 860px) {
   .plugin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .firmware-settings { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .firmware-settings { grid-template-columns: minmax(230px, 1.6fr) minmax(150px, 1fr); }
 }
 @media (max-width: 560px) {
   .brand h1 { font-size: 16px; }
@@ -486,6 +523,7 @@ input:focus-visible { border-color: var(--accent); }
   .actions .btn { flex: 1; min-height: 44px; }
   .risk-row { align-items: flex-start; }
   .firmware-settings { grid-template-columns: 1fr; }
+  .timezone-menu { width: 100%; max-width: 100%; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */
   .toast { bottom: calc(128px + env(safe-area-inset-bottom)); }
 }

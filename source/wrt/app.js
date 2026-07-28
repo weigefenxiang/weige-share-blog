@@ -42,7 +42,7 @@ const state = {
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
 let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
-const DATA_CACHE_VERSION = 'v13-r2';
+const DATA_CACHE_VERSION = 'v14-import-log';
 const NTP_PRESETS = {
   cn: ['ntp.aliyun.com', 'time1.cloud.tencent.com', 'cn.ntp.org.cn', 'cn.pool.ntp.org'],
   global: ['0.openwrt.pool.ntp.org', '1.openwrt.pool.ntp.org', '2.openwrt.pool.ntp.org', '3.openwrt.pool.ntp.org'],
@@ -308,15 +308,13 @@ async function init() {
   }
 }
 
-/* 下拉里中文用单字简称,其余语言用自称 / Chinese uses one-character labels in the dropdown; other languages keep their native names */
-const LANG_SHORT = { 'zh-CN': '简', 'zh-TW': '繁' };
 function renderLangSel() {
   const sel = $('langSel');
   sel.textContent = '';
   for (const l of I18N.languages) {
     const o = document.createElement('option');
     o.value = l.id;
-    o.textContent = LANG_SHORT[l.id] || l.native || l.name;
+    o.textContent = l.native || l.name;
     if (l.id === state.lang) o.selected = true;
     sel.appendChild(o);
   }
@@ -455,6 +453,7 @@ function renderVersions() {
     const pill = makePill(v.label, v.label + ' · ' + v.branch, v.note || '', () => {
       state.version = v;
       setActive(row, pill);
+      renderVariants();
       updateStats();
     });
     row.appendChild(pill);
@@ -465,8 +464,9 @@ function renderVersions() {
 function renderVariants() {
   const row = $('variantRow');
   row.textContent = '';
-  state.variant = state.source.variants[0];
-  state.source.variants.forEach((v) => {
+  const variants = state.source.variants.filter((v) => !v.versions || v.versions.includes(state.version.id));
+  state.variant = variants[0];
+  variants.forEach((v) => {
     const pill = makePill(v.name, v.name, v.note || '', () => {
       state.variant = v;
       setActive(row, pill);
@@ -512,11 +512,31 @@ function renderModes() {
       $('rootpwBox').value = ''; state.rootpw = ''; showToast(t('rootpw.invalid'));
     }
   });
-  $('timezoneBox').addEventListener('change', () => {
-    const typed = $('timezoneBox').value.trim();
-    const zone = TIMEZONES.zones.find((item) => item.zonename === typed || timezoneLabel(item) === typed);
-    if (zone) state.timezone = zone.zonename;
-    $('timezoneBox').value = timezoneLabel(currentTimezone());
+  const timezoneBox = $('timezoneBox');
+  timezoneBox.addEventListener('focus', () => openTimezoneMenu(''));
+  timezoneBox.addEventListener('click', () => {
+    if (timezoneBox.value === timezoneLabel(currentTimezone())) timezoneBox.select();
+    openTimezoneMenu('');
+  });
+  timezoneBox.addEventListener('input', () => openTimezoneMenu(timezoneBox.value));
+  timezoneBox.addEventListener('keydown', timezoneMenuKeydown);
+  timezoneBox.addEventListener('blur', () => {
+    setTimeout(() => {
+      if (!$('timezoneCombo').contains(document.activeElement)) {
+        timezoneBox.value = timezoneLabel(currentTimezone());
+        closeTimezoneMenu();
+      }
+    }, 0);
+  });
+  $('timezoneMenu').addEventListener('pointerdown', (event) => {
+    const option = event.target.closest('.timezone-option');
+    if (!option) return;
+    event.preventDefault();
+    const zone = TIMEZONES.zones.find((item) => item.zonename === option.dataset.zonename);
+    if (zone) selectTimezone(zone);
+  });
+  document.addEventListener('pointerdown', (event) => {
+    if (!$('timezoneCombo').contains(event.target)) closeTimezoneMenu();
   });
   $('fwThemeBox').addEventListener('change', () => { state.theme = $('fwThemeBox').value; });
   $('ntpBox').addEventListener('change', () => { state.ntp = $('ntpBox').value; });
@@ -547,23 +567,85 @@ function timezoneOffset(zonename) {
   } catch (e) { return '+00:00'; }
 }
 function timezoneLabel(zone) {
-  return `(UTC${timezoneOffset(zone.zonename)}) ${zone.zonename}`;
+  const alias = zone.zonename === 'Asia/Shanghai' ? ` — ${t('fw.timezone.beijing')}` : '';
+  return `(UTC${timezoneOffset(zone.zonename)}) ${zone.zonename}${alias}`;
 }
 function currentTimezone() {
   return TIMEZONES.zones.find((zone) => zone.zonename === state.timezone) ||
     TIMEZONES.zones.find((zone) => zone.zonename === 'Asia/Shanghai');
 }
-function renderTimezones() {
-  const list = $('timezoneList');
-  list.textContent = '';
-  for (const zone of TIMEZONES.zones) {
-    const option = document.createElement('option');
-    option.value = timezoneLabel(zone);
-    list.appendChild(option);
+let timezoneActive = -1;
+function timezoneSearchText(zone) {
+  const beijing = zone.zonename === 'Asia/Shanghai' ? ' Beijing 北京 北京时间 ' + t('fw.timezone.beijing') : '';
+  return `${zone.zonename} UTC${timezoneOffset(zone.zonename)} ${beijing}`.toLocaleLowerCase();
+}
+function timezoneOptions() {
+  return [...$('timezoneMenu').querySelectorAll('.timezone-option')];
+}
+function setTimezoneActive(index) {
+  const options = timezoneOptions();
+  if (!options.length) { timezoneActive = -1; return; }
+  timezoneActive = Math.max(0, Math.min(index, options.length - 1));
+  options.forEach((option, i) => option.classList.toggle('active', i === timezoneActive));
+  options[timezoneActive].scrollIntoView({ block: 'nearest' });
+  $('timezoneBox').setAttribute('aria-activedescendant', options[timezoneActive].id);
+}
+function openTimezoneMenu(query = '') {
+  const menu = $('timezoneMenu');
+  const needle = query.trim().toLocaleLowerCase();
+  const zones = TIMEZONES.zones.filter((zone) => !needle || timezoneSearchText(zone).includes(needle));
+  menu.textContent = '';
+  zones.forEach((zone, index) => {
+    const option = document.createElement('button');
+    option.type = 'button';
+    option.className = 'timezone-option';
+    option.id = `timezoneOption${index}`;
+    option.role = 'option';
+    option.dataset.zonename = zone.zonename;
+    option.textContent = timezoneLabel(zone);
+    menu.appendChild(option);
+  });
+  timezoneActive = -1;
+  menu.hidden = zones.length === 0;
+  $('timezoneBox').setAttribute('aria-expanded', String(zones.length > 0));
+  $('timezoneBox').removeAttribute('aria-activedescendant');
+}
+function closeTimezoneMenu() {
+  $('timezoneMenu').hidden = true;
+  $('timezoneBox').setAttribute('aria-expanded', 'false');
+  $('timezoneBox').removeAttribute('aria-activedescendant');
+  timezoneActive = -1;
+}
+function selectTimezone(zone) {
+  state.timezone = zone.zonename;
+  $('timezoneBox').value = timezoneLabel(zone);
+  closeTimezoneMenu();
+}
+function timezoneMenuKeydown(event) {
+  const options = timezoneOptions();
+  if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+    event.preventDefault();
+    if ($('timezoneMenu').hidden) openTimezoneMenu('');
+    const count = timezoneOptions().length;
+    if (!count) return;
+    setTimezoneActive(event.key === 'ArrowDown'
+      ? Math.min(timezoneActive + 1, count - 1)
+      : (timezoneActive < 0 ? count - 1 : Math.max(timezoneActive - 1, 0)));
+  } else if (event.key === 'Enter' && timezoneActive >= 0 && options[timezoneActive]) {
+    event.preventDefault();
+    const zone = TIMEZONES.zones.find((item) => item.zonename === options[timezoneActive].dataset.zonename);
+    if (zone) selectTimezone(zone);
+  } else if (event.key === 'Escape') {
+    event.preventDefault();
+    $('timezoneBox').value = timezoneLabel(currentTimezone());
+    closeTimezoneMenu();
   }
+}
+function renderTimezones() {
   const zone = currentTimezone();
   state.timezone = zone.zonename;
   $('timezoneBox').value = timezoneLabel(zone);
+  closeTimezoneMenu();
 }
 function renderFirmwareSettings() {
   if (!state.source) return;
@@ -1079,9 +1161,10 @@ function applyToConfig(text, sel) {
 
 async function generateConfigText() {
   const configId = [state.device.id, state.source.id, state.version.id, state.variant.id].join('/');
+  const configName = state.variant.configs?.[state.version.id] || state.variant.config || state.source.config;
   const raw = state.importedConfig && state.importedConfigId === configId
     ? state.importedConfig
-    : await (await fetchData(state.device.id + '/' + state.source.config)).text();
+    : await (await fetchData(state.device.id + '/' + configName)).text();
   return applyToConfig(raw, effectiveSelection());
 }
 
@@ -1116,6 +1199,81 @@ async function downloadConfig(btn) {
 }
 
 /* ============ 加载 .config / build-request.json / config.buildinfo ============ */
+let lastImportLog = null;
+function importStateSnapshot() {
+  return {
+    device: state.device?.id || '',
+    source: state.source?.id || '',
+    version: state.version?.id || '',
+    variant: state.variant?.id || '',
+    importedConfigId: state.importedConfigId || '',
+  };
+}
+function importLogStep(stage, detail = {}) {
+  if (!lastImportLog) return;
+  lastImportLog.events.push({ time: new Date().toISOString(), stage, ...detail });
+}
+function beginImportLog(file) {
+  lastImportLog = {
+    schema: 1,
+    startedAt: new Date().toISOString(),
+    pageVersion: state.siteVersion,
+    browser: navigator.userAgent,
+    file: { name: file?.name || '', size: file?.size || 0, type: file?.type || '' },
+    events: [],
+  };
+  importLogStep('start');
+  $('importLogBtn').hidden = true;
+}
+function finishImportLog(status, error) {
+  if (!lastImportLog) return;
+  const detail = { status, state: importStateSnapshot() };
+  if (error) {
+    detail.error = {
+      name: error.name || 'Error',
+      message: error.message || String(error),
+      stack: error.stack || '',
+    };
+  }
+  importLogStep(status, detail);
+  lastImportLog.finishedAt = new Date().toISOString();
+  lastImportLog.status = status;
+  $('importLogBtn').hidden = false;
+}
+function downloadImportLog() {
+  if (!lastImportLog) return;
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const text = 'WeiG OpenWrt config import diagnostic log\n' +
+    'Privacy: full config content and passwords are not recorded.\n\n' +
+    JSON.stringify(lastImportLog, null, 2) + '\n';
+  downloadBlob(text, 'text/plain;charset=utf-8', `wrt-import-${lastImportLog.status || 'running'}-${stamp}.log`);
+}
+function showImportError(error) {
+  finishImportLog('error', error);
+  openModal(t('import.errorTitle'));
+  const body = $('modalBody');
+  body.textContent = '';
+  const summary = document.createElement('p');
+  summary.className = 'import-error';
+  summary.textContent = t('import.fail', { msg: error.message || String(error) });
+  const note = document.createElement('p');
+  note.className = 'import-log-note';
+  note.textContent = t('import.logPrivacy');
+  const actions = document.createElement('div');
+  actions.className = 'modal-actions';
+  const download = document.createElement('button');
+  download.type = 'button';
+  download.className = 'btn btn-primary';
+  download.textContent = t('import.downloadLog');
+  download.addEventListener('click', downloadImportLog);
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.className = 'btn';
+  close.textContent = t('btn.close');
+  close.addEventListener('click', closeModal);
+  actions.append(download, close);
+  body.append(summary, note, actions);
+}
 function targetLines(text) {
   return text.replace(/\r\n/g, '\n').split('\n').filter((line) =>
     /^CONFIG_TARGET_(?:BOARD|SUBTARGET|PROFILE)=/.test(line) ||
@@ -1127,7 +1285,18 @@ function configCandidates(text) {
     const id = [header[1], header[2], header[3], header[4]].join('/');
     if (CONFIG_MANIFEST.configs[id]) return [id];
   }
-  const signature = JSON.stringify(targetLines(text));
+  const targets = targetLines(text);
+  const deviceTargets = targets.filter((line) => /^CONFIG_TARGET_.*_DEVICE_.*=y$/.test(line));
+  if (deviceTargets.length) {
+    const matches = Object.entries(CONFIG_MANIFEST.configs)
+      .filter(([, item]) => item.target.some((line) => deviceTargets.includes(line)))
+      .map(([id]) => id);
+    const sourceHint = /#\s*ImmortalWrt Configuration/i.test(text) ? 'ImmortalWrt'
+      : /#\s*OpenWrt Configuration/i.test(text) ? 'OpenWrt' : '';
+    const hinted = sourceHint ? matches.filter((id) => id.split('/')[1] === sourceHint) : [];
+    return hinted.length ? hinted : matches;
+  }
+  const signature = JSON.stringify(targets);
   return Object.entries(CONFIG_MANIFEST.configs)
     .filter(([, item]) => JSON.stringify([...item.target].sort()) === signature)
     .map(([id]) => id);
@@ -1152,18 +1321,27 @@ async function selectConfigId(configId) {
   if (sourceIndex < 0) throw new Error(t('import.noMatch'));
   $('sourceRow').children[sourceIndex].click();
   const versionIndex = state.source.versions.findIndex((v) => v.id === versionId);
-  const variantIndex = state.source.variants.findIndex((v) => v.id === variantId);
-  if (versionIndex < 0 || variantIndex < 0) throw new Error(t('import.noMatch'));
+  if (versionIndex < 0) throw new Error(t('import.noMatch'));
   $('versionRow').children[versionIndex].click();
+  const variants = state.source.variants.filter((v) => !v.versions || v.versions.includes(versionId));
+  const variantIndex = variants.findIndex((v) => v.id === variantId);
+  if (variantIndex < 0) throw new Error(t('import.noMatch'));
   $('variantRow').children[variantIndex].click();
 }
 function restoreSelections(config, payload) {
   state.sel.clear();
   state.removed.clear();
   const explicit = payload && Array.isArray(payload.plugins) ? payload.plugins : null;
+  let skipped = 0;
   for (const p of PLUGINS.plugins) {
-    const pkg = p.pkgs[state.source.id] || p.pkg;
-    const raw = explicit && explicit.find((id) => id.replace(/^[+-]/, '') === p.id);
+    const pkg = p.pkgs?.[state.source.id] || p.pkg;
+    if (!pkg) {
+      skipped++;
+      importLogStep('plugin-skipped', { plugin: p.id, reason: 'missing package mapping' });
+      continue;
+    }
+    const raw = explicit && explicit.find((id) =>
+      typeof id === 'string' && id.replace(/^[+-]/, '') === p.id);
     if (raw) {
       if (raw.startsWith('-')) state.removed.add(p.id);
       else state.sel.add(p.id);
@@ -1171,6 +1349,7 @@ function restoreSelections(config, payload) {
       state.sel.add(p.id);
     }
   }
+  importLogStep('plugins-restored', { selected: state.sel.size, removed: state.removed.size, skipped });
   if (payload) {
     if (payload.tag) $('tagBox').value = String(payload.tag).slice(0, 24);
     if (LANIP_RE.test(String(payload.lanip || ''))) $('lanipBox').value = state.lanip = payload.lanip;
@@ -1192,29 +1371,41 @@ function restoreSelections(config, payload) {
   updateStats();
 }
 async function importConfigFile(file) {
+  beginImportLog(file);
   if (!file || file.size < 32 || file.size > 2 * 1024 * 1024) throw new Error(t('import.size'));
+  importLogStep('file-accepted');
   let text = await file.text();
+  importLogStep('file-read');
   if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
   if (text.includes('\0')) throw new Error(t('import.binary'));
   let payload = null;
   if (/\.json$/i.test(file.name) || text.trimStart().startsWith('{')) {
+    importLogStep('json-detected');
     try { payload = JSON.parse(text); } catch (e) { throw new Error(t('import.jsonInvalid', { msg: e.message })); }
     if (typeof payload.config !== 'string') throw new Error(t('import.jsonNoConfig'));
     text = payload.config;
   }
   text = text.replace(/\r\n/g, '\n');
   const candidates = configCandidates(text);
+  importLogStep('candidates-found', { count: candidates.length, candidates });
   if (payload && payload.configId && !candidates.includes(payload.configId)) throw new Error(t('import.noMatch'));
   const configId = payload && candidates.includes(payload.configId)
     ? payload.configId : askConfigCandidate(candidates);
-  if (!configId) return;
+  if (!configId) {
+    finishImportLog('cancelled');
+    return;
+  }
+  importLogStep('candidate-selected', { index: candidates.indexOf(configId) + 1, configId });
   await selectConfigId(configId);
+  importLogStep('profile-selected', { state: importStateSnapshot() });
   state.importedConfig = text.endsWith('\n') ? text : text + '\n';
   state.importedConfigId = configId;
   restoreSelections(state.importedConfig, payload);
+  finishImportLog('success');
   showToast(t('import.ok', { id: configId }));
 }
 $('importBtn').addEventListener('click', () => $('configImport').click());
+$('importLogBtn').addEventListener('click', downloadImportLog);
 let reopenSubmitAfterImport = false;
 $('configImport').addEventListener('change', async () => {
   const file = $('configImport').files[0];
@@ -1223,7 +1414,7 @@ $('configImport').addEventListener('change', async () => {
     await importConfigFile(file);
     if (reopenSubmitAfterImport) openSubmitModal();
   } catch (e) {
-    alert(t('import.fail', { msg: e.message }));
+    showImportError(e);
   } finally {
     reopenSubmitAfterImport = false;
   }
@@ -1521,6 +1712,19 @@ $('helpBtn').addEventListener('click', () => {
     row.appendChild(body);
     mb.appendChild(row);
   }
+  const links = document.createElement('div');
+  links.className = 'help-links';
+  const addHelpLink = (href, label) => {
+    const link = document.createElement('a');
+    link.href = href;
+    link.target = '_blank';
+    link.rel = 'noopener';
+    link.textContent = label;
+    links.appendChild(link);
+  };
+  addHelpLink('https://openwrt.org/toh/qihoo/360t7_1.0', t('help.link.ubi'));
+  addHelpLink('https://github.com/ATang007ZH/bl-mt798x/wiki/%E5%A4%9A%E5%88%86%E5%8C%BAuboot%E5%88%B6%E4%BD%9C%E6%96%B9%E6%B3%95', t('help.link.layout'));
+  mb.appendChild(links);
 });
 
 /* ============ 悬浮坞收起/展开(记忆状态;手机首次默认只留 ⚙) / dock collapse toggle (persisted; first mobile visit starts as gear only) ============ */

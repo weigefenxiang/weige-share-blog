@@ -1857,7 +1857,7 @@
    "desc": "内核级 VPN,异地组网快而稳",
    "size": 2,
    "pkgs": {},
-   "pkg": "luci-app-wireguard",
+   "pkg": "luci-proto-wireguard",
    "hot": true
   },
   {
@@ -1867,7 +1867,7 @@
    "desc": "解锁网易云灰色歌曲",
    "size": 3,
    "pkgs": {},
-   "pkg": "luci-app-unblockmusic",
+   "pkg": "luci-app-unblockneteasemusic",
    "hot": true
   },
   {
@@ -2021,7 +2021,7 @@
    "desc": "系统防火墙,固件必需",
    "size": 1,
    "pkgs": {},
-   "pkg": "firewall"
+   "pkg": "firewall4"
   },
   {
    "id": "dnsmasq-full",

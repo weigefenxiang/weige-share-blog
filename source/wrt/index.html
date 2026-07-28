@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=7">
+<link rel="stylesheet" href="app.css?v=5904d6ec92">
 </head>
 <body>
 <header class="site-header">
@@ -34,7 +34,7 @@
   <button class="icon-btn dock-toggle" id="dockToggle" type="button" aria-label="toggle dock" aria-expanded="true">⚙</button>
   <div class="dock-items">
     <select id="langSel" class="lang-sel" aria-label="界面语言"></select>
-    <button class="text-btn" id="selfTestBtn" type="button" data-i18n="btn.selfTest" data-i18n-title="btn.selfTest.title">自检</button>
+    <button class="icon-btn dock-selftest" id="selfTestBtn" type="button" data-i18n-title="btn.selfTest.title" data-i18n-aria="btn.selfTest.title">检</button>
     <button class="icon-btn" id="densityBtn" type="button" data-i18n-title="font.label" data-i18n-aria="font.label" aria-haspopup="dialog" aria-expanded="false" aria-controls="fontPanel">Aa</button>
     <button class="icon-btn" id="themeBtn" type="button" aria-label="主题">◐</button>
   </div>
@@ -140,7 +140,7 @@
       <input type="text" id="rootpwBox" maxlength="32" autocapitalize="off" autocorrect="off" autocomplete="off">
       <p class="hint rootpw-warning"><strong data-i18n="rootpw.public">⚠️ 提交内容公开可见,密码公开！！</strong><span data-i18n="rootpw.hint">临时登录密码,刷机后必须立即修改! (lede 源 填 @empty 清成空密码）</span></p>
       <div class="firmware-settings">
-        <label><span data-i18n="fw.timezone">时区</span><input type="search" id="timezoneBox" list="timezoneList" autocomplete="off" spellcheck="false"><datalist id="timezoneList"></datalist></label>
+        <label><span data-i18n="fw.timezone">时区</span><span class="timezone-combo" id="timezoneCombo"><input type="search" id="timezoneBox" role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="timezoneMenu" autocomplete="off" spellcheck="false"><span class="timezone-menu" id="timezoneMenu" role="listbox" hidden></span></span></label>
         <label><span data-i18n="fw.theme">固件主题</span><select id="fwThemeBox"></select></label>
         <label><span data-i18n="fw.ntp">NTP 服务器</span><select id="ntpBox"></select></label>
         <label><span data-i18n="fw.opkg">opkg 镜像</span><select id="opkgBox"></select></label>
@@ -171,6 +171,7 @@
     <div class="actions">
       <input id="configImport" type="file" accept=".json,.config,.buildinfo,text/plain,application/json" hidden>
       <button type="button" class="btn" id="importBtn" data-i18n="btn.import">加载配置</button>
+      <button type="button" class="btn" id="importLogBtn" data-i18n="import.downloadLog" hidden>下载加载日志</button>
       <button type="button" class="btn btn-primary" id="submitBtn" data-i18n="btn.submit">提交云编译</button>
     </div>
   </div>
@@ -180,7 +181,6 @@
   <p><span data-i18n="footer.thanksLabel">【鸣谢】</span>
      <a href="https://openwrt.org/" target="_blank" rel="noopener">OpenWrt</a> /
      <a href="https://immortalwrt.org/" target="_blank" rel="noopener">ImmortalWrt</a> /
-     <a href="https://github.com/hanwckf/immortalwrt-mt798x" target="_blank" rel="noopener">hanwckf</a> /
      <a href="https://github.com/coolsnowwolf/lede" target="_blank" rel="noopener">Lean</a> /
      <a href="packages.html" target="_blank" rel="noopener" data-i18n="footer.pluginAuthors">全部插件作者</a>
   </p>
@@ -212,6 +212,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=10"></script>
+<script src="app.js?v=614180f117"></script>
 </body>
 </html>
