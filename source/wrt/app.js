@@ -42,6 +42,19 @@ const state = {
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
 let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
+let MENU_INDEX = null, MENU_CATALOG = null;
+let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0;
+let menuPath = null, menuExpanded = false, menuVisibleLimit = 50;
+const menuValues = new Map();
+const menuTouched = new Set();
+let menuOptionBySymbol = new Map(), menuTargetSymbols = new Set();
+let menuExactPaths = new Map(), menuChildPaths = new Map(), menuDescendants = new Map();
+let menuChoiceOptions = new Map(), menuSearchText = new Map();
+const MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
+const MENU_PAGE_SIZE = 50;
+const STABLE_IMMORTAL_BRANCHES = new Set([
+  'openwrt-21.02', 'openwrt-23.05', 'openwrt-24.10', 'openwrt-25.12',
+]);
 const DATA_CACHE_VERSION = 'v14-import-log';
 const NTP_PRESETS = {
   cn: ['ntp.aliyun.com', 'time1.cloud.tencent.com', 'cn.ntp.org.cn', 'cn.pool.ntp.org'],
@@ -54,7 +67,6 @@ const OPKG_PRESETS = {
 };
 let PLUG_I18N = null;                  // 插件名/说明多语言表,非中文界面按需加载 / plugin name/desc i18n table, lazy-loaded for non-Chinese UIs
 let CONFIG_MANIFEST = null;
-let pickerMode = localStorage.getItem('wrt_picker_mode') === 'target' ? 'target' : 'device';
 let plugI18nLoading = false;           // 防止重复请求 / guards against duplicate fetches
 let PKGDATA = null;                    // 开发者模式的全量软件包表,按需加载 / raw package table, lazy-loaded in developer mode
 const devPkgs = new Set();             // 开发者勾选编入的原始包 / raw packages to build in (=y)
@@ -283,20 +295,23 @@ async function init() {
     I18N = await loadJson('i18n.json');
     state.lang = pickLang();
     renderLangSel();
-    [DEVICES, CONFIG_MANIFEST, TIMEZONES] = await Promise.all([
+    [DEVICES, CONFIG_MANIFEST, TIMEZONES, MENU_INDEX] = await Promise.all([
       loadJson('devices.json'), loadJson('config-manifest.json'), loadJson('timezones.json'),
+      loadJson('menuconfig-index.json'),
     ]);
+    MENU_INDEX = stableCatalogIndex(MENU_INDEX);
     try {
       const stamp = await loadJson('site-version.json');
       if (/^v\d{8}$/.test(stamp.version)) state.siteVersion = stamp.version;
     } catch (e) { /* 旧部署没有版本文件时保持占位符 / old deployments keep the placeholder */ }
     $('siteVersion').textContent = state.siteVersion;
-    const first = DEVICES.devices.find((d) => d.enabled === true && (pickerMode === 'target') === (d.kind === 'target'))
+    const first = DEVICES.devices.find((d) => d.enabled === true && d.kind === 'target')
       || DEVICES.devices.find((d) => d.enabled === true) || DEVICES.devices[0];
     await switchDevice(first, true);
     renderModes();
     renderFirmwareSettings();
     initDeviceFold();
+    initMenuconfigControls();
     applyI18n();
     $('advMode').checked = state.advanced;
     resetAdvGrey();   // V10:门禁行随记忆的开发者模式显隐,但永远从未勾开始 / V10: gate row follows the remembered developer mode, but always starts unticked
@@ -305,6 +320,7 @@ async function init() {
     $('actionbar').hidden = false;
     if (localStorage.getItem('wrt_risk') !== 'ok') $('riskBar').hidden = false;
     updateStats();
+    refreshMenuIndex();
   } catch (err) {
     $('loading').textContent = (I18N ? t('loading.fail', { msg: err.message }) : '加载失败: ' + err.message);
   }
@@ -331,8 +347,6 @@ let switchSeq = 0;
 async function switchDevice(dev, first) {
   const seq = ++switchSeq;
   state.device = dev;
-  pickerMode = dev.kind === 'target' ? 'target' : 'device';
-  safeSet('wrt_picker_mode', pickerMode);
   const data = await loadJson(dev.plugins === 'seed' ? 'seed/plugins.json' : dev.id + '/plugins.json');
   if (seq !== switchSeq) return;
   PLUGINS = data;
@@ -352,8 +366,7 @@ async function switchDevice(dev, first) {
   if (!first) showToast(t('toast.deviceSwitched', { name: dev.name }));
 }
 
-/* 品牌机型或通用 Target 二选一；Target 选项全部来自 devices.json / Brand-device or generic Target; every Target option comes from devices.json */
-let curBrand = null;
+/* 通用 Target 兼容回退记录；在线目录正常时由独立 Catalog 提供。 */
 function targetRecords() {
   const rows = [];
   for (const device of DEVICES.devices.filter((d) => d.kind === 'target' && d.enabled === true)) {
@@ -386,6 +399,537 @@ function fillTargetSelect(id, rows, valueOf, labelOf, preferred) {
   else if (values.some((item) => item.value === previous)) select.value = previous;
   return select.value;
 }
+
+function catalogUrls(asset) {
+  return [
+    `https://cdn.jsdelivr.net/gh/${MENU_CATALOG_REPO}@catalog-data/${asset}`,
+    `https://raw.githubusercontent.com/${MENU_CATALOG_REPO}/catalog-data/${asset}`,
+  ];
+}
+function stableCatalogIndex(index) {
+  const source = index?.sources?.find((item) => item.id === 'ImmortalWrt');
+  if (!source) return { ...index, sources: [] };
+  const branches = (source.branches || []).filter((branch) =>
+    STABLE_IMMORTAL_BRANCHES.has(branch.branch) && branch.state !== 'unavailable')
+    .sort((a, b) => b.branch.localeCompare(a.branch, undefined, { numeric: true }));
+  return { ...index, sources: branches.length ? [{ ...source, branches }] : [] };
+}
+async function fetchCatalogAsset(asset) {
+  for (const url of catalogUrls(asset)) {
+    try {
+      const response = await fetch(url, { cache: 'no-store' });
+      if (response.ok) return response;
+    } catch (e) { /* 下一镜像 */ }
+  }
+  throw new Error(`Catalog asset unavailable: ${asset}`);
+}
+async function responseJson(response, compressed) {
+  if (!compressed) return response.json();
+  if (typeof DecompressionStream !== 'function') throw new Error('Browser does not support gzip catalog');
+  const stream = response.body.pipeThrough(new DecompressionStream('gzip'));
+  return JSON.parse(await new Response(stream).text());
+}
+async function refreshMenuIndex() {
+  try {
+    const response = await fetchCatalogAsset('index.json');
+    const index = stableCatalogIndex(await response.json());
+    if (index.schema === 1 && Array.isArray(index.sources) && index.sources.length) {
+      index.catalogRepo = MENU_CATALOG_REPO;
+      MENU_INDEX = index;
+      MENU_CATALOG = null;
+      menuCatalogKey = '';
+      renderDevices();
+    }
+  } catch (e) { /* 独立目录尚未发布时继续使用仓库内回退清单 */ }
+}
+function selectedCatalogSource() {
+  return MENU_INDEX?.sources.find((item) => item.id === $('targetSource').value) || MENU_INDEX?.sources[0];
+}
+function selectedCatalogBranch(source = selectedCatalogSource()) {
+  return source?.branches.find((item) => item.id === $('targetBranch').value) || source?.branches[0];
+}
+function catalogBranchLabel(branch) {
+  if (branch.state === 'stale') return `⚠ ${branch.branch} · stale`;
+  if (branch.state === 'unavailable') return `✕ ${branch.branch} · unavailable`;
+  return branch.branch;
+}
+function showCatalogStatus(branch, catalog = MENU_CATALOG) {
+  const status = $('menuconfigStatus');
+  const stateName = branch?.state || (catalog?.source?.commit === 'local-demo' ? 'fallback' : 'fresh');
+  status.className = `hint catalog-${stateName}`;
+  status.title = branch?.runUrl || '';
+  if (stateName === 'unavailable') {
+    status.textContent = `Unavailable · failed at ${branch.errorStage || 'unknown'}`;
+  } else if (stateName === 'stale') {
+    status.textContent = `Stale · last success ${branch.lastSuccessAt || 'unknown'} · failed at ${branch.errorStage || 'unknown'}`;
+  } else {
+    const count = catalog?.counts?.menuOptions || catalog?.menu?.options?.length || 0;
+    status.textContent = `${stateName === 'fallback' ? 'Local fallback · ' : 'Fresh · '}${count} options` +
+    (catalog?.source?.commit ? ` · ${catalog.source.commit.slice(0, 8)}` : '');
+  }
+}
+const menuPathKey = (path) => path.join('\u0001');
+function addMenuIndex(map, key, value) {
+  if (!map.has(key)) map.set(key, []);
+  map.get(key).push(value);
+}
+function buildMenuIndexes(catalog) {
+  menuTargetSymbols = new Set(['TARGET_BOARD', 'TARGET_SUBTARGET', 'TARGET_PROFILE']);
+  for (const target of catalog.targets || []) {
+    menuTargetSymbols.add(`TARGET_${target.board}`);
+    menuTargetSymbols.add(`TARGET_${target.board}_${target.subtarget}`);
+    for (const profile of target.profiles || []) {
+      menuTargetSymbols.add(`TARGET_${target.board}_${target.subtarget}_${profile.id}`);
+    }
+  }
+  const options = (catalog.menu.options || []).filter((option) =>
+    option.path?.[0] !== 'Target Devices' && !menuTargetSymbols.has(option.symbol));
+  const choiceIds = new Set(options.map((option) => option.choice).filter(Boolean));
+  catalog.menu = {
+    ...catalog.menu,
+    categories: (catalog.menu.categories || []).filter((name) => name !== 'Target Devices'),
+    options,
+    choices: (catalog.menu.choices || []).filter((choice) => choiceIds.has(choice.id)),
+  };
+  delete catalog.packages;
+  if (catalog.counts) catalog.counts.menuOptions = options.length;
+  menuOptionBySymbol = new Map();
+  menuExactPaths = new Map();
+  menuChildPaths = new Map();
+  menuDescendants = new Map();
+  menuChoiceOptions = new Map();
+  menuSearchText = new Map();
+  for (const option of options) {
+    menuOptionBySymbol.set(option.symbol, option);
+    const path = option.path || [];
+    addMenuIndex(menuExactPaths, menuPathKey(path), option);
+    for (let depth = 0; depth <= path.length; depth++) {
+      const parent = path.slice(0, depth);
+      addMenuIndex(menuDescendants, menuPathKey(parent), option);
+      if (depth < path.length) {
+        const key = menuPathKey(parent);
+        if (!menuChildPaths.has(key)) menuChildPaths.set(key, new Set());
+        menuChildPaths.get(key).add(path[depth]);
+      }
+    }
+    if (option.choice) addMenuIndex(menuChoiceOptions, option.choice, option);
+    menuSearchText.set(option.symbol,
+      `${option.prompt} ${option.symbol} ${(option.help || '')} ${(option.path || []).join(' ')}`.toLowerCase());
+  }
+}
+async function loadCatalog(source, branch) {
+  if (!source || !branch) return;
+  const key = `${source.id}/${branch.branch}`;
+  if (menuCatalogKey === key && MENU_CATALOG) return renderCatalogPicker();
+  if (menuLoadingKey === key) return;
+  menuLoadingKey = key;
+  const seq = ++menuCatalogSeq;
+  $('menuconfigStatus').className = 'hint';
+  $('menuconfigStatus').textContent = 'Loading catalog…';
+  try {
+    let catalog;
+    try {
+      const response = await fetchCatalogAsset(branch.asset);
+      catalog = await responseJson(response, true);
+    } catch (remoteError) {
+      if (!branch.fallback) throw remoteError;
+      catalog = await loadJson(branch.fallback);
+    }
+    if (seq !== menuCatalogSeq) return;
+    MENU_CATALOG = catalog;
+    menuCatalogKey = key;
+    menuLoadingKey = '';
+    buildMenuIndexes(catalog);
+    menuValues.clear();
+    menuTouched.clear();
+    for (const option of catalog.menu.options || []) {
+      const value = simpleKconfigDefault(option);
+      if (value !== '') menuValues.set(option.symbol, value);
+    }
+    for (const choice of catalog.menu.choices || []) {
+      const selected = (menuChoiceOptions.get(choice.id) || []).some((item) =>
+        item.choice === choice.id && menuValues.get(item.symbol) === 'y');
+      const preferred = String(choice.defaults?.[0] || '').split(/\s+/)[0];
+      if (!selected && preferred) menuValues.set(preferred, 'y');
+    }
+    menuPath = null;
+    menuVisibleLimit = MENU_PAGE_SIZE;
+    renderCatalogPicker(false);
+    await applyCatalogTarget();
+  } catch (error) {
+    if (seq !== menuCatalogSeq) return;
+    MENU_CATALOG = null;
+    menuCatalogKey = '';
+    menuLoadingKey = '';
+    $('menuconfigBox').hidden = false;
+    $('menuconfigStatus').className = 'hint catalog-unavailable';
+    $('menuconfigStatus').textContent = `Catalog unavailable: ${error.message}`;
+  }
+}
+function isCatalogTargetSymbol(symbol, catalog = MENU_CATALOG) {
+  if (menuTargetSymbols.has(symbol)) return true;
+  if (/^TARGET_(?:BOARD|SUBTARGET|PROFILE)$/.test(symbol)) return true;
+  return !menuTargetSymbols.size && (catalog?.targets || []).some((target) =>
+    symbol === `TARGET_${target.board}` || symbol === `TARGET_${target.board}_${target.subtarget}`);
+}
+function renderCatalogPicker(preferState = true) {
+  if (!MENU_INDEX?.sources?.length) return null;
+  const currentSource = preferState && state.device?.id === 'catalog-target' ? state.source?.id : '';
+  const sourceId = fillTargetSelect('targetSource', MENU_INDEX.sources,
+    (item) => item.id, (item) => item.label || item.id, currentSource);
+  const source = MENU_INDEX.sources.find((item) => item.id === sourceId);
+  const currentBranch = preferState && state.device?.id === 'catalog-target' ? state.version?.id : '';
+  let branchId = fillTargetSelect('targetBranch', source.branches,
+    (item) => item.id, catalogBranchLabel, currentBranch);
+  const branchSelect = $('targetBranch');
+  for (const option of branchSelect.options) {
+    const item = source.branches.find((candidate) => candidate.id === option.value);
+    option.disabled = item?.state === 'unavailable';
+  }
+  if (branchSelect.selectedOptions[0]?.disabled) {
+    const available = source.branches.find((item) => item.state !== 'unavailable');
+    if (available) branchSelect.value = available.id;
+    branchId = branchSelect.value;
+  }
+  const branch = source.branches.find((item) => item.id === branchId);
+  if (!branch || branch.state === 'unavailable') {
+    MENU_CATALOG = null;
+    menuCatalogKey = '';
+    $('menuconfigBox').hidden = false;
+    $('menuconfigGrid').textContent = '';
+    $('menuconfigPanel').hidden = true;
+    showCatalogStatus(branch || { state: 'unavailable', errorStage: 'catalog-index' });
+    return null;
+  }
+  const key = `${source.id}/${branch.branch}`;
+  if (!MENU_CATALOG || menuCatalogKey !== key) {
+    loadCatalog(source, branch);
+    return null;
+  }
+  let rows = MENU_CATALOG.targets || [];
+  const preferred = preferState && state.device?.id === 'catalog-target' ? state.device.target : {};
+  const system = fillTargetSelect('targetSystem', rows, (item) => item.board,
+    (item) => item.name || item.board, preferred.system);
+  rows = rows.filter((item) => item.board === system);
+  const subtarget = fillTargetSelect('targetSubtarget', rows, (item) => item.subtarget,
+    (item) => item.subtargetName || item.subtarget, preferred.subtarget);
+  const target = rows.find((item) => item.subtarget === subtarget);
+  const profiles = target?.profiles || [];
+  const profile = fillTargetSelect('targetProfile', profiles, (item) => item.id,
+    (item) => item.name || item.id, preferred.profileSymbol || preferred.profile);
+  $('menuconfigBox').hidden = false;
+  showCatalogStatus(branch, MENU_CATALOG);
+  renderMenuconfig();
+  return { source, branch, target, profile: profiles.find((item) => item.id === profile) };
+}
+function catalogSourceObject(source, branch) {
+  const legacy = source.legacy || MENU_CATALOG?.source?.legacy;
+  return {
+    id: source.id, label: source.label || source.id, repo: source.repo,
+    append: true, loginPw: source.id === 'lede' ? 'password' : undefined,
+    diy1: 'diy-generic.sh', diy2: 'diy2-generic.sh',
+    versions: [{
+      id: branch.id, label: branch.branch + (legacy ? ' (Legacy)' : ''),
+      branch: branch.branch, note: legacy ? 'Legacy source' : '',
+    }],
+    variants: [],
+  };
+}
+async function applyCatalogTarget() {
+  if (!MENU_CATALOG) return;
+  const sourceRow = selectedCatalogSource();
+  const branchRow = selectedCatalogBranch(sourceRow);
+  const target = MENU_CATALOG.targets.find((item) =>
+    item.board === $('targetSystem').value && item.subtarget === $('targetSubtarget').value);
+  const profile = target?.profiles.find((item) => item.id === $('targetProfile').value);
+  if (!target || !profile) return;
+  const source = catalogSourceObject(sourceRow, branchRow);
+  const variant = {
+    id: profile.id, profile: profile.id, name: profile.name || profile.id,
+    note: target.name, capacity: 4096, versions: [branchRow.id],
+  };
+  source.variants = [variant];
+  const device = {
+    id: 'catalog-target', brand: 'Target', name: `${target.name} / ${profile.name || profile.id}`,
+    chip: target.board, plugins: 'seed', enabled: true, kind: 'target',
+    dir: 'platform/catalog-target', note: 'Menuconfig catalog target',
+    target: {
+      system: target.board, systemLabel: target.name || target.board,
+      subtarget: target.subtarget, subtargetLabel: target.subtargetName || target.subtarget,
+      profile: profile.id.replace(/^DEVICE_/, ''), profileSymbol: profile.id,
+      profileLabel: profile.name || profile.id,
+    },
+    sources: [source],
+  };
+  DEVICES.devices = DEVICES.devices.filter((item) => item.id !== device.id);
+  DEVICES.devices.push(device);
+  if (state.device?.id !== device.id || state.source?.id !== source.id ||
+      state.version?.id !== branchRow.id || state.variant?.id !== variant.id) {
+    await switchDevice(device, false);
+    activateTargetRecord({ device, source, version: source.versions[0], variant });
+  } else {
+    state.device = device;
+    activateTargetRecord({ device, source, version: source.versions[0], variant });
+  }
+  renderMenuconfig();
+}
+
+function simpleKconfigDefault(option) {
+  for (const raw of option.defaults || []) {
+    const [value, condition] = raw.split(/\s+if\s+/, 2);
+    if (!condition || kconfigExpr(condition) > 0) return value.replace(/^"|"$/g, '');
+  }
+  return option.type === 'string' ? '' : 'n';
+}
+function kconfigRaw(symbol) {
+  const target = state.device?.target || {};
+  const enabled = new Set([
+    `TARGET_${target.system}`, `TARGET_${target.system}_${target.subtarget}`,
+    `TARGET_${target.system}_${target.subtarget}_${target.profileSymbol || `DEVICE_${target.profile}`}`,
+  ]);
+  if (enabled.has(symbol)) return 'y';
+  if (menuValues.has(symbol)) return String(menuValues.get(symbol));
+  return 'n';
+}
+function kconfigLevel(value) {
+  return value === 'y' ? 2 : value === 'm' ? 1 : 0;
+}
+function kconfigExpr(expression) {
+  if (!expression) return 2;
+  const tokens = String(expression).match(/\|\||&&|!=|=|!|\(|\)|"[^"]*"|[A-Za-z0-9_+./-]+/g) || [];
+  let at = 0;
+  const atomValue = (token) => {
+    if (token === 'y' || token === 'm' || token === 'n') return token;
+    if (/^".*"$/.test(token || '')) return token.slice(1, -1);
+    return kconfigRaw(token);
+  };
+  const primary = () => {
+    if (tokens[at] === '(') {
+      at++;
+      const value = or();
+      if (tokens[at] === ')') at++;
+      return value;
+    }
+    const left = atomValue(tokens[at++] || 'n');
+    if (tokens[at] === '=' || tokens[at] === '!=') {
+      const op = tokens[at++];
+      const right = atomValue(tokens[at++] || 'n');
+      return (op === '=' ? left === right : left !== right) ? 2 : 0;
+    }
+    return kconfigLevel(left);
+  };
+  const unary = () => tokens[at] === '!' ? (at++, 2 - unary()) : primary();
+  const and = () => {
+    let value = unary();
+    while (tokens[at] === '&&') { at++; value = Math.min(value, unary()); }
+    return value;
+  };
+  const or = () => {
+    let value = and();
+    while (tokens[at] === '||') { at++; value = Math.max(value, and()); }
+    return value;
+  };
+  return or();
+}
+function optionVisible(option) {
+  return (option.depends || []).every((expression) => kconfigExpr(expression) > 0);
+}
+function optionMaxLevel(option) {
+  return (option.depends || []).reduce((level, expression) =>
+    Math.min(level, kconfigExpr(expression)), 2);
+}
+function syncMenuToCurated(option, value) {
+  if (!option.symbol.startsWith('PACKAGE_') || !PLUGINS?.plugins || !state.source) return false;
+  const packageName = option.symbol.slice('PACKAGE_'.length);
+  const plugin = PLUGINS.plugins.find((item) =>
+    (item.pkgs?.[state.source.id] || item.pkg) === packageName);
+  if (!plugin) return false;
+  const builtin = pluginState(plugin) === 'builtin';
+  if (value === 'y') {
+    if (builtin) state.removed.delete(plugin.id);
+    else state.sel.add(plugin.id);
+  } else {
+    if (builtin && !plugin.locked) state.removed.add(plugin.id);
+    else if (!builtin) state.sel.delete(plugin.id);
+  }
+  return true;
+}
+function syncCuratedToMenu(plugin, value) {
+  if (!MENU_CATALOG?.menu?.options || !state.source) return;
+  const packageName = plugin.pkgs?.[state.source.id] || plugin.pkg;
+  const option = menuOptionBySymbol.get(`PACKAGE_${packageName}`);
+  if (option) setMenuValue(option, value);
+}
+function setMenuValue(option, value) {
+  menuValues.set(option.symbol, value);
+  menuTouched.add(option.symbol);
+  if (option.choice && value === 'y') {
+    for (const sibling of menuChoiceOptions.get(option.choice) || []) {
+      if (sibling.symbol === option.symbol) continue;
+      menuValues.set(sibling.symbol, 'n');
+      menuTouched.add(sibling.symbol);
+    }
+  }
+  if (value === 'y' || value === 'm') {
+    for (const [kind, rules] of [['select', option.selects || []], ['imply', option.implies || []]]) {
+      for (const rule of rules) {
+        const [symbol, condition] = rule.split(/\s+if\s+/, 2);
+        if (!condition || kconfigExpr(condition) > 0) {
+          if (kind === 'imply' && menuTouched.has(symbol)) continue;
+          const target = menuOptionBySymbol.get(symbol);
+          menuValues.set(symbol, value === 'm' && target?.type !== 'bool' ? 'm' : 'y');
+          menuTouched.add(symbol);
+        }
+      }
+    }
+  }
+  const curatedChanged = syncMenuToCurated(option, value);
+  renderMenuconfig();
+  if (curatedChanged) {
+    renderGroups();
+    updateStats();
+  }
+}
+function initMenuconfigControls() {
+  $('menuconfigToggle').onclick = () => {
+    menuExpanded = !menuExpanded;
+    $('menuconfigToggle').setAttribute('aria-expanded', String(menuExpanded));
+    $('menuconfigBody').hidden = !menuExpanded;
+    if (menuExpanded) renderMenuconfig();
+  };
+  $('menuconfigBack').onclick = () => {
+    menuPath = menuPath?.length ? menuPath.slice(0, -1) : null;
+    menuVisibleLimit = MENU_PAGE_SIZE;
+    renderMenuconfig();
+  };
+  let searchTimer = 0;
+  $('menuconfigSearch').oninput = () => {
+    clearTimeout(searchTimer);
+    searchTimer = setTimeout(() => {
+      menuVisibleLimit = MENU_PAGE_SIZE;
+      renderMenuconfig();
+    }, 100);
+  };
+  $('menuconfigSelectedOnly').onchange = () => {
+    menuVisibleLimit = MENU_PAGE_SIZE;
+    renderMenuconfig();
+  };
+  $('menuconfigMore').onclick = () => {
+    menuVisibleLimit += MENU_PAGE_SIZE;
+    renderMenuconfig();
+  };
+}
+function renderMenuOption(option, showPath = false) {
+  const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+  const row = document.createElement('div');
+  row.className = 'menuconfig-option';
+  const prompt = document.createElement('span');
+  prompt.className = 'menuconfig-prompt';
+  prompt.append(document.createTextNode(option.prompt));
+  const symbol = document.createElement('small');
+  symbol.textContent = (showPath && option.path?.length ? `${option.path.join(' › ')} · ` : '') + option.symbol;
+  prompt.appendChild(symbol);
+  row.appendChild(prompt);
+  if (option.type === 'bool' || option.type === 'tristate') {
+    const tri = document.createElement('span');
+    tri.className = 'kconfig-tri';
+    for (const stateValue of option.type === 'tristate' ? ['n', 'm', 'y'] : ['n', 'y']) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = stateValue.toUpperCase();
+      button.className = value === stateValue ? 'active' : '';
+      button.disabled = option.type === 'tristate' && kconfigLevel(stateValue) > optionMaxLevel(option);
+      button.onclick = () => setMenuValue(option, stateValue);
+      tri.appendChild(button);
+    }
+    row.appendChild(tri);
+  } else {
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.value = value === 'n' ? '' : value;
+    input.onchange = () => setMenuValue(option, input.value);
+    row.appendChild(input);
+  }
+  return row;
+}
+function renderMenuconfig() {
+  const box = $('menuconfigBox');
+  if (!box || !MENU_CATALOG?.menu?.options) return;
+  box.hidden = false;
+  $('menuconfigToggle').setAttribute('aria-expanded', String(menuExpanded));
+  $('menuconfigBody').hidden = !menuExpanded;
+  if (!menuExpanded) return;
+  const grid = $('menuconfigGrid');
+  const panel = $('menuconfigPanel');
+  const list = $('menuconfigOptions');
+  grid.textContent = '';
+  list.textContent = '';
+  const query = $('menuconfigSearch').value.trim().toLowerCase();
+  const selectedOnly = $('menuconfigSelectedOnly').checked;
+  let nodes = [];
+  let options = [];
+  let showPath = false;
+  if (selectedOnly) {
+    options = MENU_CATALOG.menu.options.filter((option) => {
+      const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+      return optionVisible(option) && (menuTouched.has(option.symbol) || value !== 'n');
+    });
+    showPath = true;
+    $('menuconfigPanelTitle').textContent = 'Selected options';
+  } else if (query) {
+    $('menuconfigPanelTitle').textContent = query.length < 2 ? 'Type at least 2 characters' : 'Search results';
+    if (query.length >= 2) {
+      options = MENU_CATALOG.menu.options.filter((option) =>
+        optionVisible(option) && menuSearchText.get(option.symbol)?.includes(query));
+      showPath = true;
+    }
+  } else if (menuPath === null) {
+    $('menuconfigPanelTitle').textContent = 'Top level';
+    const rootOptions = (menuExactPaths.get('') || []).filter(optionVisible);
+    if (rootOptions.length) nodes.push({ label: 'General settings', path: [], count: rootOptions.length });
+    for (const name of menuChildPaths.get('') || []) {
+      const path = [name];
+      const count = (menuDescendants.get(menuPathKey(path)) || []).filter(optionVisible).length;
+      if (count) nodes.push({ label: name, path, count });
+    }
+  } else {
+    const key = menuPathKey(menuPath);
+    $('menuconfigPanelTitle').textContent = menuPath.length ? menuPath.join(' › ') : 'General settings';
+    for (const name of menuChildPaths.get(key) || []) {
+      const path = [...menuPath, name];
+      const count = (menuDescendants.get(menuPathKey(path)) || []).filter(optionVisible).length;
+      if (count) nodes.push({ label: name, path, count });
+    }
+    options = (menuExactPaths.get(key) || []).filter(optionVisible);
+  }
+  $('menuconfigBack').hidden = menuPath === null || query || selectedOnly;
+  for (const node of nodes) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'menuconfig-category';
+    button.append(document.createTextNode(node.label));
+    const count = document.createElement('small');
+    count.textContent = `${node.count} ›`;
+    button.appendChild(count);
+    button.onclick = () => {
+      menuPath = node.path;
+      menuVisibleLimit = MENU_PAGE_SIZE;
+      renderMenuconfig();
+    };
+    grid.appendChild(button);
+  }
+  grid.hidden = !nodes.length;
+  const visible = options.slice(0, menuVisibleLimit);
+  for (const option of visible) list.appendChild(renderMenuOption(option, showPath));
+  if (!nodes.length && !visible.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = query.length === 1 ? 'Type one more character.' : 'No available options.';
+    list.appendChild(empty);
+  }
+  panel.hidden = !visible.length && !!nodes.length;
+  $('menuconfigMore').hidden = options.length <= menuVisibleLimit;
+}
 function renderTargetPicker(preferState = true) {
   let rows = targetRecords();
   const current = preferState ? (rows.find((r) => r.device.id === state.device?.id &&
@@ -416,72 +960,32 @@ function activateTargetRecord(record) {
   updateDevpkgBox();
   updateDeviceSummary();
 }
-async function selectPickerMode(mode) {
-  pickerMode = mode;
-  safeSet('wrt_picker_mode', mode);
-  const device = mode === 'target'
-    ? targetRecords()[0]?.device
-    : DEVICES.devices.find((d) => d.kind !== 'target' && d.enabled === true);
-  if (device && state.device.id !== device.id) await switchDevice(device);
-  else renderDevices();
-}
 function renderDevices() {
-  pickerMode = state.device && state.device.kind === 'target' ? 'target' : pickerMode;
-  const modeRow = $('pickerModeRow');
-  $('deviceModeBtn').onclick = () => selectPickerMode('device');
-  $('targetModeBtn').onclick = () => selectPickerMode('target');
-  setActive(modeRow, pickerMode === 'target' ? $('targetModeBtn') : $('deviceModeBtn'));
-  $('brandPicker').hidden = pickerMode === 'target';
-  $('targetPicker').hidden = pickerMode !== 'target';
-  for (const id of ['sourceStep', 'versionStep', 'variantStep']) $(id).hidden = pickerMode === 'target';
-  if (pickerMode === 'target') {
-    const selected = renderTargetPicker();
-    for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
-      $(id).onchange = async () => {
-        const record = renderTargetPicker(false);
-        if (!record) return;
-        if (record.device.id !== state.device.id) await switchDevice(record.device);
-        activateTargetRecord(record);
-      };
-    }
-    if (selected && selected.device.id !== state.device.id) switchDevice(selected.device);
-    updateDeviceSummary();
-    return;
+  $('targetPicker').hidden = false;
+  for (const id of ['sourceStep', 'versionStep', 'variantStep']) $(id).hidden = true;
+  const usingCatalog = !!MENU_INDEX?.sources?.length;
+  const selected = usingCatalog ? renderCatalogPicker() : renderTargetPicker();
+  for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
+    $(id).onchange = async () => {
+      if (usingCatalog) {
+        if (id === 'targetSource' || id === 'targetBranch') {
+          MENU_CATALOG = null;
+          menuCatalogKey = '';
+          menuLoadingKey = '';
+          renderCatalogPicker(false);
+        } else {
+          renderCatalogPicker(false);
+          await applyCatalogTarget();
+        }
+        return;
+      }
+      const record = renderTargetPicker(false);
+      if (!record) return;
+      if (record.device.id !== state.device.id) await switchDevice(record.device);
+      activateTargetRecord(record);
+    };
   }
-
-  const normalDevices = DEVICES.devices.filter((d) => d.kind !== 'target');
-  if (!curBrand || !normalDevices.some((d) => d.brand === curBrand)) curBrand = state.device && state.device.kind !== 'target'
-    ? state.device.brand : normalDevices[0]?.brand;
-  const brandRow = $('brandRow');
-  brandRow.textContent = '';
-  const brands = [...new Set(normalDevices.map((d) => d.brand))];
-  for (const b of brands) {
-    const models = normalDevices.filter((d) => d.brand === b);
-    const anyOn = models.some((d) => d.enabled === true);
-    const pill = makePill(b, b, models.length + ' 款 · ' + models.map((d) => d.name).slice(0, 8).join('、') + (models.length > 8 ? '…' : ''), () => {
-      curBrand = b;
-      renderDevices();
-    });
-    if (!anyOn) pill.classList.add('pill-locked');
-    brandRow.appendChild(pill);
-    if (b === curBrand) setActive(brandRow, pill);
-  }
-
-  const row = $('deviceRow');
-  row.textContent = '';
-  for (const d of normalDevices.filter((x) => x.brand === curBrand)) {
-    const enabled = d.enabled === true;
-    const srcList = (d.sources || []).map((s) => s.label).join(' · ');
-    const info = (d.note || '') + (srcList ? '\n\n' + t('device.sources', { list: srcList }) : '') +
-      (enabled ? '' : '\n\n' + t('device.locked.note'));
-    const pill = makePill(d.name, d.name + ' · ' + d.chip, info, () => {
-      if (!enabled) { showToast(t('device.locked')); return; }
-      if (state.device.id !== d.id) switchDevice(d);
-    });
-    if (!enabled) pill.classList.add('pill-locked');
-    row.appendChild(pill);
-    if (state.device && d.id === state.device.id) setActive(row, pill);
-  }
+  if (!usingCatalog && selected && selected.device.id !== state.device.id) switchDevice(selected.device);
   updateDeviceSummary();
 }
 
@@ -928,6 +1432,7 @@ function renderPlugin(p) {
   cb.disabled = lockedItem || (st === 'unavailable' ? !canForce : (!adv && st !== 'ok'));
   cb.setAttribute('aria-label', pName(p));
   cb.addEventListener('change', () => {
+    const selectedBefore = new Set(state.sel);
     if (st === 'builtin') {
       if (cb.checked) {
         state.removed.delete(p.id);
@@ -942,6 +1447,13 @@ function renderPlugin(p) {
     } else {
       state.sel.delete(p.id);
       warnDependents(p);
+    }
+    syncCuratedToMenu(p, cb.checked ? 'y' : 'n');
+    for (const id of state.sel) {
+      if (!selectedBefore.has(id)) {
+        const required = byId(id);
+        if (required && required.id !== p.id) syncCuratedToMenu(required, 'y');
+      }
     }
     updateStats();
   });
@@ -1229,6 +1741,37 @@ function openSelectedDrawer() {
 $('selCount').addEventListener('click', openSelectedDrawer);
 
 /* ============ 生成 .config / Generate the .config ============ */
+function setConfigSymbol(text, symbol, value, type = 'bool') {
+  const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const line = value === 'n' || value === ''
+    ? `# CONFIG_${symbol} is not set`
+    : `CONFIG_${symbol}=${type === 'string' && !/^".*"$/.test(value) ? JSON.stringify(value) : value}`;
+  const pattern = new RegExp(`^(?:CONFIG_${escaped}=.*|# CONFIG_${escaped} is not set)$`, 'm');
+  if (pattern.test(text)) return text.replace(pattern, line);
+  return text.replace(/\s*$/, '\n') + line + '\n';
+}
+function applyMenuConfig(text) {
+  if (!MENU_CATALOG) return text;
+  for (const symbol of menuTouched) {
+    const option = menuOptionBySymbol.get(symbol);
+    if (option) text = setConfigSymbol(text, symbol, String(menuValues.get(symbol) ?? 'n'), option.type);
+  }
+  return text;
+}
+function catalogTargetConfig() {
+  const target = state.device.target;
+  const profile = target.profileSymbol || `DEVICE_${target.profile}`;
+  let text = [
+    `CONFIG_TARGET_${target.system}=y`,
+    `CONFIG_TARGET_${target.system}_${target.subtarget}=y`,
+    `CONFIG_TARGET_${target.system}_${target.subtarget}_${profile}=y`,
+    `CONFIG_TARGET_BOARD="${target.system}"`,
+    `CONFIG_TARGET_SUBTARGET="${target.subtarget}"`,
+    `CONFIG_TARGET_PROFILE="${profile}"`,
+    '',
+  ].join('\n');
+  return applyMenuConfig(text);
+}
 function applyToConfig(text, sel) {
   const src = state.source.id;
   for (const pair of state.variant.patch || []) text = text.split(pair.from).join(pair.to);
@@ -1254,6 +1797,7 @@ function applyToConfig(text, sel) {
   text = text.replace(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=[ym]$/gm, '# CONFIG_PACKAGE_$1 is not set');
   setY(state.theme);
   const zone = currentTimezone();
+  text = applyMenuConfig(text);
   return '# Generated by WeiG-OpenWrt-AutoBuild web customizer\n' +
     '# page-version=' + state.siteVersion + '\n' +
     '# device=' + state.device.id + ' source=' + src + ' version=' + state.version.id +
@@ -1266,10 +1810,20 @@ function applyToConfig(text, sel) {
 }
 
 async function generateConfigText() {
+  if (state.device.id === 'catalog-target') {
+    const source = selectedCatalogSource();
+    const branch = selectedCatalogBranch(source);
+    if (!MENU_CATALOG || menuCatalogKey !== `${source.id}/${branch.branch}` ||
+        state.source.id !== source.id || state.version.branch !== branch.branch) {
+      throw new Error('The selected menuconfig catalog has not finished loading');
+    }
+  }
   const configId = [state.device.id, state.source.id, state.version.id, state.variant.id].join('/');
   const configName = state.variant.configs?.[state.version.id] || state.variant.config || state.source.config;
-  const raw = state.importedConfig && (state.importedConfigId === configId || state.device.id === 'custom-target')
+  const raw = state.importedConfig && (state.importedConfigId === configId || ['custom-target', 'catalog-target'].includes(state.device.id))
     ? state.importedConfig
+    : state.device.id === 'catalog-target'
+      ? catalogTargetConfig()
     : await (await fetchData(state.device.id + '/' + configName)).text();
   return applyToConfig(raw, effectiveSelection());
 }
@@ -1394,6 +1948,21 @@ function customTargetSources(preferredSource) {
       const item = grouped.get(source.id);
       for (const version of source.versions || []) {
         if (!item.versions.has(version.id)) item.versions.set(version.id, version);
+      }
+    }
+  }
+  for (const item of MENU_INDEX?.sources || []) {
+    if (!grouped.has(item.id)) {
+      grouped.set(item.id, {
+        id: item.id, label: item.label || item.id, repo: item.repo, append: true,
+        loginPw: item.id === 'lede' ? 'password' : undefined,
+        diy1: 'diy-generic.sh', diy2: 'diy2-generic.sh', versions: new Map(),
+      });
+    }
+    const source = grouped.get(item.id);
+    for (const branch of item.branches || []) {
+      if (!source.versions.has(branch.id)) {
+        source.versions.set(branch.id, { id: branch.id, branch: branch.branch, label: branch.branch });
       }
     }
   }
@@ -1534,6 +2103,25 @@ function restoreSelections(config, payload) {
       state.sel.add(p.id);
     }
   }
+  if (MENU_CATALOG?.menu?.options) {
+    const configValues = new Map();
+    for (const line of config.split('\n')) {
+      const enabled = line.match(/^CONFIG_([A-Za-z0-9_]+)=(.*)$/);
+      const disabled = line.match(/^# CONFIG_([A-Za-z0-9_]+) is not set$/);
+      if (enabled) configValues.set(enabled[1], enabled[2]);
+      else if (disabled) configValues.set(disabled[1], 'n');
+    }
+    for (const option of MENU_CATALOG.menu.options) {
+      if (configValues.has(option.symbol)) {
+        let value = configValues.get(option.symbol);
+        if (option.type === 'string') {
+          try { value = JSON.parse(value); } catch (e) { value = value.replace(/^"|"$/g, ''); }
+        }
+        menuValues.set(option.symbol, value);
+        menuTouched.add(option.symbol);
+      }
+    }
+  }
   importLogStep('plugins-restored', { selected: state.sel.size, removed: state.removed.size, skipped });
   if (payload) {
     if (payload.tag) $('tagBox').value = String(payload.tag).slice(0, 24);
@@ -1553,6 +2141,7 @@ function restoreSelections(config, payload) {
   }
   renderFirmwareSettings();
   renderGroups();
+  renderMenuconfig();
   updateStats();
 }
 async function importConfigFile(file) {
@@ -1705,12 +2294,13 @@ function openSubmitModal() {
           pageVersion: state.siteVersion,
           configId: [state.device.id, state.source.id, state.version.id, state.variant.id].join('/'),
           device: state.device.id, source: state.source.id, version: state.version.id,
+          branch: state.version.branch,
           variant: state.variant.id, plugins, tag, lanip: state.lanip, config,
           firmware: {
             timezone: state.timezone, theme: state.theme, ntp: state.ntp, opkg: state.opkg,
           },
         };
-        if (state.device.id === 'custom-target') payload.customTarget = state.device.target;
+        if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;
         const filename = ['build-request', state.device.id, localStamp(), state.source.id,

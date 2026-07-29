@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=5796f8791a">
+<link rel="stylesheet" href="app.css?v=3172e13e65">
 </head>
 <body>
 <header class="site-header">
@@ -74,25 +74,37 @@
 
   <div id="form" hidden>
     <section class="step device-step" id="deviceStep">
-      <h2><span class="stepnum">⓪</span> <span data-i18n="step.device">选择机型</span> <span class="hint" data-i18n="step.device.hint"></span>
+      <h2><span class="stepnum">①</span> <span data-i18n="step.device">选择机型</span> <span class="hint" data-i18n="step.device.hint"></span>
         <button class="fold-btn" id="deviceFold" type="button" aria-expanded="true" aria-controls="devicePicker" data-i18n="fold.hide">隐藏</button>
       </h2>
       <button class="device-summary" id="deviceSummary" type="button" hidden></button>
       <div id="devicePicker">
-        <div class="pill-row picker-mode" id="pickerModeRow">
-          <button class="pill" id="deviceModeBtn" type="button" data-i18n="device.mode.device">品牌型号</button>
-          <button class="pill" id="targetModeBtn" type="button">Target</button>
-        </div>
-        <div id="brandPicker">
-          <div class="picker-row"><span class="picker-label" data-i18n="device.brandLabel">品牌</span><div class="pill-row" id="brandRow"></div></div>
-          <div class="picker-row model-row"><span class="picker-label" data-i18n="device.modelLabel">型号</span><div class="pill-row" id="deviceRow"></div></div>
-        </div>
-        <div class="target-picker" id="targetPicker" hidden>
+        <div class="target-picker" id="targetPicker">
           <label><span data-i18n="target.source">源码</span><select id="targetSource"></select></label>
           <label><span data-i18n="target.branch">分支</span><select id="targetBranch"></select></label>
           <label><span>Target System</span><select id="targetSystem"></select></label>
           <label><span>Subtarget</span><select id="targetSubtarget"></select></label>
           <label><span>Target Profile</span><select id="targetProfile"></select></label>
+        </div>
+        <div class="menuconfig-box" id="menuconfigBox" hidden>
+          <button class="menuconfig-toggle" id="menuconfigToggle" type="button" aria-expanded="false" aria-controls="menuconfigBody">
+            <strong>Advanced menuconfig</strong>
+            <span class="hint" id="menuconfigStatus"></span>
+            <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
+          </button>
+          <div id="menuconfigBody" hidden>
+            <div class="menuconfig-toolbar">
+              <button class="menuconfig-back" id="menuconfigBack" type="button" hidden>←</button>
+              <strong id="menuconfigPanelTitle"></strong>
+              <input type="search" id="menuconfigSearch" placeholder="Search option / symbol">
+              <label><input type="checkbox" id="menuconfigSelectedOnly"> Selected only</label>
+            </div>
+            <div class="menuconfig-grid" id="menuconfigGrid"></div>
+            <div class="menuconfig-panel" id="menuconfigPanel" hidden>
+            <div id="menuconfigOptions"></div>
+            </div>
+            <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more</button>
+          </div>
         </div>
       </div>
     </section>
@@ -113,7 +125,7 @@
     </section>
 
     <section class="step">
-      <h2><span class="stepnum">④</span> <span data-i18n="step.plugins">勾选插件</span> <span class="hint" data-i18n="step.plugins.hint"></span></h2>
+      <h2><span class="stepnum">②</span> <span data-i18n="step.plugins">勾选插件</span> <span class="hint" data-i18n="step.plugins.hint"></span></h2>
       <div class="legend">
         <span class="lg-item"><span class="lg-box"></span><span data-i18n="legend.ok"></span></span>
         <span class="lg-item"><span class="lg-box lg-builtin">✓</span><span data-i18n="legend.builtin"></span></span>
@@ -142,7 +154,7 @@
     </section>
 
     <section class="step">
-      <h2><span class="stepnum">⑤</span> <span data-i18n="step.submit">提交设置</span></h2>
+      <h2><span class="stepnum">③</span> <span data-i18n="step.submit">提交设置</span></h2>
       <label class="field-label" for="tagBox" data-i18n="tag.label"></label>
       <input type="text" id="tagBox" maxlength="24" data-i18n-ph="tag.placeholder">
       <label class="field-label" for="lanipBox" data-i18n="lanip.label" style="margin-top:10px"></label>
@@ -225,6 +237,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=2629221b74"></script>
+<script src="app.js?v=e03d395365"></script>
 </body>
 </html>

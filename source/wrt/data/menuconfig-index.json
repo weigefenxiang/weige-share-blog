@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "catalogRepo": "weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog",
+  "releaseTag": "menuconfig-catalog",
+  "sources": [
+    {
+      "id": "ImmortalWrt",
+      "label": "ImmortalWrt",
+      "repo": "immortalwrt/immortalwrt",
+      "branches": [
+        { "id": "25.12", "branch": "openwrt-25.12", "asset": "immortalwrt--openwrt-25.12.json.gz", "fallback": "menuconfig-demo.json" },
+        { "id": "24.10", "branch": "openwrt-24.10", "asset": "immortalwrt--openwrt-24.10.json.gz" },
+        { "id": "23.05", "branch": "openwrt-23.05", "asset": "immortalwrt--openwrt-23.05.json.gz" },
+        { "id": "21.02", "branch": "openwrt-21.02", "asset": "immortalwrt--openwrt-21.02.json.gz" }
+      ]
+    }
+  ]
+}

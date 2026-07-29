@@ -1,0 +1,30 @@
+{
+  "schema": 1,
+  "source": { "id": "ImmortalWrt", "label": "ImmortalWrt", "repo": "immortalwrt/immortalwrt", "branch": "openwrt-25.12", "commit": "local-demo", "legacy": false },
+  "targets": [
+    {
+      "id": "x86/64",
+      "board": "x86",
+      "subtarget": "64",
+      "name": "x86",
+      "subtargetName": "x86_64",
+      "profiles": [
+        { "id": "DEVICE_generic", "name": "Generic x86/64", "packages": [] }
+      ]
+    }
+  ],
+  "menu": {
+    "categories": ["Target Images", "Global build settings", "LuCI", "Utilities"],
+    "choices": [
+      { "id": "choice-rootfs", "prompt": "Root filesystem", "type": "bool", "depends": [], "defaults": ["TARGET_ROOTFS_SQUASHFS"] }
+    ],
+    "options": [
+      { "symbol": "TARGET_IMAGES_GZIP", "kind": "config", "type": "bool", "prompt": "GZip images", "path": ["Target Images"], "depends": [], "defaults": ["y"], "selects": [], "implies": [], "ranges": [], "choice": "" },
+      { "symbol": "TARGET_ROOTFS_SQUASHFS", "kind": "config", "type": "bool", "prompt": "SquashFS", "path": ["Target Images"], "depends": [], "defaults": ["y"], "selects": [], "implies": [], "ranges": [], "choice": "choice-rootfs" },
+      { "symbol": "TARGET_ROOTFS_EXT4FS", "kind": "config", "type": "bool", "prompt": "ext4", "path": ["Target Images"], "depends": [], "defaults": [], "selects": [], "implies": [], "ranges": [], "choice": "choice-rootfs" },
+      { "symbol": "DEVEL", "kind": "menuconfig", "type": "bool", "prompt": "Enable experimental features by default", "path": ["Global build settings"], "depends": [], "defaults": [], "selects": [], "implies": [], "ranges": [], "choice": "" },
+      { "symbol": "PACKAGE_luci-app-example", "kind": "config", "type": "tristate", "prompt": "Example LuCI application", "path": ["LuCI", "Applications"], "depends": ["TARGET_x86"], "defaults": [], "selects": ["PACKAGE_luci-base"], "implies": [], "ranges": [], "choice": "" },
+      { "symbol": "PACKAGE_htop", "kind": "config", "type": "tristate", "prompt": "htop", "path": ["Utilities"], "depends": [], "defaults": [], "selects": [], "implies": [], "ranges": [], "choice": "" }
+    ]
+  }
+}
