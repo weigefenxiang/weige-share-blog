@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=6c08182e8b">
+<link rel="stylesheet" href="app.css?v=3a21541853">
 </head>
 <body>
 <header class="site-header">
@@ -106,11 +106,18 @@
               <input type="search" id="menuconfigSearch" placeholder="Search option / symbol">
               <label><input type="checkbox" id="menuconfigSelectedOnly"> Selected only</label>
             </div>
-            <div class="menuconfig-grid" id="menuconfigGrid"></div>
-            <div class="menuconfig-panel" id="menuconfigPanel" hidden>
-            <div id="menuconfigOptions"></div>
+            <button class="menuconfig-selected-toggle" id="menuconfigSelectedToggle" type="button"
+              aria-expanded="false" aria-controls="menuconfigContent" hidden>
+              <span><strong>Selected options</strong> <small id="menuconfigSelectedCount">0</small></span>
+              <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
+            </button>
+            <div id="menuconfigContent">
+              <div class="menuconfig-grid" id="menuconfigGrid"></div>
+              <div class="menuconfig-panel" id="menuconfigPanel" hidden>
+                <div id="menuconfigOptions"></div>
+              </div>
+              <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more</button>
             </div>
-            <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more</button>
             <details class="import-unknown" id="importUnknownBox" hidden>
               <summary id="importUnknownSummary"></summary>
               <p class="hint">Catalog 未收录这些配置项，不自动推断依赖。关闭会写入 “is not set”；删除配置行则交给 make defconfig 决定默认值。</p>
@@ -254,6 +261,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=57e2928009"></script>
+<script src="app.js?v=bdf75abc44"></script>
 </body>
 </html>

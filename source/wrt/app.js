@@ -44,7 +44,8 @@ const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1
 let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
 let MENU_INDEX = null, MENU_CATALOG = null;
 let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0, menuCatalogPromise = null;
-let menuPath = null, menuExpanded = false, menuVisibleLimit = 50;
+let menuPath = null, menuParent = '', menuExpanded = false, menuSelectedExpanded = false;
+let menuVisibleLimit = 50, menuHistory = [], menuBreadcrumb = [];
 const menuValues = new Map();
 const menuTouched = new Set();
 const menuImportedOriginal = new Map();
@@ -55,7 +56,8 @@ const importedUnknownEdits = new Map();
 let importedUnknownLimit = 50, importedTargetVerified = true, importingConfig = false;
 let menuOptionBySymbol = new Map(), menuTargetSymbols = new Set();
 let menuExactPaths = new Map(), menuChildPaths = new Map(), menuDescendants = new Map();
-let menuChoiceOptions = new Map(), menuSearchText = new Map();
+let menuChoiceOptions = new Map(), menuChildrenByParent = new Map(), menuNestedCounts = new Map();
+let menuSearchText = new Map();
 const MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
 const MENU_PAGE_SIZE = 50;
 const STABLE_IMMORTAL_BRANCHES = new Set([
@@ -506,6 +508,8 @@ function buildMenuIndexes(catalog) {
   menuChildPaths = new Map();
   menuDescendants = new Map();
   menuChoiceOptions = new Map();
+  menuChildrenByParent = new Map();
+  menuNestedCounts = new Map();
   menuSearchText = new Map();
   for (const option of options) {
     menuOptionBySymbol.set(option.symbol, option);
@@ -523,6 +527,22 @@ function buildMenuIndexes(catalog) {
     if (option.choice) addMenuIndex(menuChoiceOptions, option.choice, option);
     menuSearchText.set(option.symbol,
       `${option.prompt} ${option.symbol} ${(option.help || '')} ${(option.path || []).join(' ')}`.toLowerCase());
+  }
+  for (const option of options) {
+    if (option.parent && (!menuOptionBySymbol.has(option.parent) ||
+        menuOptionBySymbol.get(option.parent).kind !== 'menuconfig')) {
+      option.parent = '';
+    }
+    if (option.parent) addMenuIndex(menuChildrenByParent, option.parent, option);
+  }
+  for (const option of options) {
+    let parent = option.parent;
+    const seenParents = new Set();
+    while (parent && !seenParents.has(parent)) {
+      seenParents.add(parent);
+      menuNestedCounts.set(parent, (menuNestedCounts.get(parent) || 0) + 1);
+      parent = menuOptionBySymbol.get(parent)?.parent || '';
+    }
   }
 }
 async function loadCatalog(source, branch, applyDefault = true) {
@@ -561,7 +581,7 @@ async function loadCatalog(source, branch, applyDefault = true) {
       const preferred = String(choice.defaults?.[0] || '').split(/\s+/)[0];
       if (!selected && preferred) menuValues.set(preferred, 'y');
     }
-    menuPath = null;
+    resetMenuNavigation();
     menuVisibleLimit = MENU_PAGE_SIZE;
     renderCatalogPicker(false, { sourceId: source.id, branchId: branch.id });
     if (applyDefault) await applyCatalogTarget();
@@ -781,7 +801,28 @@ function syncCuratedToMenu(plugin, value) {
   const option = menuOptionBySymbol.get(`PACKAGE_${packageName}`);
   if (option) setMenuValue(option, value);
 }
-function setMenuValue(option, value) {
+function resetMenuNavigation() {
+  menuPath = null;
+  menuParent = '';
+  menuHistory = [];
+  menuBreadcrumb = [];
+}
+function openMenuLevel(path, parent, label) {
+  menuHistory.push({ path: menuPath, parent: menuParent, breadcrumb: [...menuBreadcrumb] });
+  menuPath = path;
+  menuParent = parent;
+  if (label && menuBreadcrumb.at(-1) !== label) menuBreadcrumb.push(label);
+  menuVisibleLimit = MENU_PAGE_SIZE;
+}
+function openMenuChildren(option) {
+  if (!menuChildrenByParent.has(option.symbol)) return;
+  openMenuLevel([...(option.path || [])], option.symbol, option.prompt || option.symbol);
+}
+function menuOptionSelected(option) {
+  const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+  return menuTouched.has(option.symbol) || menuImportedNonDefault.has(option.symbol) || value !== 'n';
+}
+function setMenuValue(option, value, openChildren = false) {
   menuValues.set(option.symbol, value);
   menuTouched.add(option.symbol);
   if (option.choice && value === 'y') {
@@ -805,6 +846,7 @@ function setMenuValue(option, value) {
     }
   }
   const curatedChanged = syncMenuToCurated(option, value);
+  if (openChildren && value !== 'n') openMenuChildren(option);
   renderMenuconfig();
   if (curatedChanged) {
     renderGroups();
@@ -819,19 +861,37 @@ function initMenuconfigControls() {
     if (menuExpanded) renderMenuconfig();
   };
   $('menuconfigBack').onclick = () => {
-    menuPath = menuPath?.length ? menuPath.slice(0, -1) : null;
+    const previous = menuHistory.pop();
+    if (previous) {
+      menuPath = previous.path;
+      menuParent = previous.parent;
+      menuBreadcrumb = previous.breadcrumb;
+    } else {
+      resetMenuNavigation();
+    }
     menuVisibleLimit = MENU_PAGE_SIZE;
+    renderMenuconfig();
+  };
+  $('menuconfigSelectedToggle').onclick = () => {
+    menuSelectedExpanded = !menuSelectedExpanded;
     renderMenuconfig();
   };
   let searchTimer = 0;
   $('menuconfigSearch').oninput = () => {
     clearTimeout(searchTimer);
     searchTimer = setTimeout(() => {
+      if ($('menuconfigSearch').value.trim()) {
+        $('menuconfigSelectedOnly').checked = false;
+        resetMenuNavigation();
+      }
       menuVisibleLimit = MENU_PAGE_SIZE;
       renderMenuconfig();
     }, 100);
   };
   $('menuconfigSelectedOnly').onchange = () => {
+    $('menuconfigSearch').value = '';
+    resetMenuNavigation();
+    menuSelectedExpanded = $('menuconfigSelectedOnly').checked;
     menuVisibleLimit = MENU_PAGE_SIZE;
     renderMenuconfig();
   };
@@ -859,15 +919,19 @@ function initMenuconfigControls() {
 }
 function renderMenuOption(option, showPath = false) {
   const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+  const childCount = menuNestedCounts.get(option.symbol) || 0;
   const row = document.createElement('div');
-  row.className = 'menuconfig-option';
+  row.className = `menuconfig-option${childCount ? ' has-children' : ''}`;
   const prompt = document.createElement('span');
   prompt.className = 'menuconfig-prompt';
   prompt.append(document.createTextNode(option.prompt));
   const symbol = document.createElement('small');
-  symbol.textContent = (showPath && option.path?.length ? `${option.path.join(' › ')} · ` : '') + option.symbol;
+  const prefix = showPath && option.path?.length ? `${option.path.join(' › ')} · ` : '';
+  symbol.textContent = `${prefix}${option.symbol}${childCount ? ` · ${childCount} sub-options` : ''}`;
   prompt.appendChild(symbol);
   row.appendChild(prompt);
+  const actions = document.createElement('span');
+  actions.className = 'menuconfig-option-actions';
   if (option.type === 'bool' || option.type === 'tristate') {
     const tri = document.createElement('span');
     tri.className = 'kconfig-tri';
@@ -877,17 +941,32 @@ function renderMenuOption(option, showPath = false) {
       button.textContent = stateValue.toUpperCase();
       button.className = value === stateValue ? 'active' : '';
       button.disabled = option.type === 'tristate' && kconfigLevel(stateValue) > optionMaxLevel(option);
-      button.onclick = () => setMenuValue(option, stateValue);
+      button.onclick = () => setMenuValue(option, stateValue, childCount > 0 && stateValue !== 'n');
       tri.appendChild(button);
     }
-    row.appendChild(tri);
+    actions.appendChild(tri);
   } else {
     const input = document.createElement('input');
     input.type = 'text';
     input.value = value === 'n' ? '' : value;
     input.onchange = () => setMenuValue(option, input.value);
-    row.appendChild(input);
+    actions.appendChild(input);
   }
+  if (childCount) {
+    const childButton = document.createElement('button');
+    childButton.type = 'button';
+    childButton.className = 'menuconfig-child';
+    childButton.textContent = '›';
+    childButton.title = value === 'n' ? 'Select M or Y to open sub-options' : 'Open sub-options';
+    childButton.setAttribute('aria-label', childButton.title);
+    childButton.disabled = value === 'n';
+    childButton.onclick = () => {
+      openMenuChildren(option);
+      renderMenuconfig();
+    };
+    actions.appendChild(childButton);
+  }
+  row.appendChild(actions);
   return row;
 }
 function renderMenuconfig() {
@@ -904,44 +983,51 @@ function renderMenuconfig() {
   list.textContent = '';
   const query = $('menuconfigSearch').value.trim().toLowerCase();
   const selectedOnly = $('menuconfigSelectedOnly').checked;
+  const selected = MENU_CATALOG.menu.options.filter((option) =>
+    optionVisible(option) && menuOptionSelected(option));
+  const selectedToggle = $('menuconfigSelectedToggle');
+  selectedToggle.hidden = !selectedOnly;
+  selectedToggle.setAttribute('aria-expanded', String(menuSelectedExpanded));
+  $('menuconfigSelectedCount').textContent = String(selected.length);
+  $('menuconfigContent').hidden = selectedOnly && !menuSelectedExpanded;
+  if (selectedOnly && !menuSelectedExpanded) {
+    $('menuconfigBack').hidden = true;
+    renderImportedWorkspace();
+    return;
+  }
+  const eligible = (option) => optionVisible(option) && (!selectedOnly || menuOptionSelected(option));
   let nodes = [];
   let options = [];
   let showPath = false;
-  if (selectedOnly) {
-    options = MENU_CATALOG.menu.options.filter((option) => {
-      const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
-      return optionVisible(option) &&
-        (menuTouched.has(option.symbol) || menuImportedNonDefault.has(option.symbol) || value !== 'n');
-    });
-    showPath = true;
-    $('menuconfigPanelTitle').textContent = 'Selected options';
-  } else if (query) {
+  if (query) {
     $('menuconfigPanelTitle').textContent = query.length < 2 ? 'Type at least 2 characters' : 'Search results';
     if (query.length >= 2) {
       options = MENU_CATALOG.menu.options.filter((option) =>
-        optionVisible(option) && menuSearchText.get(option.symbol)?.includes(query));
+        eligible(option) && menuSearchText.get(option.symbol)?.includes(query));
       showPath = true;
     }
-  } else if (menuPath === null) {
-    $('menuconfigPanelTitle').textContent = 'Top level';
-    const rootOptions = (menuExactPaths.get('') || []).filter(optionVisible);
-    if (rootOptions.length) nodes.push({ label: 'General settings', path: [], count: rootOptions.length });
-    for (const name of menuChildPaths.get('') || []) {
-      const path = [name];
-      const count = (menuDescendants.get(menuPathKey(path)) || []).filter(optionVisible).length;
-      if (count) nodes.push({ label: name, path, count });
-    }
   } else {
-    const key = menuPathKey(menuPath);
-    $('menuconfigPanelTitle').textContent = menuPath.length ? menuPath.join(' › ') : 'General settings';
+    const key = menuPathKey(menuPath || []);
+    $('menuconfigPanelTitle').textContent = menuBreadcrumb.length ? menuBreadcrumb.join(' › ') : 'Top level';
+    if (menuPath === null) {
+      const rootOptions = (menuExactPaths.get('') || []).filter((option) =>
+        eligible(option) && (option.parent || '') === menuParent);
+      const rootCount = (menuExactPaths.get('') || []).filter((option) =>
+        eligible(option) && (option.parent || '') === menuParent).length;
+      if (rootOptions.length) nodes.push({ label: 'General settings', path: [], count: rootCount });
+    } else {
+      options = (menuExactPaths.get(key) || []).filter((option) =>
+        eligible(option) && (option.parent || '') === menuParent);
+    }
     for (const name of menuChildPaths.get(key) || []) {
-      const path = [...menuPath, name];
-      const count = (menuDescendants.get(menuPathKey(path)) || []).filter(optionVisible).length;
+      const path = [...(menuPath || []), name];
+      const count = (menuDescendants.get(menuPathKey(path)) || []).filter((option) =>
+        eligible(option) && (option.parent || '') === menuParent).length;
       if (count) nodes.push({ label: name, path, count });
     }
-    options = (menuExactPaths.get(key) || []).filter(optionVisible);
   }
-  $('menuconfigBack').hidden = menuPath === null || query || selectedOnly;
+  $('menuconfigBack').hidden = !menuHistory.length || !!query;
+  const nodeFragment = document.createDocumentFragment();
   for (const node of nodes) {
     const button = document.createElement('button');
     button.type = 'button';
@@ -951,15 +1037,17 @@ function renderMenuconfig() {
     count.textContent = `${node.count} ›`;
     button.appendChild(count);
     button.onclick = () => {
-      menuPath = node.path;
-      menuVisibleLimit = MENU_PAGE_SIZE;
+      openMenuLevel(node.path, menuParent, node.label);
       renderMenuconfig();
     };
-    grid.appendChild(button);
+    nodeFragment.appendChild(button);
   }
+  grid.appendChild(nodeFragment);
   grid.hidden = !nodes.length;
   const visible = options.slice(0, menuVisibleLimit);
-  for (const option of visible) list.appendChild(renderMenuOption(option, showPath));
+  const optionFragment = document.createDocumentFragment();
+  for (const option of visible) optionFragment.appendChild(renderMenuOption(option, showPath));
+  list.appendChild(optionFragment);
   if (!nodes.length && !visible.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
@@ -2389,7 +2477,8 @@ function restoreSelections(config, payload) {
   renderFirmwareSettings();
   renderGroups();
   menuExpanded = true;
-  menuPath = null;
+  resetMenuNavigation();
+  menuSelectedExpanded = false;
   menuVisibleLimit = MENU_PAGE_SIZE;
   importedUnknownLimit = MENU_PAGE_SIZE;
   $('menuconfigSelectedOnly').checked = true;

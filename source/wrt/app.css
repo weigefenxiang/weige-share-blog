@@ -231,18 +231,26 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-back{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);cursor:pointer}
 .catalog-fresh{color:var(--ok)}.catalog-fallback{color:var(--text3)}
 .catalog-stale{color:var(--warn)}.catalog-unavailable{color:var(--danger)}
-.menuconfig-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px;margin-top:10px}
-.menuconfig-category{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:38px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);text-align:left;cursor:pointer}
-.menuconfig-category:hover{border-color:var(--accent);color:var(--accent)}
-.menuconfig-category small{flex:none;color:var(--text3)}
+.menuconfig-selected-toggle{display:flex;align-items:center;justify-content:space-between;width:100%;margin-top:10px;padding:9px 11px;border:1px solid color-mix(in srgb,var(--accent) 42%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--accent) 7%,var(--card2));color:var(--text);text-align:left;cursor:pointer}
+.menuconfig-selected-toggle small{display:inline-flex;min-width:24px;justify-content:center;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--accent);color:#fff}
+.menuconfig-selected-toggle[aria-expanded=true] .menuconfig-chevron{transform:rotate(180deg)}
+.menuconfig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:10px}
+.menuconfig-category{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--card2);color:var(--text);font-weight:600;line-height:1.25;text-align:left;cursor:pointer}
+.menuconfig-category:hover,.menuconfig-category:focus-visible{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--card2));color:var(--accent)}
+.menuconfig-category small{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
 .menuconfig-panel{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .menuconfig-toolbar input[type=search]{flex:1;min-width:180px}
 .menuconfig-option{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)}
+.menuconfig-option.has-children{border-left:2px solid color-mix(in srgb,var(--accent) 55%,transparent);padding-left:9px}
 .menuconfig-prompt small{display:block;color:var(--text3);word-break:break-all}
+.menuconfig-option-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}
 .kconfig-tri{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .kconfig-tri button{min-width:34px;padding:5px 8px;border:0;border-right:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer}
 .kconfig-tri button:last-child{border-right:0}.kconfig-tri button.active{background:var(--accent);color:#fff}
 .menuconfig-option input[type=text],.menuconfig-option input[type=number]{max-width:240px}
+.menuconfig-child{width:31px;height:31px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--accent);font-size:20px;line-height:1;cursor:pointer}
+.menuconfig-child:hover:not(:disabled){border-color:var(--accent);background:color-mix(in srgb,var(--accent) 8%,var(--card2))}
+.menuconfig-child:disabled{color:var(--text3);cursor:not-allowed;opacity:.45}
 .menuconfig-more{display:block;margin:12px auto 0;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);cursor:pointer}
 .import-workspace{margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card2)}
 .import-summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -259,7 +267,8 @@ input:focus-visible { border-color: var(--accent); }
 @media(max-width:640px){
   .menuconfig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .menuconfig-option{grid-template-columns:1fr}
-  .menuconfig-option>input,.menuconfig-option>.kconfig-tri{justify-self:stretch;max-width:none}
+  .menuconfig-option-actions{justify-content:stretch}
+  .menuconfig-option-actions>input,.menuconfig-option-actions>.kconfig-tri{flex:1;max-width:none}
   .kconfig-tri button{flex:1}
   .import-summary{align-items:flex-start;flex-direction:column}
   .import-unknown-row{grid-template-columns:1fr}
