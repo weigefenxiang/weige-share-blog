@@ -240,6 +240,13 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-category small{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
 .menuconfig-panel{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .menuconfig-toolbar input[type=search]{flex:1;min-width:180px}
+.menuconfig-picker select{width:100%;min-height:42px;padding:0 11px;border:1px solid var(--border);border-radius:9px;background:var(--card2);color:var(--text)}
+.menuconfig-picker select:focus{border-color:var(--accent);outline:2px solid color-mix(in srgb,var(--accent) 20%,transparent)}
+.menuconfig-active{margin-top:8px;padding:0 9px;border:1px solid color-mix(in srgb,var(--accent) 38%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--accent) 4%,var(--card))}
+.menuconfig-active .menuconfig-option{border-bottom:0}
+.menuconfig-choice{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,360px);gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600}
+.menuconfig-choice small{display:block;margin-top:2px;color:var(--text3);font-weight:400}
+.menuconfig-choice select{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text)}
 .menuconfig-option{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)}
 .menuconfig-option.has-children{border-left:2px solid color-mix(in srgb,var(--accent) 55%,transparent);padding-left:9px}
 .menuconfig-prompt small{display:block;color:var(--text3);word-break:break-all}
@@ -267,6 +274,7 @@ input:focus-visible { border-color: var(--accent); }
 @media(max-width:640px){
   .menuconfig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .menuconfig-option{grid-template-columns:1fr}
+  .menuconfig-choice{grid-template-columns:1fr}
   .menuconfig-option-actions{justify-content:stretch}
   .menuconfig-option-actions>input,.menuconfig-option-actions>.kconfig-tri{flex:1;max-width:none}
   .kconfig-tri button{flex:1}

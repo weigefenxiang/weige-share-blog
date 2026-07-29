@@ -45,7 +45,7 @@ let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
 let MENU_INDEX = null, MENU_CATALOG = null;
 let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0, menuCatalogPromise = null;
 let menuPath = null, menuParent = '', menuExpanded = false, menuSelectedExpanded = false;
-let menuVisibleLimit = 50, menuHistory = [], menuBreadcrumb = [];
+let menuVisibleLimit = 50, menuHistory = [], menuBreadcrumb = [], menuActiveSymbol = '';
 const menuValues = new Map();
 const menuTouched = new Set();
 const menuImportedOriginal = new Map();
@@ -806,12 +806,14 @@ function resetMenuNavigation() {
   menuParent = '';
   menuHistory = [];
   menuBreadcrumb = [];
+  menuActiveSymbol = '';
 }
 function openMenuLevel(path, parent, label) {
   menuHistory.push({ path: menuPath, parent: menuParent, breadcrumb: [...menuBreadcrumb] });
   menuPath = path;
   menuParent = parent;
   if (label && menuBreadcrumb.at(-1) !== label) menuBreadcrumb.push(label);
+  menuActiveSymbol = '';
   menuVisibleLimit = MENU_PAGE_SIZE;
 }
 function openMenuChildren(option) {
@@ -866,6 +868,7 @@ function initMenuconfigControls() {
       menuPath = previous.path;
       menuParent = previous.parent;
       menuBreadcrumb = previous.breadcrumb;
+      menuActiveSymbol = '';
     } else {
       resetMenuNavigation();
     }
@@ -969,6 +972,84 @@ function renderMenuOption(option, showPath = false) {
   row.appendChild(actions);
   return row;
 }
+function menuOptionState(option) {
+  const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+  if (option.type === 'bool' || option.type === 'tristate') return value.toUpperCase();
+  return value === 'n' || value === '' ? '—' : 'SET';
+}
+function renderMenuLeaf(options, showPath, list) {
+  const choiceGroups = new Map();
+  const ordinary = [];
+  for (const option of options) {
+    if (option.choice) addMenuIndex(choiceGroups, option.choice, option);
+    else ordinary.push(option);
+  }
+  for (const [choiceId, members] of choiceGroups) {
+    const choice = (MENU_CATALOG.menu.choices || []).find((item) => item.id === choiceId);
+    const row = document.createElement('label');
+    row.className = 'menuconfig-choice';
+    const text = document.createElement('span');
+    text.append(document.createTextNode(choice?.prompt || 'Choice'));
+    const detail = document.createElement('small');
+    detail.textContent = showPath && members[0]?.path?.length ? members[0].path.join(' › ') : `${members.length} options`;
+    text.appendChild(detail);
+    const select = document.createElement('select');
+    select.setAttribute('aria-label', choice?.prompt || 'Choice');
+    const selected = members.find((option) =>
+      (menuValues.get(option.symbol) ?? simpleKconfigDefault(option)) !== 'n');
+    if (!selected) {
+      const placeholder = document.createElement('option');
+      placeholder.value = '';
+      placeholder.textContent = 'Select…';
+      select.appendChild(placeholder);
+    }
+    for (const option of members) {
+      const entry = document.createElement('option');
+      entry.value = option.symbol;
+      entry.textContent = option.prompt || option.symbol;
+      entry.selected = option.symbol === selected?.symbol;
+      select.appendChild(entry);
+    }
+    select.onchange = () => {
+      const option = menuOptionBySymbol.get(select.value);
+      if (option) setMenuValue(option, optionMaxLevel(option) > 1 ? 'y' : 'm');
+    };
+    row.append(text, select);
+    list.appendChild(row);
+  }
+  if (!ordinary.length) return 0;
+  const picker = document.createElement('div');
+  picker.className = 'menuconfig-picker';
+  const select = document.createElement('select');
+  select.setAttribute('aria-label', 'Select configuration option');
+  const placeholder = document.createElement('option');
+  placeholder.value = '';
+  placeholder.textContent = `Select option (${ordinary.length})`;
+  select.appendChild(placeholder);
+  const visible = ordinary.slice(0, menuVisibleLimit);
+  for (const option of visible) {
+    const entry = document.createElement('option');
+    entry.value = option.symbol;
+    const path = showPath && option.path?.length ? `${option.path.join(' › ')} · ` : '';
+    entry.textContent = `[${menuOptionState(option)}] ${path}${option.prompt} · ${option.symbol}`;
+    entry.selected = option.symbol === menuActiveSymbol;
+    select.appendChild(entry);
+  }
+  select.onchange = () => {
+    menuActiveSymbol = select.value;
+    renderMenuconfig();
+  };
+  picker.appendChild(select);
+  list.appendChild(picker);
+  const active = ordinary.find((option) => option.symbol === menuActiveSymbol);
+  if (active) {
+    const editor = document.createElement('div');
+    editor.className = 'menuconfig-active';
+    editor.appendChild(renderMenuOption(active, showPath));
+    list.appendChild(editor);
+  }
+  return ordinary.length;
+}
 function renderMenuconfig() {
   const box = $('menuconfigBox');
   if (!box || !MENU_CATALOG?.menu?.options) return;
@@ -1044,18 +1125,15 @@ function renderMenuconfig() {
   }
   grid.appendChild(nodeFragment);
   grid.hidden = !nodes.length;
-  const visible = options.slice(0, menuVisibleLimit);
-  const optionFragment = document.createDocumentFragment();
-  for (const option of visible) optionFragment.appendChild(renderMenuOption(option, showPath));
-  list.appendChild(optionFragment);
-  if (!nodes.length && !visible.length) {
+  const ordinaryCount = renderMenuLeaf(options, showPath, list);
+  if (!nodes.length && !options.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
     empty.textContent = query.length === 1 ? 'Type one more character.' : 'No available options.';
     list.appendChild(empty);
   }
-  panel.hidden = !visible.length && !!nodes.length;
-  $('menuconfigMore').hidden = options.length <= menuVisibleLimit;
+  panel.hidden = !options.length && !!nodes.length;
+  $('menuconfigMore').hidden = ordinaryCount <= menuVisibleLimit;
   renderImportedWorkspace();
 }
 function parseConfigValues(text) {
