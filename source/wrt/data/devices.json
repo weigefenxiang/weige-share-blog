@@ -15702,6 +15702,73 @@
    }
   },
   {
+   "id": "x86-64-generic",
+   "brand": "Generic",
+   "name": "Generic x86/64",
+   "chip": "x86_64",
+   "plugins": "seed",
+   "note": "通用目标平台：x86 / x86_64 / Generic x86/64",
+   "sources": [
+    {
+     "id": "OpenWrt",
+     "label": "OpenWrt",
+     "repo": "openwrt/openwrt",
+     "config": "OpenWrt-main-generic.config",
+     "diy1": "diy-immortalwrt.sh",
+     "diy2": "diy2-openwrt.sh",
+     "append": true,
+     "desc": "openwrt/openwrt",
+     "versions": [
+      {
+       "id": "main",
+       "label": "main",
+       "branch": "main",
+       "note": "main"
+      }
+     ],
+     "variants": [
+      {
+       "id": "generic",
+       "profile": "generic",
+       "name": "Generic x86/64",
+       "note": "Target: x86 / x86_64 / Generic x86/64",
+       "capacity": 1024,
+       "versions": [
+        "main"
+       ],
+       "configs": {
+        "main": "OpenWrt-main-generic.config"
+       }
+      }
+     ]
+    }
+   ],
+   "enabled": true,
+   "dir": "platform/x86-64-generic",
+   "kind": "target",
+   "target": {
+    "system": "x86",
+    "systemLabel": "x86",
+    "subtarget": "64",
+    "subtargetLabel": "x86_64",
+    "profile": "generic",
+    "profileLabel": "Generic x86/64"
+   },
+   "profiles": {
+    "OpenWrt": [
+     {
+      "branch": "main",
+      "version": "main",
+      "profile": "generic",
+      "target": "x86",
+      "subtarget": "64",
+      "archPackages": "x86_64",
+      "variantNote": ""
+     }
+    ]
+   }
+  },
+  {
    "id": "gl-inet-gl-mt2500",
    "brand": "GL.iNet",
    "name": "GL.iNet GL-MT2500",

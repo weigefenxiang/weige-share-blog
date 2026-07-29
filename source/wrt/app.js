@@ -54,6 +54,7 @@ const OPKG_PRESETS = {
 };
 let PLUG_I18N = null;                  // 插件名/说明多语言表,非中文界面按需加载 / plugin name/desc i18n table, lazy-loaded for non-Chinese UIs
 let CONFIG_MANIFEST = null;
+let pickerMode = localStorage.getItem('wrt_picker_mode') === 'target' ? 'target' : 'device';
 let plugI18nLoading = false;           // 防止重复请求 / guards against duplicate fetches
 let PKGDATA = null;                    // 开发者模式的全量软件包表,按需加载 / raw package table, lazy-loaded in developer mode
 const devPkgs = new Set();             // 开发者勾选编入的原始包 / raw packages to build in (=y)
@@ -290,7 +291,8 @@ async function init() {
       if (/^v\d{8}$/.test(stamp.version)) state.siteVersion = stamp.version;
     } catch (e) { /* 旧部署没有版本文件时保持占位符 / old deployments keep the placeholder */ }
     $('siteVersion').textContent = state.siteVersion;
-    const first = DEVICES.devices.find((d) => d.enabled === true) || DEVICES.devices[0];
+    const first = DEVICES.devices.find((d) => d.enabled === true && (pickerMode === 'target') === (d.kind === 'target'))
+      || DEVICES.devices.find((d) => d.enabled === true) || DEVICES.devices[0];
     await switchDevice(first, true);
     renderModes();
     renderFirmwareSettings();
@@ -329,6 +331,8 @@ let switchSeq = 0;
 async function switchDevice(dev, first) {
   const seq = ++switchSeq;
   state.device = dev;
+  pickerMode = dev.kind === 'target' ? 'target' : 'device';
+  safeSet('wrt_picker_mode', pickerMode);
   const data = await loadJson(dev.plugins === 'seed' ? 'seed/plugins.json' : dev.id + '/plugins.json');
   if (seq !== switchSeq) return;
   PLUGINS = data;
@@ -348,15 +352,111 @@ async function switchDevice(dev, first) {
   if (!first) showToast(t('toast.deviceSwitched', { name: dev.name }));
 }
 
-/* 机型两级选择:先品牌后机型;机型气泡列出可用产线 / Two-level picker: brand first, then model; the model popover lists its available source pipelines */
+/* 品牌机型或通用 Target 二选一；Target 选项全部来自 devices.json / Brand-device or generic Target; every Target option comes from devices.json */
 let curBrand = null;
+function targetRecords() {
+  const rows = [];
+  for (const device of DEVICES.devices.filter((d) => d.kind === 'target' && d.enabled === true)) {
+    for (const source of device.sources || []) {
+      for (const version of source.versions || []) {
+        for (const variant of (source.variants || []).filter((v) => !v.versions || v.versions.includes(version.id))) {
+          rows.push({ device, source, version, variant });
+        }
+      }
+    }
+  }
+  return rows;
+}
+function fillTargetSelect(id, rows, valueOf, labelOf, preferred) {
+  const select = $(id);
+  const previous = select.value;
+  const values = [];
+  for (const row of rows) {
+    const value = valueOf(row);
+    if (!values.some((item) => item.value === value)) values.push({ value, label: labelOf(row) });
+  }
+  select.textContent = '';
+  for (const item of values) {
+    const option = document.createElement('option');
+    option.value = item.value;
+    option.textContent = item.label;
+    select.appendChild(option);
+  }
+  if (values.some((item) => item.value === preferred)) select.value = preferred;
+  else if (values.some((item) => item.value === previous)) select.value = previous;
+  return select.value;
+}
+function renderTargetPicker(preferState = true) {
+  let rows = targetRecords();
+  const current = preferState ? (rows.find((r) => r.device.id === state.device?.id &&
+    (!state.source || r.source.id === state.source.id) &&
+    (!state.version || r.version.id === state.version.id) &&
+    (!state.variant || r.variant.id === state.variant.id)) ||
+    rows.find((r) => r.device.id === state.device?.id)) : null;
+  const source = fillTargetSelect('targetSource', rows, (r) => r.source.id, (r) => r.source.label, current?.source.id);
+  rows = rows.filter((r) => r.source.id === source);
+  const branch = fillTargetSelect('targetBranch', rows, (r) => r.version.id, (r) => r.version.branch, current?.version.id);
+  rows = rows.filter((r) => r.version.id === branch);
+  const system = fillTargetSelect('targetSystem', rows, (r) => r.device.target.system, (r) => r.device.target.systemLabel, current?.device.target.system);
+  rows = rows.filter((r) => r.device.target.system === system);
+  const subtarget = fillTargetSelect('targetSubtarget', rows, (r) => r.device.target.subtarget, (r) => r.device.target.subtargetLabel, current?.device.target.subtarget);
+  rows = rows.filter((r) => r.device.target.subtarget === subtarget);
+  const profile = fillTargetSelect('targetProfile', rows, (r) => r.variant.id, (r) => r.device.target.profileLabel, current?.variant.id);
+  return rows.find((r) => r.variant.id === profile);
+}
+function activateTargetRecord(record) {
+  const previousSource = state.source;
+  state.source = record.source;
+  state.version = record.version;
+  state.variant = record.variant;
+  applySourceDefaults(previousSource);
+  renderGroups();
+  updateStats();
+  updateLoginInfo();
+  updateDevpkgBox();
+  updateDeviceSummary();
+}
+async function selectPickerMode(mode) {
+  pickerMode = mode;
+  safeSet('wrt_picker_mode', mode);
+  const device = mode === 'target'
+    ? targetRecords()[0]?.device
+    : DEVICES.devices.find((d) => d.kind !== 'target' && d.enabled === true);
+  if (device && state.device.id !== device.id) await switchDevice(device);
+  else renderDevices();
+}
 function renderDevices() {
-  if (!curBrand && state.device) curBrand = state.device.brand;
+  pickerMode = state.device && state.device.kind === 'target' ? 'target' : pickerMode;
+  const modeRow = $('pickerModeRow');
+  $('deviceModeBtn').onclick = () => selectPickerMode('device');
+  $('targetModeBtn').onclick = () => selectPickerMode('target');
+  setActive(modeRow, pickerMode === 'target' ? $('targetModeBtn') : $('deviceModeBtn'));
+  $('brandPicker').hidden = pickerMode === 'target';
+  $('targetPicker').hidden = pickerMode !== 'target';
+  for (const id of ['sourceStep', 'versionStep', 'variantStep']) $(id).hidden = pickerMode === 'target';
+  if (pickerMode === 'target') {
+    const selected = renderTargetPicker();
+    for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
+      $(id).onchange = async () => {
+        const record = renderTargetPicker(false);
+        if (!record) return;
+        if (record.device.id !== state.device.id) await switchDevice(record.device);
+        activateTargetRecord(record);
+      };
+    }
+    if (selected && selected.device.id !== state.device.id) switchDevice(selected.device);
+    updateDeviceSummary();
+    return;
+  }
+
+  const normalDevices = DEVICES.devices.filter((d) => d.kind !== 'target');
+  if (!curBrand || !normalDevices.some((d) => d.brand === curBrand)) curBrand = state.device && state.device.kind !== 'target'
+    ? state.device.brand : normalDevices[0]?.brand;
   const brandRow = $('brandRow');
   brandRow.textContent = '';
-  const brands = [...new Set(DEVICES.devices.map((d) => d.brand))];
+  const brands = [...new Set(normalDevices.map((d) => d.brand))];
   for (const b of brands) {
-    const models = DEVICES.devices.filter((d) => d.brand === b);
+    const models = normalDevices.filter((d) => d.brand === b);
     const anyOn = models.some((d) => d.enabled === true);
     const pill = makePill(b, b, models.length + ' 款 · ' + models.map((d) => d.name).slice(0, 8).join('、') + (models.length > 8 ? '…' : ''), () => {
       curBrand = b;
@@ -369,7 +469,7 @@ function renderDevices() {
 
   const row = $('deviceRow');
   row.textContent = '';
-  for (const d of DEVICES.devices.filter((x) => x.brand === curBrand)) {
+  for (const d of normalDevices.filter((x) => x.brand === curBrand)) {
     const enabled = d.enabled === true;
     const srcList = (d.sources || []).map((s) => s.label).join(' · ');
     const info = (d.note || '') + (srcList ? '\n\n' + t('device.sources', { list: srcList }) : '') +
@@ -387,9 +487,15 @@ function renderDevices() {
 
 function updateDeviceSummary() {
   if (!state.device || !$('deviceSummary')) return;
-  $('deviceSummary').textContent = t('device.selected', {
-    brand: state.device.brand, model: state.device.name,
-  });
+  $('deviceSummary').textContent = state.device.kind === 'target'
+    ? t('device.targetSelected', {
+      source: state.source ? state.source.label : state.device.sources[0].label,
+      branch: state.version ? state.version.branch : state.device.sources[0].versions[0].branch,
+      system: state.device.target.systemLabel,
+      subtarget: state.device.target.subtargetLabel,
+      profile: state.device.target.profileLabel,
+    })
+    : t('device.selected', { brand: state.device.brand, model: state.device.name });
 }
 function setDeviceFold(folded) {
   $('devicePicker').hidden = folded;

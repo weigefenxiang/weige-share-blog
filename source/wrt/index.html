@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=5904d6ec92">
+<link rel="stylesheet" href="app.css?v=5796f8791a">
 </head>
 <body>
 <header class="site-header">
@@ -74,27 +74,40 @@
 
   <div id="form" hidden>
     <section class="step device-step" id="deviceStep">
-      <h2><span class="stepnum">⓪</span> <span data-i18n="step.brand">选择品牌</span> <span class="hint" data-i18n="step.device.hint"></span>
+      <h2><span class="stepnum">⓪</span> <span data-i18n="step.device">选择机型</span> <span class="hint" data-i18n="step.device.hint"></span>
         <button class="fold-btn" id="deviceFold" type="button" aria-expanded="true" aria-controls="devicePicker" data-i18n="fold.hide">隐藏</button>
       </h2>
       <button class="device-summary" id="deviceSummary" type="button" hidden></button>
       <div id="devicePicker">
-        <div class="picker-row"><span class="picker-label" data-i18n="device.brandLabel">品牌</span><div class="pill-row" id="brandRow"></div></div>
-        <div class="picker-row model-row"><span class="picker-label" data-i18n="device.modelLabel">型号</span><div class="pill-row" id="deviceRow"></div></div>
+        <div class="pill-row picker-mode" id="pickerModeRow">
+          <button class="pill" id="deviceModeBtn" type="button" data-i18n="device.mode.device">品牌型号</button>
+          <button class="pill" id="targetModeBtn" type="button">Target</button>
+        </div>
+        <div id="brandPicker">
+          <div class="picker-row"><span class="picker-label" data-i18n="device.brandLabel">品牌</span><div class="pill-row" id="brandRow"></div></div>
+          <div class="picker-row model-row"><span class="picker-label" data-i18n="device.modelLabel">型号</span><div class="pill-row" id="deviceRow"></div></div>
+        </div>
+        <div class="target-picker" id="targetPicker" hidden>
+          <label><span data-i18n="target.source">源码</span><select id="targetSource"></select></label>
+          <label><span data-i18n="target.branch">分支</span><select id="targetBranch"></select></label>
+          <label><span>Target System</span><select id="targetSystem"></select></label>
+          <label><span>Subtarget</span><select id="targetSubtarget"></select></label>
+          <label><span>Target Profile</span><select id="targetProfile"></select></label>
+        </div>
       </div>
     </section>
 
-    <section class="step">
+    <section class="step" id="sourceStep">
       <h2><span class="stepnum">①</span> <span data-i18n="step.source">选择源码</span> <span class="hint" data-i18n="step.source.hint"></span></h2>
       <div class="pill-row" id="sourceRow"></div>
     </section>
 
-    <section class="step">
+    <section class="step" id="versionStep">
       <h2><span class="stepnum">②</span> <span data-i18n="step.version">选择版本</span> <span class="hint" data-i18n="step.version.hint"></span></h2>
       <div class="pill-row" id="versionRow"></div>
     </section>
 
-    <section class="step">
+    <section class="step" id="variantStep">
       <h2><span class="stepnum">③</span> <span data-i18n="step.variant">分区变体</span></h2>
       <div class="pill-row" id="variantRow"></div>
     </section>
@@ -212,6 +225,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=614180f117"></script>
+<script src="app.js?v=9c998dd595"></script>
 </body>
 </html>

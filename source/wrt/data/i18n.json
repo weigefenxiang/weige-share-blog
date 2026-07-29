@@ -1840,6 +1840,58 @@
    "fr": "Sélectionné : {brand} · {model}",
    "vi": "Đã chọn: {brand} · {model}"
   },
+  "device.mode.device": {
+   "zh-CN": "品牌型号",
+   "zh-TW": "品牌型號",
+   "en": "Brand / model",
+   "ru": "Марка / модель",
+   "es": "Marca / modelo",
+   "pt": "Marca / modelo",
+   "ja": "ブランド / 機種",
+   "ko": "브랜드 / 모델",
+   "de": "Marke / Modell",
+   "fr": "Marque / modèle",
+   "vi": "Hãng / mẫu"
+  },
+  "target.source": {
+   "zh-CN": "源码",
+   "zh-TW": "原始碼",
+   "en": "Source",
+   "ru": "Исходный код",
+   "es": "Código fuente",
+   "pt": "Código-fonte",
+   "ja": "ソース",
+   "ko": "소스",
+   "de": "Quellcode",
+   "fr": "Code source",
+   "vi": "Mã nguồn"
+  },
+  "target.branch": {
+   "zh-CN": "分支",
+   "zh-TW": "分支",
+   "en": "Branch",
+   "ru": "Ветка",
+   "es": "Rama",
+   "pt": "Ramo",
+   "ja": "ブランチ",
+   "ko": "브랜치",
+   "de": "Branch",
+   "fr": "Branche",
+   "vi": "Nhánh"
+  },
+  "device.targetSelected": {
+   "zh-CN": "已选:{source} · {branch} · {system} / {subtarget} / {profile}",
+   "zh-TW": "已選:{source} · {branch} · {system} / {subtarget} / {profile}",
+   "en": "Selected: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "ru": "Выбрано: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "es": "Seleccionado: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "pt": "Selecionado: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "ja": "選択済み: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "ko": "선택됨: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "de": "Ausgewählt: {source} · {branch} · {system} / {subtarget} / {profile}",
+   "fr": "Sélectionné : {source} · {branch} · {system} / {subtarget} / {profile}",
+   "vi": "Đã chọn: {source} · {branch} · {system} / {subtarget} / {profile}"
+  },
   "device.sources": {
    "zh-CN": "可用产线:{list}",
    "zh-TW": "可用產線:{list}",

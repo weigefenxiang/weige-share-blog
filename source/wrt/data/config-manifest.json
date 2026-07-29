@@ -8835,6 +8835,20 @@
     "CONFIG_TARGET_PROFILE=\"DEVICE_gatonetworks_gdsp\""
    ]
   },
+  "x86-64-generic/OpenWrt/main/generic": {
+   "device": "x86-64-generic",
+   "source": "OpenWrt",
+   "version": "main",
+   "variant": "generic",
+   "sourcePath": "config/platform/x86-64-generic/OpenWrt-main-generic.config",
+   "publicPath": "x86-64-generic/OpenWrt-main-generic.config",
+   "target": [
+    "CONFIG_TARGET_x86_64_DEVICE_generic=y",
+    "CONFIG_TARGET_BOARD=\"x86\"",
+    "CONFIG_TARGET_SUBTARGET=\"64\"",
+    "CONFIG_TARGET_PROFILE=\"DEVICE_generic\""
+   ]
+  },
   "gl-inet-gl-mt2500/ImmortalWrt/master/glinet_gl-mt2500": {
    "device": "gl-inet-gl-mt2500",
    "source": "ImmortalWrt",
