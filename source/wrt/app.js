@@ -1268,7 +1268,7 @@ function applyToConfig(text, sel) {
 async function generateConfigText() {
   const configId = [state.device.id, state.source.id, state.version.id, state.variant.id].join('/');
   const configName = state.variant.configs?.[state.version.id] || state.variant.config || state.source.config;
-  const raw = state.importedConfig && state.importedConfigId === configId
+  const raw = state.importedConfig && (state.importedConfigId === configId || state.device.id === 'custom-target')
     ? state.importedConfig
     : await (await fetchData(state.device.id + '/' + configName)).text();
   return applyToConfig(raw, effectiveSelection());
@@ -1385,6 +1385,85 @@ function targetLines(text) {
     /^CONFIG_TARGET_(?:BOARD|SUBTARGET|PROFILE)=/.test(line) ||
     /^CONFIG_TARGET_.*_DEVICE_.*=y$/.test(line)).sort();
 }
+function customTargetSources(preferredSource) {
+  const grouped = new Map();
+  for (const device of DEVICES.devices) {
+    if (device.id === 'custom-target') continue;
+    for (const source of device.sources || []) {
+      if (!grouped.has(source.id)) grouped.set(source.id, { ...source, versions: new Map() });
+      const item = grouped.get(source.id);
+      for (const version of source.versions || []) {
+        if (!item.versions.has(version.id)) item.versions.set(version.id, version);
+      }
+    }
+  }
+  return [...grouped.values()].map((source) => {
+    const versions = [...source.versions.values()];
+    return {
+      ...source,
+      versions,
+      variants: [{
+        id: 'custom', profile: 'custom', name: 'Custom Target',
+        note: 'Uploaded .config', capacity: 1024,
+        versions: versions.map((version) => version.id), configs: {},
+      }],
+    };
+  }).sort((a, b) => Number(b.id === preferredSource) - Number(a.id === preferredSource));
+}
+function customDeviceFromConfig(text, payload) {
+  const lines = targetLines(text);
+  const valueOf = (name) => {
+    const line = lines.find((item) => item.startsWith(`CONFIG_TARGET_${name}=`));
+    return line ? line.slice(line.indexOf('=') + 1).replace(/^"|"$/g, '') : '';
+  };
+  const deviceLine = lines.find((line) => /^CONFIG_TARGET_.*_DEVICE_.*=y$/.test(line)) || '';
+  const deviceParts = deviceLine.match(/^CONFIG_TARGET_([^_]+)_([^_]+)_DEVICE_(.+)=y$/);
+  const board = valueOf('BOARD') || deviceParts?.[1] || '';
+  const subtarget = valueOf('SUBTARGET') || deviceParts?.[2] || '';
+  const profile = valueOf('PROFILE').replace(/^DEVICE_/, '') ||
+    deviceParts?.[3] || '';
+  if (!deviceLine && (!board || !subtarget)) throw new Error(t('import.noMatch'));
+  const sourceHint = payload?.source ||
+    (/#\s*ImmortalWrt Configuration/i.test(text) ? 'ImmortalWrt'
+      : /#\s*OpenWrt Configuration/i.test(text) ? 'OpenWrt' : '');
+  const label = [board || 'Target', subtarget, profile].filter(Boolean).join(' / ');
+  return {
+    id: 'custom-target',
+    brand: 'Custom Target',
+    name: label,
+    chip: board || 'custom',
+    plugins: 'seed',
+    note: 'Uploaded authoritative .config',
+    enabled: true,
+    kind: 'target',
+    dir: 'platform/custom-target',
+    target: {
+      system: board || 'custom',
+      systemLabel: board || 'Custom',
+      subtarget: subtarget || 'custom',
+      subtargetLabel: subtarget || 'Custom',
+      profile: profile || 'custom',
+      profileLabel: profile || 'Custom Target',
+    },
+    sources: customTargetSources(sourceHint),
+  };
+}
+async function selectCustomConfig(text, payload) {
+  const custom = customDeviceFromConfig(text, payload);
+  DEVICES.devices = DEVICES.devices.filter((device) => device.id !== custom.id);
+  DEVICES.devices.push(custom);
+  await switchDevice(custom, false);
+  const wanted = typeof payload?.configId === 'string' ? payload.configId.split('/') : [];
+  const sourceId = payload?.source || wanted[1] || custom.sources[0].id;
+  const versionId = payload?.version || wanted[2] || '';
+  const records = targetRecords().filter((item) => item.device.id === custom.id);
+  const record = records.find((item) =>
+    item.source.id === sourceId && (!versionId || item.version.id === versionId)) || records[0];
+  if (!record) throw new Error(t('import.noMatch'));
+  activateTargetRecord(record);
+  renderDevices();
+  return ['custom-target', record.source.id, record.version.id, 'custom'].join('/');
+}
 function configCandidates(text) {
   const header = text.match(/^# device=([^\s]+) source=([^\s]+) version=([^\s]+).* variant=([^\s]+)$/m);
   if (header) {
@@ -1494,9 +1573,14 @@ async function importConfigFile(file) {
   text = text.replace(/\r\n/g, '\n');
   const candidates = configCandidates(text);
   importLogStep('candidates-found', { count: candidates.length, candidates });
-  if (payload && payload.configId && !candidates.includes(payload.configId)) throw new Error(t('import.noMatch'));
-  const configId = payload && candidates.includes(payload.configId)
-    ? payload.configId : askConfigCandidate(candidates);
+  const customConfig = candidates.length === 0;
+  const payloadId = typeof payload?.configId === 'string' ? payload.configId : '';
+  if (payload && payload.configId && !candidates.includes(payloadId) &&
+      !payloadId.startsWith('custom-target/')) throw new Error(t('import.noMatch'));
+  const configId = customConfig
+    ? await selectCustomConfig(text, payload)
+    : payload && candidates.includes(payloadId)
+      ? payloadId : askConfigCandidate(candidates);
   if (!configId) {
     finishImportLog('cancelled');
     return;
@@ -1626,6 +1710,7 @@ function openSubmitModal() {
             timezone: state.timezone, theme: state.theme, ntp: state.ntp, opkg: state.opkg,
           },
         };
+        if (state.device.id === 'custom-target') payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;
         const filename = ['build-request', state.device.id, localStamp(), state.source.id,
