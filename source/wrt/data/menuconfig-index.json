@@ -1,5 +1,5 @@
 {
-  "schema": 1,
+  "schema": 2,
   "catalogRepo": "weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog",
   "releaseTag": "menuconfig-catalog",
   "sources": [
@@ -12,6 +12,22 @@
         { "id": "24.10", "branch": "openwrt-24.10", "asset": "immortalwrt--openwrt-24.10.json.gz" },
         { "id": "23.05", "branch": "openwrt-23.05", "asset": "immortalwrt--openwrt-23.05.json.gz" },
         { "id": "21.02", "branch": "openwrt-21.02", "asset": "immortalwrt--openwrt-21.02.json.gz" }
+      ]
+    },
+    {
+      "id": "OpenWrt",
+      "label": "OpenWrt",
+      "repo": "openwrt/openwrt",
+      "branches": [
+        { "id": "main", "branch": "main", "asset": "openwrt--main.json.gz", "fallback": "menuconfig-demo.json" }
+      ]
+    },
+    {
+      "id": "lede",
+      "label": "Lean LEDE",
+      "repo": "coolsnowwolf/lede",
+      "branches": [
+        { "id": "master", "branch": "master", "asset": "lede--master.json.gz", "fallback": "menuconfig-demo.json" }
       ]
     }
   ]

@@ -223,6 +223,9 @@ input:focus-visible { border-color: var(--accent); }
 .target-picker {
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;
 }
+.target-dynamic{display:contents}
+.target-picker label.target-single select{border-style:dashed;color:var(--text2)}
+.target-picker label.target-extra{grid-column:auto}
 .menuconfig-box{margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
 .menuconfig-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:2px;border:0;background:transparent;color:var(--text);text-align:left;cursor:pointer}
 .menuconfig-toggle .hint{margin-left:auto}.menuconfig-chevron{color:var(--text3);transition:transform .15s}
@@ -237,7 +240,9 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:8px;margin-top:10px}
 .menuconfig-category{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:46px;padding:9px 11px;border:1px solid var(--border);border-radius:9px;background:var(--card2);color:var(--text);font-weight:600;line-height:1.25;text-align:left;cursor:pointer}
 .menuconfig-category:hover,.menuconfig-category:focus-visible{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--card2));color:var(--accent)}
-.menuconfig-category small{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
+.menuconfig-category-text{min-width:0}
+.menuconfig-category-usage{display:block;margin-top:4px;padding:0;color:var(--text3);font-size:11.5px;font-weight:400;line-height:1.35}
+.menuconfig-category-count{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
 .menuconfig-panel{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .menuconfig-toolbar input[type=search]{flex:1;min-width:180px}
 .menuconfig-picker select{width:100%;min-height:42px;padding:0 11px;border:1px solid var(--border);border-radius:9px;background:var(--card2);color:var(--text)}
@@ -250,6 +255,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-option{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)}
 .menuconfig-option.has-children{border-left:2px solid color-mix(in srgb,var(--accent) 55%,transparent);padding-left:9px}
 .menuconfig-prompt small{display:block;color:var(--text3);word-break:break-all}
+.menuconfig-prompt .menuconfig-usage{margin-top:3px;color:var(--text2);font-size:12px;line-height:1.35;word-break:normal}
 .menuconfig-option-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}
 .kconfig-tri{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .kconfig-tri button{min-width:34px;padding:5px 8px;border:0;border-right:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer}

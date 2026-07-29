@@ -60,10 +60,13 @@ let menuChoiceOptions = new Map(), menuChildrenByParent = new Map(), menuNestedC
 let menuSearchText = new Map();
 const MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
 const MENU_PAGE_SIZE = 50;
-const STABLE_IMMORTAL_BRANCHES = new Set([
-  'openwrt-21.02', 'openwrt-23.05', 'openwrt-24.10', 'openwrt-25.12',
-]);
-const DATA_CACHE_VERSION = 'v14-import-log';
+const DEFAULT_TARGET_SELECTORS = [
+  { id: 'system', labelEn: 'Target System', labelZh: '目标系统' },
+  { id: 'subtarget', labelEn: 'Subtarget', labelZh: '子目标' },
+  { id: 'profile', labelEn: 'Target Profile', labelZh: '目标配置' },
+];
+let targetSelectorValues = {};
+const DATA_CACHE_VERSION = 'v15-catalog-i18n-targets';
 const NTP_PRESETS = {
   cn: ['ntp.aliyun.com', 'time1.cloud.tencent.com', 'cn.ntp.org.cn', 'cn.pool.ntp.org'],
   global: ['0.openwrt.pool.ntp.org', '1.openwrt.pool.ntp.org', '2.openwrt.pool.ntp.org', '3.openwrt.pool.ntp.org'],
@@ -390,6 +393,7 @@ function targetRecords() {
 }
 function fillTargetSelect(id, rows, valueOf, labelOf, preferred) {
   const select = $(id);
+  if (!select) return '';
   const previous = select.value;
   const values = [];
   for (const row of rows) {
@@ -405,7 +409,89 @@ function fillTargetSelect(id, rows, valueOf, labelOf, preferred) {
   }
   if (values.some((item) => item.value === preferred)) select.value = preferred;
   else if (values.some((item) => item.value === previous)) select.value = previous;
+  const label = select.closest('label');
+  if (label) {
+    label.hidden = values.length === 0;
+    label.classList.toggle('target-single', values.length === 1);
+  }
+  select.disabled = values.length === 1;
   return select.value;
+}
+
+function targetControlId(id) {
+  const known = { system: 'targetSystem', subtarget: 'targetSubtarget', profile: 'targetProfile' };
+  return known[id] || `targetExtra_${String(id).replace(/[^A-Za-z0-9_-]/g, '_')}`;
+}
+function ensureTargetSelectorControls(schema = DEFAULT_TARGET_SELECTORS) {
+  const container = $('targetDynamicSelectors');
+  if (!container) return;
+  for (const select of container.querySelectorAll('select[data-target-selector]')) {
+    targetSelectorValues[select.dataset.targetSelector] = select.value;
+  }
+  container.textContent = '';
+  for (const selector of schema) {
+    const label = document.createElement('label');
+    if (!['system', 'subtarget', 'profile'].includes(selector.id)) label.className = 'target-extra';
+    const title = document.createElement('span');
+    title.textContent = selector.labelZh
+      ? `${selector.labelEn || selector.id} — ${selector.labelZh}`
+      : selector.labelEn || selector.id;
+    const select = document.createElement('select');
+    select.id = targetControlId(selector.id);
+    select.dataset.targetSelector = selector.id;
+    label.append(title, select);
+    container.appendChild(label);
+  }
+}
+function targetControlElements() {
+  return [$('targetSource'), $('targetBranch'),
+    ...document.querySelectorAll('#targetDynamicSelectors select')].filter(Boolean);
+}
+function fallbackTargetTree(catalog) {
+  const systems = [];
+  for (const target of catalog?.targets || []) {
+    let system = systems.find((item) => item.value === target.board);
+    if (!system) {
+      system = { value: target.board, labelEn: target.name || target.board, children: [] };
+      systems.push(system);
+    }
+    system.children.push({
+      value: target.subtarget,
+      labelEn: target.subtargetName || target.subtarget,
+      targetId: target.id,
+      children: (target.profiles || []).map((profile) => ({
+        value: profile.id, labelEn: profile.name || profile.id, profileId: profile.id,
+      })),
+    });
+  }
+  return systems;
+}
+function renderCatalogTargetSelectors(preferred = {}) {
+  const schema = MENU_CATALOG?.targetSelectors?.length
+    ? MENU_CATALOG.targetSelectors : DEFAULT_TARGET_SELECTORS;
+  ensureTargetSelectorControls(schema);
+  let nodes = MENU_CATALOG?.targetTree?.length
+    ? MENU_CATALOG.targetTree : fallbackTargetTree(MENU_CATALOG);
+  const selectedNodes = new Map();
+  for (const selector of schema) {
+    const selectId = targetControlId(selector.id);
+    const value = fillTargetSelect(selectId, nodes, (item) => item.value,
+      (item) => item.labelZh ? `${item.labelEn || item.value} — ${item.labelZh}` : item.labelEn || item.value,
+      preferred[selector.id] || preferred[`${selector.id}Symbol`] || targetSelectorValues[selector.id]);
+    targetSelectorValues[selector.id] = value;
+    const selected = nodes.find((item) => item.value === value);
+    if (selected) selectedNodes.set(selector.id, selected);
+    nodes = selected?.children || [];
+  }
+  const system = targetSelectorValues.system || '';
+  const subtarget = targetSelectorValues.subtarget || '';
+  const targetNode = selectedNodes.get('subtarget');
+  const target = (MENU_CATALOG?.targets || []).find((item) =>
+    item.id === targetNode?.targetId || (item.board === system && item.subtarget === subtarget));
+  const profileId = selectedNodes.get('profile')?.profileId || targetSelectorValues.profile || '';
+  const profile = target?.profiles?.find((item) => item.id === profileId) ||
+    (!(target?.profiles || []).length ? { id: '', name: 'Default profile', packages: [] } : null);
+  return { target, profile, values: { ...targetSelectorValues } };
 }
 
 function catalogUrls(asset) {
@@ -415,12 +501,12 @@ function catalogUrls(asset) {
   ];
 }
 function stableCatalogIndex(index) {
-  const source = index?.sources?.find((item) => item.id === 'ImmortalWrt');
-  if (!source) return { ...index, sources: [] };
-  const branches = (source.branches || []).filter((branch) =>
-    STABLE_IMMORTAL_BRANCHES.has(branch.branch) && branch.state !== 'unavailable')
-    .sort((a, b) => b.branch.localeCompare(a.branch, undefined, { numeric: true }));
-  return { ...index, sources: branches.length ? [{ ...source, branches }] : [] };
+  const sources = (index?.sources || []).map((source) => ({
+    ...source,
+    branches: (source.branches || []).filter((branch) => branch.state !== 'unavailable')
+      .sort((a, b) => b.branch.localeCompare(a.branch, undefined, { numeric: true })),
+  })).filter((source) => source.branches.length);
+  return { ...index, sources };
 }
 async function fetchCatalogAsset(asset) {
   for (const url of catalogUrls(asset)) {
@@ -441,7 +527,7 @@ async function refreshMenuIndex() {
   try {
     const response = await fetchCatalogAsset('index.json');
     const index = stableCatalogIndex(await response.json());
-    if (index.schema === 1 && Array.isArray(index.sources) && index.sources.length) {
+    if ([1, 2].includes(index.schema) && Array.isArray(index.sources) && index.sources.length) {
       index.catalogRepo = MENU_CATALOG_REPO;
       MENU_INDEX = index;
       if (!importingConfig) {
@@ -459,8 +545,8 @@ function selectedCatalogBranch(source = selectedCatalogSource()) {
   return source?.branches.find((item) => item.id === $('targetBranch').value) || source?.branches[0];
 }
 function catalogBranchLabel(branch) {
-  if (branch.state === 'stale') return `⚠ ${branch.branch} · stale`;
-  if (branch.state === 'unavailable') return `✕ ${branch.branch} · unavailable`;
+  if (branch.state === 'stale') return `⚠ ${branch.branch} · stale / 旧数据`;
+  if (branch.state === 'unavailable') return `✕ ${branch.branch} · unavailable / 不可用`;
   return branch.branch;
 }
 function showCatalogStatus(branch, catalog = MENU_CATALOG) {
@@ -469,16 +555,38 @@ function showCatalogStatus(branch, catalog = MENU_CATALOG) {
   status.className = `hint catalog-${stateName}`;
   status.title = branch?.runUrl || '';
   if (stateName === 'unavailable') {
-    status.textContent = `Unavailable · failed at ${branch.errorStage || 'unknown'}`;
+    status.textContent = `Unavailable / 不可用 · failed at / 失败阶段 ${branch.errorStage || 'unknown'}`;
   } else if (stateName === 'stale') {
-    status.textContent = `Stale · last success ${branch.lastSuccessAt || 'unknown'} · failed at ${branch.errorStage || 'unknown'}`;
+    status.textContent = `Stale / 旧数据 · last success / 上次成功 ${branch.lastSuccessAt || 'unknown'}` +
+      ` · failed at / 失败阶段 ${branch.errorStage || 'unknown'}`;
   } else {
     const count = catalog?.counts?.menuOptions || catalog?.menu?.options?.length || 0;
-    status.textContent = `${stateName === 'fallback' ? 'Local fallback · ' : 'Fresh · '}${count} options` +
+    status.textContent = `${stateName === 'fallback' ? 'Local fallback / 本地回退 · ' : 'Fresh / 最新 · '}${count} options / 选项` +
     (catalog?.source?.commit ? ` · ${catalog.source.commit.slice(0, 8)}` : '');
   }
 }
 const menuPathKey = (path) => path.join('\u0001');
+function bilingualText(english, chinese) {
+  const en = String(english || '').trim();
+  const zh = String(chinese || '').trim();
+  return zh && zh !== en ? `${en} — ${zh}` : en || zh;
+}
+function bilingualUsage(english, chinese) {
+  const en = String(english || '').trim();
+  const zh = String(chinese || '').trim();
+  if (en && zh && en !== zh) return `${en} / ${zh}`;
+  return en || zh;
+}
+function menuLabelMeta(name) {
+  return MENU_CATALOG?.menu?.labels?.[name] || { en: name, zhCN: '' };
+}
+function menuPathLabel(name) {
+  const row = menuLabelMeta(name);
+  return bilingualText(row.en || name, row.zhCN);
+}
+function menuOptionLabel(option) {
+  return bilingualText(option.promptEn || option.prompt || option.symbol, option.promptZh);
+}
 function addMenuIndex(map, key, value) {
   if (!map.has(key)) map.set(key, []);
   map.get(key).push(value);
@@ -526,7 +634,9 @@ function buildMenuIndexes(catalog) {
     }
     if (option.choice) addMenuIndex(menuChoiceOptions, option.choice, option);
     menuSearchText.set(option.symbol,
-      `${option.prompt} ${option.symbol} ${(option.help || '')} ${(option.path || []).join(' ')}`.toLowerCase());
+      `${option.prompt} ${option.promptEn || ''} ${option.promptZh || ''} ${option.symbol} ` +
+      `${option.usageEn || ''} ${option.usageZh || ''} ${(option.help || '')} ` +
+      `${(option.path || []).join(' ')} ${(option.path || []).map(menuPathLabel).join(' ')}`.toLowerCase());
   }
   for (const option of options) {
     if (option.parent && (!menuOptionBySymbol.has(option.parent) ||
@@ -553,7 +663,7 @@ async function loadCatalog(source, branch, applyDefault = true) {
   menuLoadingKey = key;
   const seq = ++menuCatalogSeq;
   $('menuconfigStatus').className = 'hint';
-  $('menuconfigStatus').textContent = 'Loading catalog…';
+  $('menuconfigStatus').textContent = 'Loading catalog… / 正在加载目录…';
   menuCatalogPromise = (async () => {
     let catalog;
     try {
@@ -592,7 +702,7 @@ async function loadCatalog(source, branch, applyDefault = true) {
     menuCatalogKey = '';
     $('menuconfigBox').hidden = false;
     $('menuconfigStatus').className = 'hint catalog-unavailable';
-    $('menuconfigStatus').textContent = `Catalog unavailable: ${error.message}`;
+    $('menuconfigStatus').textContent = `Catalog unavailable / 目录不可用: ${error.message}`;
     throw error;
   }).finally(() => {
     if (seq === menuCatalogSeq) {
@@ -644,22 +754,13 @@ function renderCatalogPicker(preferState = true, requested = null) {
     loadCatalog(source, branch);
     return null;
   }
-  let rows = MENU_CATALOG.targets || [];
   const preferred = requested ||
     (preferState && state.device?.id === 'catalog-target' ? state.device.target : {});
-  const system = fillTargetSelect('targetSystem', rows, (item) => item.board,
-    (item) => item.name || item.board, preferred.system);
-  rows = rows.filter((item) => item.board === system);
-  const subtarget = fillTargetSelect('targetSubtarget', rows, (item) => item.subtarget,
-    (item) => item.subtargetName || item.subtarget, preferred.subtarget);
-  const target = rows.find((item) => item.subtarget === subtarget);
-  const profiles = target?.profiles || [];
-  const profile = fillTargetSelect('targetProfile', profiles, (item) => item.id,
-    (item) => item.name || item.id, preferred.profileSymbol || preferred.profile);
+  const selectedTarget = renderCatalogTargetSelectors(preferred);
   $('menuconfigBox').hidden = false;
   showCatalogStatus(branch, MENU_CATALOG);
   renderMenuconfig();
-  return { source, branch, target, profile: profiles.find((item) => item.id === profile) };
+  return { source, branch, target: selectedTarget.target, profile: selectedTarget.profile };
 }
 function catalogSourceObject(source, branch) {
   const legacy = source.legacy || MENU_CATALOG?.source?.legacy;
@@ -678,25 +779,26 @@ async function applyCatalogTarget() {
   if (!MENU_CATALOG) return;
   const sourceRow = selectedCatalogSource();
   const branchRow = selectedCatalogBranch(sourceRow);
-  const target = MENU_CATALOG.targets.find((item) =>
-    item.board === $('targetSystem').value && item.subtarget === $('targetSubtarget').value);
-  const profile = target?.profiles.find((item) => item.id === $('targetProfile').value);
+  const selectedTarget = renderCatalogTargetSelectors(targetSelectorValues);
+  const { target, profile } = selectedTarget;
   if (!target || !profile) return;
   const source = catalogSourceObject(sourceRow, branchRow);
   const variant = {
-    id: profile.id, profile: profile.id, name: profile.name || profile.id,
+    id: profile.id || 'default', profile: profile.id, name: profile.name || profile.id || 'Default profile',
     note: target.name, capacity: 4096, versions: [branchRow.id],
   };
   source.variants = [variant];
   const device = {
-    id: 'catalog-target', brand: 'Target', name: `${target.name} / ${profile.name || profile.id}`,
+    id: 'catalog-target', brand: 'Target', name: `${target.name} / ${profile.name || profile.id || 'Default profile'}`,
     chip: target.board, plugins: 'seed', enabled: true, kind: 'target',
     dir: 'platform/catalog-target', note: 'Menuconfig catalog target',
     target: {
       system: target.board, systemLabel: target.name || target.board,
       subtarget: target.subtarget, subtargetLabel: target.subtargetName || target.subtarget,
       profile: profile.id.replace(/^DEVICE_/, ''), profileSymbol: profile.id,
-      profileLabel: profile.name || profile.id,
+      profileLabel: profile.name || profile.id || 'Default profile',
+      extra: Object.fromEntries(Object.entries(selectedTarget.values)
+        .filter(([key]) => !['system', 'subtarget', 'profile'].includes(key))),
     },
     sources: [source],
   };
@@ -724,10 +826,9 @@ function simpleKconfigDefault(option) {
 }
 function kconfigRaw(symbol) {
   const target = state.device?.target || {};
-  const enabled = new Set([
-    `TARGET_${target.system}`, `TARGET_${target.system}_${target.subtarget}`,
-    `TARGET_${target.system}_${target.subtarget}_${target.profileSymbol || `DEVICE_${target.profile}`}`,
-  ]);
+  const enabled = new Set([`TARGET_${target.system}`, `TARGET_${target.system}_${target.subtarget}`]);
+  const profile = target.profileSymbol || (target.profile ? `DEVICE_${target.profile}` : '');
+  if (profile) enabled.add(`TARGET_${target.system}_${target.subtarget}_${profile}`);
   if (enabled.has(symbol)) return 'y';
   if (menuValues.has(symbol)) return String(menuValues.get(symbol));
   return 'n';
@@ -927,10 +1028,17 @@ function renderMenuOption(option, showPath = false) {
   row.className = `menuconfig-option${childCount ? ' has-children' : ''}`;
   const prompt = document.createElement('span');
   prompt.className = 'menuconfig-prompt';
-  prompt.append(document.createTextNode(option.prompt));
+  prompt.append(document.createTextNode(menuOptionLabel(option)));
+  const usageText = bilingualUsage(option.usageEn || option.help, option.usageZh);
+  if (usageText) {
+    const usage = document.createElement('small');
+    usage.className = 'menuconfig-usage';
+    usage.textContent = usageText;
+    prompt.appendChild(usage);
+  }
   const symbol = document.createElement('small');
-  const prefix = showPath && option.path?.length ? `${option.path.join(' › ')} · ` : '';
-  symbol.textContent = `${prefix}${option.symbol}${childCount ? ` · ${childCount} sub-options` : ''}`;
+  const prefix = showPath && option.path?.length ? `${option.path.map(menuPathLabel).join(' › ')} · ` : '';
+  symbol.textContent = `${prefix}${option.symbol}${childCount ? ` · ${childCount} sub-options / 子项` : ''}`;
   prompt.appendChild(symbol);
   row.appendChild(prompt);
   const actions = document.createElement('span');
@@ -960,7 +1068,9 @@ function renderMenuOption(option, showPath = false) {
     childButton.type = 'button';
     childButton.className = 'menuconfig-child';
     childButton.textContent = '›';
-    childButton.title = value === 'n' ? 'Select M or Y to open sub-options' : 'Open sub-options';
+    childButton.title = value === 'n'
+      ? 'Select M or Y to open sub-options / 选择 M 或 Y 后打开子项'
+      : 'Open sub-options / 打开子项';
     childButton.setAttribute('aria-label', childButton.title);
     childButton.disabled = value === 'n';
     childButton.onclick = () => {
@@ -989,24 +1099,27 @@ function renderMenuLeaf(options, showPath, list) {
     const row = document.createElement('label');
     row.className = 'menuconfig-choice';
     const text = document.createElement('span');
-    text.append(document.createTextNode(choice?.prompt || 'Choice'));
+    const choiceLabel = bilingualText(choice?.promptEn || choice?.prompt || 'Choice', choice?.promptZh || '选择组');
+    text.append(document.createTextNode(choiceLabel));
     const detail = document.createElement('small');
-    detail.textContent = showPath && members[0]?.path?.length ? members[0].path.join(' › ') : `${members.length} options`;
+    detail.textContent = bilingualUsage(choice?.usageEn, choice?.usageZh) ||
+      (showPath && members[0]?.path?.length
+        ? members[0].path.map(menuPathLabel).join(' › ') : `${members.length} options / 选项`);
     text.appendChild(detail);
     const select = document.createElement('select');
-    select.setAttribute('aria-label', choice?.prompt || 'Choice');
+    select.setAttribute('aria-label', choiceLabel);
     const selected = members.find((option) =>
       (menuValues.get(option.symbol) ?? simpleKconfigDefault(option)) !== 'n');
     if (!selected) {
       const placeholder = document.createElement('option');
       placeholder.value = '';
-      placeholder.textContent = 'Select…';
+      placeholder.textContent = 'Select… / 请选择…';
       select.appendChild(placeholder);
     }
     for (const option of members) {
       const entry = document.createElement('option');
       entry.value = option.symbol;
-      entry.textContent = option.prompt || option.symbol;
+      entry.textContent = menuOptionLabel(option) || option.symbol;
       entry.selected = option.symbol === selected?.symbol;
       select.appendChild(entry);
     }
@@ -1024,14 +1137,14 @@ function renderMenuLeaf(options, showPath, list) {
   select.setAttribute('aria-label', 'Select configuration option');
   const placeholder = document.createElement('option');
   placeholder.value = '';
-  placeholder.textContent = `Select option (${ordinary.length})`;
+  placeholder.textContent = `Select option / 选择配置项 (${ordinary.length})`;
   select.appendChild(placeholder);
   const visible = ordinary.slice(0, menuVisibleLimit);
   for (const option of visible) {
     const entry = document.createElement('option');
     entry.value = option.symbol;
-    const path = showPath && option.path?.length ? `${option.path.join(' › ')} · ` : '';
-    entry.textContent = `[${menuOptionState(option)}] ${path}${option.prompt} · ${option.symbol}`;
+    const path = showPath && option.path?.length ? `${option.path.map(menuPathLabel).join(' › ')} · ` : '';
+    entry.textContent = `[${menuOptionState(option)}] ${path}${menuOptionLabel(option)} · ${option.symbol}`;
     entry.selected = option.symbol === menuActiveSymbol;
     select.appendChild(entry);
   }
@@ -1081,7 +1194,9 @@ function renderMenuconfig() {
   let options = [];
   let showPath = false;
   if (query) {
-    $('menuconfigPanelTitle').textContent = query.length < 2 ? 'Type at least 2 characters' : 'Search results';
+    $('menuconfigPanelTitle').textContent = query.length < 2
+      ? 'Type at least 2 characters / 至少输入 2 个字符'
+      : 'Search results / 搜索结果';
     if (query.length >= 2) {
       options = MENU_CATALOG.menu.options.filter((option) =>
         eligible(option) && menuSearchText.get(option.symbol)?.includes(query));
@@ -1089,13 +1204,17 @@ function renderMenuconfig() {
     }
   } else {
     const key = menuPathKey(menuPath || []);
-    $('menuconfigPanelTitle').textContent = menuBreadcrumb.length ? menuBreadcrumb.join(' › ') : 'Top level';
+    $('menuconfigPanelTitle').textContent = menuBreadcrumb.length
+      ? menuBreadcrumb.map(menuPathLabel).join(' › ') : 'Top level — 顶层菜单';
     if (menuPath === null) {
       const rootOptions = (menuExactPaths.get('') || []).filter((option) =>
         eligible(option) && (option.parent || '') === menuParent);
       const rootCount = (menuExactPaths.get('') || []).filter((option) =>
         eligible(option) && (option.parent || '') === menuParent).length;
-      if (rootOptions.length) nodes.push({ label: 'General settings', path: [], count: rootCount });
+      if (rootOptions.length) nodes.push({
+        label: 'General settings', labelText: 'General settings — 常规设置',
+        usage: 'Root configuration options / 根级配置选项', path: [], count: rootCount,
+      });
     } else {
       options = (menuExactPaths.get(key) || []).filter((option) =>
         eligible(option) && (option.parent || '') === menuParent);
@@ -1113,10 +1232,21 @@ function renderMenuconfig() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'menuconfig-category';
-    button.append(document.createTextNode(node.label));
+    const meta = menuLabelMeta(node.label);
+    const text = document.createElement('span');
+    text.className = 'menuconfig-category-text';
+    text.append(document.createTextNode(node.labelText || bilingualText(meta.en || node.label, meta.zhCN)));
+    const usageText = node.usage || bilingualUsage(meta.usageEn, meta.usageZh);
+    if (usageText) {
+      const usage = document.createElement('small');
+      usage.className = 'menuconfig-category-usage';
+      usage.textContent = usageText;
+      text.appendChild(usage);
+    }
     const count = document.createElement('small');
+    count.className = 'menuconfig-category-count';
     count.textContent = `${node.count} ›`;
-    button.appendChild(count);
+    button.append(text, count);
     button.onclick = () => {
       openMenuLevel(node.path, menuParent, node.label);
       renderMenuconfig();
@@ -1129,7 +1259,9 @@ function renderMenuconfig() {
   if (!nodes.length && !options.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
-    empty.textContent = query.length === 1 ? 'Type one more character.' : 'No available options.';
+    empty.textContent = query.length === 1
+      ? 'Type one more character. / 请再输入一个字符。'
+      : 'No available options. / 没有可用选项。';
     list.appendChild(empty);
   }
   panel.hidden = !options.length && !!nodes.length;
@@ -1241,9 +1373,7 @@ function renderImportedWorkspace() {
       const branchId = state.version.id;
       clearImportedWorkspace();
       importedTargetVerified = true;
-      for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
-        $(id).disabled = false;
-      }
+      for (const select of targetControlElements()) select.disabled = false;
       renderCatalogPicker(false, { sourceId, branchId });
       await applyCatalogTarget();
     };
@@ -1299,6 +1429,7 @@ function resetImportedChanges() {
   showToast('已恢复上传配置的原始值');
 }
 function renderTargetPicker(preferState = true) {
+  ensureTargetSelectorControls(DEFAULT_TARGET_SELECTORS);
   let rows = targetRecords();
   const current = preferState ? (rows.find((r) => r.device.id === state.device?.id &&
     (!state.source || r.source.id === state.source.id) &&
@@ -1338,8 +1469,10 @@ function renderDevices() {
   }
   const usingCatalog = !!MENU_INDEX?.sources?.length;
   const selected = usingCatalog ? renderCatalogPicker() : renderTargetPicker();
-  for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
-    $(id).onchange = async () => {
+  $('targetPicker').onchange = async (event) => {
+    const select = event.target.closest('select');
+    if (!select || !select.closest('#targetPicker')) return;
+    const id = select.id;
       if (state.importedConfig) {
         if (!confirm('切换 Target 会退出上传配置工作区，并改为网页新建配置。继续吗？')) {
           renderDevices();
@@ -1363,8 +1496,7 @@ function renderDevices() {
       if (!record) return;
       if (record.device.id !== state.device.id) await switchDevice(record.device);
       activateTargetRecord(record);
-    };
-  }
+  };
   if (!usingCatalog && selected && selected.device.id !== state.device.id) switchDevice(selected.device);
   updateDeviceSummary();
 }
@@ -2151,16 +2283,19 @@ function applyImportedUnknownEdits(text) {
 }
 function catalogTargetConfig() {
   const target = state.device.target;
-  const profile = target.profileSymbol || `DEVICE_${target.profile}`;
-  let text = [
+  const profile = target.profileSymbol || (target.profile ? `DEVICE_${target.profile}` : '');
+  const lines = [
     `CONFIG_TARGET_${target.system}=y`,
     `CONFIG_TARGET_${target.system}_${target.subtarget}=y`,
-    `CONFIG_TARGET_${target.system}_${target.subtarget}_${profile}=y`,
     `CONFIG_TARGET_BOARD="${target.system}"`,
     `CONFIG_TARGET_SUBTARGET="${target.subtarget}"`,
-    `CONFIG_TARGET_PROFILE="${profile}"`,
-    '',
-  ].join('\n');
+  ];
+  if (profile) {
+    lines.splice(2, 0, `CONFIG_TARGET_${target.system}_${target.subtarget}_${profile}=y`);
+    lines.push(`CONFIG_TARGET_PROFILE="${profile}"`);
+  }
+  lines.push('');
+  let text = lines.join('\n');
   return applyMenuConfig(text);
 }
 function applyToConfig(text, sel) {
@@ -2344,9 +2479,12 @@ function importedConfigMeta(text, fileName, payload) {
   const clean = (value) => String(value || '').replace(/^"|"$/g, '');
   const sourceHint = payload?.source || generated?.[2] || payloadParts[1] ||
     (/#\s*ImmortalWrt Configuration/i.test(text) || name.includes('immortalwrt') ? 'ImmortalWrt'
-      : /#\s*OpenWrt Configuration/i.test(text) || name.includes('openwrt') ? 'OpenWrt' : '');
+      : /#\s*LEDE Configuration/i.test(text) || name.includes('lede') ? 'lede'
+        : /#\s*OpenWrt Configuration/i.test(text) || name.includes('openwrt') ? 'OpenWrt' : '');
   let branchHint = payload?.version || generated?.[4] || generated?.[3] || payloadParts[2] || '';
-  const namedBranch = [...STABLE_IMMORTAL_BRANCHES].find((branch) =>
+  const knownBranches = [...new Set((MENU_INDEX?.sources || [])
+    .flatMap((source) => (source.branches || []).map((branch) => branch.branch)))];
+  const namedBranch = knownBranches.find((branch) =>
     name.includes(branch.toLowerCase()) || name.includes(branch.replace(/^openwrt-/, '')));
   if (!branchHint && namedBranch) branchHint = namedBranch;
   if (!branchHint && /(?:^|[-_.])(master|main)(?:[-_.]|$)/.test(name)) {
@@ -2380,6 +2518,7 @@ function chooseImportedBranch(source, hint) {
   return source.branches[index];
 }
 function renderImportedCustomPicker() {
+  ensureTargetSelectorControls(DEFAULT_TARGET_SELECTORS);
   const rows = [
     ['targetSource', state.source.id, state.source.label],
     ['targetBranch', state.version.id, state.version.branch],
@@ -2414,9 +2553,7 @@ async function selectImportedTarget(text, fileName, payload) {
   const profile = target?.profiles?.find((item) => item.id === meta.profileSymbol);
   if (target && profile) {
     importedTargetVerified = true;
-    for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
-      $(id).disabled = false;
-    }
+    for (const select of targetControlElements()) select.disabled = false;
     renderCatalogPicker(false, {
       sourceId: source.id,
       branchId: branch.id,

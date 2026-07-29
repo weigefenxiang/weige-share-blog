@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=4530b272e4">
+<link rel="stylesheet" href="app.css?v=3c39f2142c">
 </head>
 <body>
 <header class="site-header">
@@ -80,15 +80,13 @@
       <button class="device-summary" id="deviceSummary" type="button" hidden></button>
       <div id="devicePicker">
         <div class="target-picker" id="targetPicker">
-          <label><span data-i18n="target.source">源码</span><select id="targetSource"></select></label>
-          <label><span data-i18n="target.branch">分支</span><select id="targetBranch"></select></label>
-          <label><span>Target System</span><select id="targetSystem"></select></label>
-          <label><span>Subtarget</span><select id="targetSubtarget"></select></label>
-          <label><span>Target Profile</span><select id="targetProfile"></select></label>
+          <label><span>Source — 源码</span><select id="targetSource"></select></label>
+          <label><span>Branch — 分支</span><select id="targetBranch"></select></label>
+          <div class="target-dynamic" id="targetDynamicSelectors"></div>
         </div>
         <div class="menuconfig-box" id="menuconfigBox" hidden>
           <button class="menuconfig-toggle" id="menuconfigToggle" type="button" aria-expanded="false" aria-controls="menuconfigBody">
-            <strong>Advanced menuconfig</strong>
+            <strong>Advanced menuconfig — 高级配置</strong>
             <span class="hint" id="menuconfigStatus"></span>
             <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
           </button>
@@ -103,12 +101,12 @@
             <div class="menuconfig-toolbar">
               <button class="menuconfig-back" id="menuconfigBack" type="button" hidden>←</button>
               <strong id="menuconfigPanelTitle"></strong>
-              <input type="search" id="menuconfigSearch" placeholder="Search option / symbol">
-              <label><input type="checkbox" id="menuconfigSelectedOnly"> Selected only</label>
+              <input type="search" id="menuconfigSearch" placeholder="Search option / symbol — 搜索选项或符号">
+              <label><input type="checkbox" id="menuconfigSelectedOnly"> Selected only / 仅看已选</label>
             </div>
             <button class="menuconfig-selected-toggle" id="menuconfigSelectedToggle" type="button"
               aria-expanded="false" aria-controls="menuconfigContent" hidden>
-              <span><strong>Selected options</strong> <small id="menuconfigSelectedCount">0</small></span>
+              <span><strong>Selected options / 已选选项</strong> <small id="menuconfigSelectedCount">0</small></span>
               <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
             </button>
             <div id="menuconfigContent">
@@ -116,7 +114,7 @@
               <div class="menuconfig-panel" id="menuconfigPanel" hidden>
                 <div id="menuconfigOptions"></div>
               </div>
-              <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more</button>
+              <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more / 再显示 50 项</button>
             </div>
             <details class="import-unknown" id="importUnknownBox" hidden>
               <summary id="importUnknownSummary"></summary>
@@ -261,6 +259,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=f58ff8beae"></script>
+<script src="app.js?v=c9c42e1a7d"></script>
 </body>
 </html>
