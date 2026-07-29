@@ -244,11 +244,25 @@ input:focus-visible { border-color: var(--accent); }
 .kconfig-tri button:last-child{border-right:0}.kconfig-tri button.active{background:var(--accent);color:#fff}
 .menuconfig-option input[type=text],.menuconfig-option input[type=number]{max-width:240px}
 .menuconfig-more{display:block;margin:12px auto 0;padding:7px 14px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);cursor:pointer}
+.import-workspace{margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card2)}
+.import-summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.import-target-card{margin-top:8px;padding:8px 10px;border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,transparent);color:var(--text2)}
+.import-unknown{margin-top:12px;border-top:1px solid var(--border);padding-top:10px}
+.import-unknown>summary{cursor:pointer;font-weight:700;color:var(--text)}
+.import-unknown-row{display:grid;grid-template-columns:minmax(220px,1fr) minmax(130px,220px) auto;gap:8px;align-items:center;padding:7px 0;border-bottom:1px solid var(--border)}
+.import-unknown-row code{word-break:break-all;color:var(--text2)}
+.import-unknown-row.modified{background:color-mix(in srgb,var(--accent) 6%,transparent)}
+.import-unknown-row input,.import-unknown-row select{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--text)}
+.import-unknown-actions{display:flex;gap:5px;flex-wrap:wrap}
+.import-unknown-actions button,.menuconfig-restore{padding:5px 8px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text2);cursor:pointer}
+.import-unknown-actions button:hover,.menuconfig-restore:hover{border-color:var(--accent);color:var(--accent)}
 @media(max-width:640px){
   .menuconfig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .menuconfig-option{grid-template-columns:1fr}
   .menuconfig-option>input,.menuconfig-option>.kconfig-tri{justify-self:stretch;max-width:none}
   .kconfig-tri button{flex:1}
+  .import-summary{align-items:flex-start;flex-direction:column}
+  .import-unknown-row{grid-template-columns:1fr}
 }
 .target-picker[hidden] { display: none; }
 .target-picker label { min-width: 0; color: var(--text3); font-size: 13px; font-weight: 600; }

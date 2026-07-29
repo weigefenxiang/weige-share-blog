@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=3172e13e65">
+<link rel="stylesheet" href="app.css?v=6c08182e8b">
 </head>
 <body>
 <header class="site-header">
@@ -93,6 +93,13 @@
             <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
           </button>
           <div id="menuconfigBody" hidden>
+            <div class="import-workspace" id="importWorkspace" hidden>
+              <div class="import-summary">
+                <strong id="importSummaryText"></strong>
+                <button class="text-btn" id="importReset" type="button">恢复上传原值</button>
+              </div>
+              <div class="import-target-card" id="importTargetCard" hidden></div>
+            </div>
             <div class="menuconfig-toolbar">
               <button class="menuconfig-back" id="menuconfigBack" type="button" hidden>←</button>
               <strong id="menuconfigPanelTitle"></strong>
@@ -104,6 +111,16 @@
             <div id="menuconfigOptions"></div>
             </div>
             <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more</button>
+            <details class="import-unknown" id="importUnknownBox" hidden>
+              <summary id="importUnknownSummary"></summary>
+              <p class="hint">Catalog 未收录这些配置项，不自动推断依赖。关闭会写入 “is not set”；删除配置行则交给 make defconfig 决定默认值。</p>
+              <div class="menuconfig-toolbar">
+                <input type="search" id="importUnknownSearch" placeholder="搜索 CONFIG 名称">
+                <label><input type="checkbox" id="importUnknownDisabled"> 显示已关闭项</label>
+              </div>
+              <div id="importUnknownOptions"></div>
+              <button class="menuconfig-more" id="importUnknownMore" type="button" hidden>再显示 50 项</button>
+            </details>
           </div>
         </div>
       </div>
@@ -237,6 +254,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=e03d395365"></script>
+<script src="app.js?v=57e2928009"></script>
 </body>
 </html>

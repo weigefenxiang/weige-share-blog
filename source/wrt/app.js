@@ -43,10 +43,16 @@ const state = {
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
 let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
 let MENU_INDEX = null, MENU_CATALOG = null;
-let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0;
+let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0, menuCatalogPromise = null;
 let menuPath = null, menuExpanded = false, menuVisibleLimit = 50;
 const menuValues = new Map();
 const menuTouched = new Set();
+const menuImportedOriginal = new Map();
+const menuImportedNonDefault = new Set();
+const importedConfigValues = new Map();
+const importedUnknownOriginal = new Map();
+const importedUnknownEdits = new Map();
+let importedUnknownLimit = 50, importedTargetVerified = true, importingConfig = false;
 let menuOptionBySymbol = new Map(), menuTargetSymbols = new Set();
 let menuExactPaths = new Map(), menuChildPaths = new Map(), menuDescendants = new Map();
 let menuChoiceOptions = new Map(), menuSearchText = new Map();
@@ -436,9 +442,11 @@ async function refreshMenuIndex() {
     if (index.schema === 1 && Array.isArray(index.sources) && index.sources.length) {
       index.catalogRepo = MENU_CATALOG_REPO;
       MENU_INDEX = index;
-      MENU_CATALOG = null;
-      menuCatalogKey = '';
-      renderDevices();
+      if (!importingConfig) {
+        MENU_CATALOG = null;
+        menuCatalogKey = '';
+        renderDevices();
+      }
     }
   } catch (e) { /* 独立目录尚未发布时继续使用仓库内回退清单 */ }
 }
@@ -517,16 +525,16 @@ function buildMenuIndexes(catalog) {
       `${option.prompt} ${option.symbol} ${(option.help || '')} ${(option.path || []).join(' ')}`.toLowerCase());
   }
 }
-async function loadCatalog(source, branch) {
-  if (!source || !branch) return;
+async function loadCatalog(source, branch, applyDefault = true) {
+  if (!source || !branch) return null;
   const key = `${source.id}/${branch.branch}`;
-  if (menuCatalogKey === key && MENU_CATALOG) return renderCatalogPicker();
-  if (menuLoadingKey === key) return;
+  if (menuCatalogKey === key && MENU_CATALOG) return MENU_CATALOG;
+  if (menuLoadingKey === key && menuCatalogPromise) return menuCatalogPromise;
   menuLoadingKey = key;
   const seq = ++menuCatalogSeq;
   $('menuconfigStatus').className = 'hint';
   $('menuconfigStatus').textContent = 'Loading catalog…';
-  try {
+  menuCatalogPromise = (async () => {
     let catalog;
     try {
       const response = await fetchCatalogAsset(branch.asset);
@@ -535,13 +543,14 @@ async function loadCatalog(source, branch) {
       if (!branch.fallback) throw remoteError;
       catalog = await loadJson(branch.fallback);
     }
-    if (seq !== menuCatalogSeq) return;
+    if (seq !== menuCatalogSeq) return null;
     MENU_CATALOG = catalog;
     menuCatalogKey = key;
-    menuLoadingKey = '';
     buildMenuIndexes(catalog);
     menuValues.clear();
     menuTouched.clear();
+    menuImportedOriginal.clear();
+    menuImportedNonDefault.clear();
     for (const option of catalog.menu.options || []) {
       const value = simpleKconfigDefault(option);
       if (value !== '') menuValues.set(option.symbol, value);
@@ -554,17 +563,24 @@ async function loadCatalog(source, branch) {
     }
     menuPath = null;
     menuVisibleLimit = MENU_PAGE_SIZE;
-    renderCatalogPicker(false);
-    await applyCatalogTarget();
-  } catch (error) {
-    if (seq !== menuCatalogSeq) return;
+    renderCatalogPicker(false, { sourceId: source.id, branchId: branch.id });
+    if (applyDefault) await applyCatalogTarget();
+    return catalog;
+  })().catch((error) => {
+    if (seq !== menuCatalogSeq) return null;
     MENU_CATALOG = null;
     menuCatalogKey = '';
-    menuLoadingKey = '';
     $('menuconfigBox').hidden = false;
     $('menuconfigStatus').className = 'hint catalog-unavailable';
     $('menuconfigStatus').textContent = `Catalog unavailable: ${error.message}`;
-  }
+    throw error;
+  }).finally(() => {
+    if (seq === menuCatalogSeq) {
+      menuLoadingKey = '';
+      menuCatalogPromise = null;
+    }
+  });
+  return menuCatalogPromise;
 }
 function isCatalogTargetSymbol(symbol, catalog = MENU_CATALOG) {
   if (menuTargetSymbols.has(symbol)) return true;
@@ -572,13 +588,15 @@ function isCatalogTargetSymbol(symbol, catalog = MENU_CATALOG) {
   return !menuTargetSymbols.size && (catalog?.targets || []).some((target) =>
     symbol === `TARGET_${target.board}` || symbol === `TARGET_${target.board}_${target.subtarget}`);
 }
-function renderCatalogPicker(preferState = true) {
+function renderCatalogPicker(preferState = true, requested = null) {
   if (!MENU_INDEX?.sources?.length) return null;
-  const currentSource = preferState && state.device?.id === 'catalog-target' ? state.source?.id : '';
+  const currentSource = requested?.sourceId ||
+    (preferState && state.device?.id === 'catalog-target' ? state.source?.id : '');
   const sourceId = fillTargetSelect('targetSource', MENU_INDEX.sources,
     (item) => item.id, (item) => item.label || item.id, currentSource);
   const source = MENU_INDEX.sources.find((item) => item.id === sourceId);
-  const currentBranch = preferState && state.device?.id === 'catalog-target' ? state.version?.id : '';
+  const currentBranch = requested?.branchId ||
+    (preferState && state.device?.id === 'catalog-target' ? state.version?.id : '');
   let branchId = fillTargetSelect('targetBranch', source.branches,
     (item) => item.id, catalogBranchLabel, currentBranch);
   const branchSelect = $('targetBranch');
@@ -607,7 +625,8 @@ function renderCatalogPicker(preferState = true) {
     return null;
   }
   let rows = MENU_CATALOG.targets || [];
-  const preferred = preferState && state.device?.id === 'catalog-target' ? state.device.target : {};
+  const preferred = requested ||
+    (preferState && state.device?.id === 'catalog-target' ? state.device.target : {});
   const system = fillTargetSelect('targetSystem', rows, (item) => item.board,
     (item) => item.name || item.board, preferred.system);
   rows = rows.filter((item) => item.board === system);
@@ -663,14 +682,16 @@ async function applyCatalogTarget() {
   };
   DEVICES.devices = DEVICES.devices.filter((item) => item.id !== device.id);
   DEVICES.devices.push(device);
+  const record = { device, source, version: source.versions[0], variant };
   if (state.device?.id !== device.id || state.source?.id !== source.id ||
       state.version?.id !== branchRow.id || state.variant?.id !== variant.id) {
+    state.source = record.source;
+    state.version = record.version;
+    state.variant = record.variant;
     await switchDevice(device, false);
-    activateTargetRecord({ device, source, version: source.versions[0], variant });
-  } else {
-    state.device = device;
-    activateTargetRecord({ device, source, version: source.versions[0], variant });
   }
+  state.device = device;
+  activateTargetRecord(record);
   renderMenuconfig();
 }
 
@@ -818,6 +839,23 @@ function initMenuconfigControls() {
     menuVisibleLimit += MENU_PAGE_SIZE;
     renderMenuconfig();
   };
+  let unknownSearchTimer = 0;
+  $('importUnknownSearch').oninput = () => {
+    clearTimeout(unknownSearchTimer);
+    unknownSearchTimer = setTimeout(() => {
+      importedUnknownLimit = MENU_PAGE_SIZE;
+      renderImportedWorkspace();
+    }, 100);
+  };
+  $('importUnknownDisabled').onchange = () => {
+    importedUnknownLimit = MENU_PAGE_SIZE;
+    renderImportedWorkspace();
+  };
+  $('importUnknownMore').onclick = () => {
+    importedUnknownLimit += MENU_PAGE_SIZE;
+    renderImportedWorkspace();
+  };
+  $('importReset').onclick = resetImportedChanges;
 }
 function renderMenuOption(option, showPath = false) {
   const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
@@ -872,7 +910,8 @@ function renderMenuconfig() {
   if (selectedOnly) {
     options = MENU_CATALOG.menu.options.filter((option) => {
       const value = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
-      return optionVisible(option) && (menuTouched.has(option.symbol) || value !== 'n');
+      return optionVisible(option) &&
+        (menuTouched.has(option.symbol) || menuImportedNonDefault.has(option.symbol) || value !== 'n');
     });
     showPath = true;
     $('menuconfigPanelTitle').textContent = 'Selected options';
@@ -929,6 +968,169 @@ function renderMenuconfig() {
   }
   panel.hidden = !visible.length && !!nodes.length;
   $('menuconfigMore').hidden = options.length <= menuVisibleLimit;
+  renderImportedWorkspace();
+}
+function parseConfigValues(text) {
+  const values = new Map();
+  for (const line of text.replace(/\r\n/g, '\n').split('\n')) {
+    const enabled = line.match(/^CONFIG_([A-Za-z0-9_.+@-]+)=(.*)$/);
+    const disabled = line.match(/^# CONFIG_([A-Za-z0-9_.+@-]+) is not set$/);
+    if (enabled) values.set(enabled[1], enabled[2]);
+    else if (disabled) values.set(disabled[1], 'n');
+  }
+  return values;
+}
+function importedValue(symbol) {
+  const edit = importedUnknownEdits.get(symbol);
+  return edit?.action === 'delete' ? null : edit?.value ?? importedUnknownOriginal.get(symbol);
+}
+function setImportedEdit(symbol, value) {
+  const original = importedUnknownOriginal.get(symbol);
+  if (value === original) importedUnknownEdits.delete(symbol);
+  else importedUnknownEdits.set(symbol, { action: 'set', value });
+  renderImportedWorkspace();
+}
+function renderImportedUnknownRow(symbol) {
+  const original = importedUnknownOriginal.get(symbol);
+  const edit = importedUnknownEdits.get(symbol);
+  const value = importedValue(symbol);
+  const row = document.createElement('div');
+  row.className = 'import-unknown-row' + (edit ? ' modified' : '');
+  const name = document.createElement('code');
+  name.textContent = `CONFIG_${symbol}`;
+  row.appendChild(name);
+  let input;
+  if ([original, value].some((item) => ['y', 'm', 'n'].includes(item))) {
+    input = document.createElement('select');
+    for (const item of [['y', 'Y'], ['m', 'M'], ['n', '关闭']]) {
+      const option = document.createElement('option');
+      option.value = item[0];
+      option.textContent = item[1];
+      input.appendChild(option);
+    }
+    input.value = value ?? original;
+  } else {
+    input = document.createElement('input');
+    input.type = 'text';
+    input.value = value ?? original;
+  }
+  input.disabled = edit?.action === 'delete';
+  input.onchange = () => setImportedEdit(symbol, input.value);
+  row.appendChild(input);
+  const actions = document.createElement('span');
+  actions.className = 'import-unknown-actions';
+  const close = document.createElement('button');
+  close.type = 'button';
+  close.textContent = '关闭';
+  close.onclick = () => setImportedEdit(symbol, 'n');
+  const remove = document.createElement('button');
+  remove.type = 'button';
+  remove.textContent = edit?.action === 'delete' ? '已删除' : '删除行';
+  remove.disabled = edit?.action === 'delete';
+  remove.onclick = () => {
+    importedUnknownEdits.set(symbol, { action: 'delete' });
+    renderImportedWorkspace();
+  };
+  const restore = document.createElement('button');
+  restore.type = 'button';
+  restore.textContent = '恢复';
+  restore.disabled = !edit;
+  restore.onclick = () => {
+    importedUnknownEdits.delete(symbol);
+    renderImportedWorkspace();
+  };
+  actions.append(close, remove, restore);
+  row.appendChild(actions);
+  return row;
+}
+function renderImportedWorkspace() {
+  const workspace = $('importWorkspace');
+  if (!workspace || !state.importedConfig) {
+    if (workspace) workspace.hidden = true;
+    return;
+  }
+  workspace.hidden = false;
+  const activeUnknown = [...importedUnknownOriginal].filter(([symbol]) => {
+    const value = importedValue(symbol);
+    return value !== 'n' && value !== '0' && value !== '""';
+  }).length;
+  const modified = menuTouched.size + importedUnknownEdits.size;
+  $('importSummaryText').textContent =
+    `已识别 ${menuImportedOriginal.size} 项 · 仅导入 ${importedUnknownOriginal.size} 项` +
+    `（启用 ${activeUnknown}）· 精选插件 ${state.sel.size + state.removed.size} 项 · 已修改 ${modified} 项`;
+  const targetCard = $('importTargetCard');
+  targetCard.hidden = importedTargetVerified;
+  targetCard.textContent = '';
+  if (!importedTargetVerified) {
+    targetCard.append(document.createTextNode(
+      `⚠ Custom Target：${state.device.target.system} / ${state.device.target.subtarget} / ` +
+      `${state.device.target.profileLabel} 未经当前 Catalog 验证，Actions 将在 make defconfig 后核验。 `));
+    const useCatalog = document.createElement('button');
+    useCatalog.type = 'button';
+    useCatalog.className = 'text-btn';
+    useCatalog.textContent = '改用网页 Target';
+    useCatalog.onclick = async () => {
+      if (!confirm('改用网页 Target 会退出上传配置工作区，并放弃上传文件中的自定义配置。继续吗？')) return;
+      const sourceId = state.source.id;
+      const branchId = state.version.id;
+      clearImportedWorkspace();
+      importedTargetVerified = true;
+      for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
+        $(id).disabled = false;
+      }
+      renderCatalogPicker(false, { sourceId, branchId });
+      await applyCatalogTarget();
+    };
+    targetCard.appendChild(useCatalog);
+  }
+  const box = $('importUnknownBox');
+  box.hidden = importedUnknownOriginal.size === 0;
+  $('importUnknownSummary').textContent =
+    `仅导入配置项（${importedUnknownOriginal.size}，已修改 ${importedUnknownEdits.size}）`;
+  const list = $('importUnknownOptions');
+  list.textContent = '';
+  const query = $('importUnknownSearch').value.trim().toLowerCase();
+  const showDisabled = $('importUnknownDisabled').checked;
+  let symbols = [...importedUnknownOriginal.keys()].filter((symbol) => {
+    if (query.length === 1 || (query.length >= 2 && !symbol.toLowerCase().includes(query))) return false;
+    const value = importedValue(symbol);
+    return showDisabled || importedUnknownEdits.has(symbol) ||
+      (value !== 'n' && value !== '0' && value !== '""');
+  });
+  symbols.sort((a, b) =>
+    Number(importedUnknownEdits.has(b)) - Number(importedUnknownEdits.has(a)) || a.localeCompare(b));
+  for (const symbol of symbols.slice(0, importedUnknownLimit)) {
+    list.appendChild(renderImportedUnknownRow(symbol));
+  }
+  if (!symbols.length) {
+    const empty = document.createElement('p');
+    empty.className = 'hint';
+    empty.textContent = query.length === 1 ? '请再输入一个字符。' : '没有符合条件的配置项。';
+    list.appendChild(empty);
+  }
+  $('importUnknownMore').hidden = symbols.length <= importedUnknownLimit;
+}
+function clearImportedWorkspace() {
+  state.importedConfig = null;
+  state.importedConfigId = '';
+  importedConfigValues.clear();
+  importedUnknownOriginal.clear();
+  importedUnknownEdits.clear();
+  menuImportedOriginal.clear();
+  menuImportedNonDefault.clear();
+  menuTouched.clear();
+  menuValues.clear();
+  for (const option of MENU_CATALOG?.menu?.options || []) {
+    const value = simpleKconfigDefault(option);
+    if (value !== '') menuValues.set(option.symbol, value);
+  }
+  $('importWorkspace').hidden = true;
+  $('importUnknownBox').hidden = true;
+}
+function resetImportedChanges() {
+  if (!state.importedConfig) return;
+  restoreSelections(state.importedConfig, null);
+  showToast('已恢复上传配置的原始值');
 }
 function renderTargetPicker(preferState = true) {
   let rows = targetRecords();
@@ -963,10 +1165,22 @@ function activateTargetRecord(record) {
 function renderDevices() {
   $('targetPicker').hidden = false;
   for (const id of ['sourceStep', 'versionStep', 'variantStep']) $(id).hidden = true;
+  if (!importedTargetVerified && state.device?.id === 'custom-target') {
+    renderImportedCustomPicker();
+    updateDeviceSummary();
+    return;
+  }
   const usingCatalog = !!MENU_INDEX?.sources?.length;
   const selected = usingCatalog ? renderCatalogPicker() : renderTargetPicker();
   for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
     $(id).onchange = async () => {
+      if (state.importedConfig) {
+        if (!confirm('切换 Target 会退出上传配置工作区，并改为网页新建配置。继续吗？')) {
+          renderDevices();
+          return;
+        }
+        clearImportedWorkspace();
+      }
       if (usingCatalog) {
         if (id === 'targetSource' || id === 'targetBranch') {
           MENU_CATALOG = null;
@@ -1758,6 +1972,17 @@ function applyMenuConfig(text) {
   }
   return text;
 }
+function applyImportedUnknownEdits(text) {
+  for (const [symbol, edit] of importedUnknownEdits) {
+    if (edit.action === 'delete') {
+      const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      text = text.replace(new RegExp(`^(?:CONFIG_${escaped}=.*|# CONFIG_${escaped} is not set)\\r?\\n?`, 'm'), '');
+    } else {
+      text = setConfigSymbol(text, symbol, String(edit.value ?? 'n'));
+    }
+  }
+  return text;
+}
 function catalogTargetConfig() {
   const target = state.device.target;
   const profile = target.profileSymbol || `DEVICE_${target.profile}`;
@@ -1797,6 +2022,7 @@ function applyToConfig(text, sel) {
   text = text.replace(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=[ym]$/gm, '# CONFIG_PACKAGE_$1 is not set');
   setY(state.theme);
   const zone = currentTimezone();
+  text = applyImportedUnknownEdits(text);
   text = applyMenuConfig(text);
   return '# Generated by WeiG-OpenWrt-AutoBuild web customizer\n' +
     '# page-version=' + state.siteVersion + '\n' +
@@ -1860,6 +2086,7 @@ async function downloadConfig(btn) {
 
 /* ============ 加载 .config / build-request.json / config.buildinfo ============ */
 let lastImportLog = null;
+let configImportSeq = 0;
 function importStateSnapshot() {
   return {
     device: state.device?.id || '',
@@ -1939,47 +2166,121 @@ function targetLines(text) {
     /^CONFIG_TARGET_(?:BOARD|SUBTARGET|PROFILE)=/.test(line) ||
     /^CONFIG_TARGET_.*_DEVICE_.*=y$/.test(line)).sort();
 }
-function customTargetSources(preferredSource) {
-  const grouped = new Map();
-  for (const device of DEVICES.devices) {
-    if (device.id === 'custom-target') continue;
-    for (const source of device.sources || []) {
-      if (!grouped.has(source.id)) grouped.set(source.id, { ...source, versions: new Map() });
-      const item = grouped.get(source.id);
-      for (const version of source.versions || []) {
-        if (!item.versions.has(version.id)) item.versions.set(version.id, version);
-      }
-    }
+function importedConfigMeta(text, fileName, payload) {
+  const values = parseConfigValues(text);
+  const generated = text.match(
+    /^# device=([^\s]+) source=([^\s]+) version=([^\s]+)(?: \(([^)]+)\))?.* variant=([^\s]+)$/m);
+  const payloadParts = typeof payload?.configId === 'string' ? payload.configId.split('/') : [];
+  const name = String(fileName || '').toLowerCase();
+  const deviceLine = [...values].find(([symbol, value]) =>
+    /^TARGET_.*_DEVICE_/.test(symbol) && value === 'y')?.[0] || '';
+  const deviceParts = deviceLine.match(/^TARGET_(.+)_(.+)_DEVICE_(.+)$/);
+  const clean = (value) => String(value || '').replace(/^"|"$/g, '');
+  const sourceHint = payload?.source || generated?.[2] || payloadParts[1] ||
+    (/#\s*ImmortalWrt Configuration/i.test(text) || name.includes('immortalwrt') ? 'ImmortalWrt'
+      : /#\s*OpenWrt Configuration/i.test(text) || name.includes('openwrt') ? 'OpenWrt' : '');
+  let branchHint = payload?.version || generated?.[4] || generated?.[3] || payloadParts[2] || '';
+  const namedBranch = [...STABLE_IMMORTAL_BRANCHES].find((branch) =>
+    name.includes(branch.toLowerCase()) || name.includes(branch.replace(/^openwrt-/, '')));
+  if (!branchHint && namedBranch) branchHint = namedBranch;
+  if (!branchHint && /(?:^|[-_.])(master|main)(?:[-_.]|$)/.test(name)) {
+    branchHint = name.match(/(?:^|[-_.])(master|main)(?:[-_.]|$)/)?.[1] || '';
   }
-  for (const item of MENU_INDEX?.sources || []) {
-    if (!grouped.has(item.id)) {
-      grouped.set(item.id, {
-        id: item.id, label: item.label || item.id, repo: item.repo, append: true,
-        loginPw: item.id === 'lede' ? 'password' : undefined,
-        diy1: 'diy-generic.sh', diy2: 'diy2-generic.sh', versions: new Map(),
-      });
-    }
-    const source = grouped.get(item.id);
-    for (const branch of item.branches || []) {
-      if (!source.versions.has(branch.id)) {
-        source.versions.set(branch.id, { id: branch.id, branch: branch.branch, label: branch.branch });
-      }
-    }
-  }
-  return [...grouped.values()].map((source) => {
-    const versions = [...source.versions.values()];
-    return {
-      ...source,
-      versions,
-      variants: [{
-        id: 'custom', profile: 'custom', name: 'Custom Target',
-        note: 'Uploaded .config', capacity: 1024,
-        versions: versions.map((version) => version.id), configs: {},
-      }],
-    };
-  }).sort((a, b) => Number(b.id === preferredSource) - Number(a.id === preferredSource));
+  const profileSymbol = clean(values.get('TARGET_PROFILE')) ||
+    (deviceParts?.[3] ? `DEVICE_${deviceParts[3]}` : '');
+  return {
+    sourceHint,
+    branchHint,
+    system: clean(values.get('TARGET_BOARD')) || deviceParts?.[1] || '',
+    subtarget: clean(values.get('TARGET_SUBTARGET')) || deviceParts?.[2] || '',
+    profileSymbol: profileSymbol
+      ? (profileSymbol.startsWith('DEVICE_') ? profileSymbol : `DEVICE_${profileSymbol}`) : '',
+  };
 }
-function customDeviceFromConfig(text, payload) {
+function chooseImportedBranch(source, hint) {
+  const normalized = String(hint || '').toLowerCase();
+  const exact = source.branches.find((branch) =>
+    branch.id.toLowerCase() === normalized || branch.branch.toLowerCase() === normalized);
+  if (exact) return exact;
+  if (normalized) {
+    throw new Error(`配置分支 ${hint} 当前已隐藏或未支持；可用稳定分支：` +
+      source.branches.map((branch) => branch.branch).join('、'));
+  }
+  const list = source.branches.map((branch, index) => `${index + 1}. ${branch.branch}`).join('\n');
+  const answer = prompt(`配置没有记录分支，请选择：\n${list}`);
+  if (answer === null) return null;
+  const index = Number(answer) - 1;
+  if (!Number.isInteger(index) || !source.branches[index]) throw new Error(t('import.badChoice'));
+  return source.branches[index];
+}
+function renderImportedCustomPicker() {
+  const rows = [
+    ['targetSource', state.source.id, state.source.label],
+    ['targetBranch', state.version.id, state.version.branch],
+    ['targetSystem', state.device.target.system, state.device.target.systemLabel],
+    ['targetSubtarget', state.device.target.subtarget, state.device.target.subtargetLabel],
+    ['targetProfile', state.variant.id, state.device.target.profileLabel],
+  ];
+  for (const [id, value, label] of rows) {
+    const select = $(id);
+    select.textContent = '';
+    const option = document.createElement('option');
+    option.value = value;
+    option.textContent = label || value;
+    select.appendChild(option);
+    select.disabled = true;
+  }
+}
+async function selectImportedTarget(text, fileName, payload) {
+  const meta = importedConfigMeta(text, fileName, payload);
+  importLogStep('target-detected', meta);
+  const source = MENU_INDEX?.sources?.find((item) => item.id === meta.sourceHint);
+  if (!source) {
+    throw new Error(`当前只支持 ${MENU_INDEX?.sources?.map((item) => item.id).join('、') || '稳定目录'}；` +
+      `检测到的源码为 ${meta.sourceHint || '未知'}`);
+  }
+  const branch = chooseImportedBranch(source, meta.branchHint);
+  if (!branch) return '';
+  importLogStep('branch-selected', { source: source.id, branch: branch.branch });
+  await loadCatalog(source, branch, false);
+  const target = MENU_CATALOG?.targets?.find((item) =>
+    item.board === meta.system && item.subtarget === meta.subtarget);
+  const profile = target?.profiles?.find((item) => item.id === meta.profileSymbol);
+  if (target && profile) {
+    importedTargetVerified = true;
+    for (const id of ['targetSource', 'targetBranch', 'targetSystem', 'targetSubtarget', 'targetProfile']) {
+      $(id).disabled = false;
+    }
+    renderCatalogPicker(false, {
+      sourceId: source.id,
+      branchId: branch.id,
+      system: meta.system,
+      subtarget: meta.subtarget,
+      profileSymbol: meta.profileSymbol,
+    });
+    await applyCatalogTarget();
+    return ['catalog-target', source.id, branch.id, profile.id].join('/');
+  }
+  importedTargetVerified = false;
+  const sourceObject = catalogSourceObject(source, branch);
+  const variant = {
+    id: meta.profileSymbol || 'custom', profile: meta.profileSymbol || 'custom',
+    name: meta.profileSymbol || 'Custom Target', capacity: 4096, versions: [branch.id],
+  };
+  sourceObject.variants = [variant];
+  const custom = customDeviceFromConfig(text);
+  custom.sources = [sourceObject];
+  custom.target.profileSymbol = meta.profileSymbol;
+  state.source = sourceObject;
+  state.version = sourceObject.versions[0];
+  state.variant = variant;
+  state.device = custom;
+  await switchDevice(custom, false);
+  activateTargetRecord({ device: custom, source: sourceObject, version: sourceObject.versions[0], variant });
+  renderImportedCustomPicker();
+  return ['custom-target', source.id, branch.id, variant.id].join('/');
+}
+function customDeviceFromConfig(text) {
   const lines = targetLines(text);
   const valueOf = (name) => {
     const line = lines.find((item) => item.startsWith(`CONFIG_TARGET_${name}=`));
@@ -1992,9 +2293,6 @@ function customDeviceFromConfig(text, payload) {
   const profile = valueOf('PROFILE').replace(/^DEVICE_/, '') ||
     deviceParts?.[3] || '';
   if (!deviceLine && (!board || !subtarget)) throw new Error(t('import.noMatch'));
-  const sourceHint = payload?.source ||
-    (/#\s*ImmortalWrt Configuration/i.test(text) ? 'ImmortalWrt'
-      : /#\s*OpenWrt Configuration/i.test(text) ? 'OpenWrt' : '');
   const label = [board || 'Target', subtarget, profile].filter(Boolean).join(' / ');
   return {
     id: 'custom-target',
@@ -2014,77 +2312,19 @@ function customDeviceFromConfig(text, payload) {
       profile: profile || 'custom',
       profileLabel: profile || 'Custom Target',
     },
-    sources: customTargetSources(sourceHint),
+    sources: [],
   };
-}
-async function selectCustomConfig(text, payload) {
-  const custom = customDeviceFromConfig(text, payload);
-  DEVICES.devices = DEVICES.devices.filter((device) => device.id !== custom.id);
-  DEVICES.devices.push(custom);
-  await switchDevice(custom, false);
-  const wanted = typeof payload?.configId === 'string' ? payload.configId.split('/') : [];
-  const sourceId = payload?.source || wanted[1] || custom.sources[0].id;
-  const versionId = payload?.version || wanted[2] || '';
-  const records = targetRecords().filter((item) => item.device.id === custom.id);
-  const record = records.find((item) =>
-    item.source.id === sourceId && (!versionId || item.version.id === versionId)) || records[0];
-  if (!record) throw new Error(t('import.noMatch'));
-  activateTargetRecord(record);
-  renderDevices();
-  return ['custom-target', record.source.id, record.version.id, 'custom'].join('/');
-}
-function configCandidates(text) {
-  const header = text.match(/^# device=([^\s]+) source=([^\s]+) version=([^\s]+).* variant=([^\s]+)$/m);
-  if (header) {
-    const id = [header[1], header[2], header[3], header[4]].join('/');
-    if (CONFIG_MANIFEST.configs[id]) return [id];
-  }
-  const targets = targetLines(text);
-  const deviceTargets = targets.filter((line) => /^CONFIG_TARGET_.*_DEVICE_.*=y$/.test(line));
-  if (deviceTargets.length) {
-    const matches = Object.entries(CONFIG_MANIFEST.configs)
-      .filter(([, item]) => item.target.some((line) => deviceTargets.includes(line)))
-      .map(([id]) => id);
-    const sourceHint = /#\s*ImmortalWrt Configuration/i.test(text) ? 'ImmortalWrt'
-      : /#\s*OpenWrt Configuration/i.test(text) ? 'OpenWrt' : '';
-    const hinted = sourceHint ? matches.filter((id) => id.split('/')[1] === sourceHint) : [];
-    return hinted.length ? hinted : matches;
-  }
-  const signature = JSON.stringify(targets);
-  return Object.entries(CONFIG_MANIFEST.configs)
-    .filter(([, item]) => JSON.stringify([...item.target].sort()) === signature)
-    .map(([id]) => id);
-}
-function askConfigCandidate(candidates) {
-  if (candidates.length === 1) return candidates[0];
-  if (!candidates.length) throw new Error(t('import.noMatch'));
-  const list = candidates.map((id, i) => `${i + 1}. ${id}`).join('\n');
-  const answer = prompt(t('import.choose', { list }));
-  if (answer === null) return '';
-  const n = Number(answer);
-  if (!Number.isInteger(n) || n < 1 || n > candidates.length) throw new Error(t('import.badChoice'));
-  return candidates[n - 1];
-}
-async function selectConfigId(configId) {
-  const [deviceId, sourceId, versionId, variantId] = configId.split('/');
-  const device = DEVICES.devices.find((d) => d.id === deviceId && d.enabled === true);
-  if (!device) throw new Error(t('import.deviceUnavailable', { id: deviceId }));
-  if (!state.device || state.device.id !== deviceId) await switchDevice(device, false);
-  renderSources();
-  const sourceIndex = state.device.sources.findIndex((s) => s.id === sourceId);
-  if (sourceIndex < 0) throw new Error(t('import.noMatch'));
-  $('sourceRow').children[sourceIndex].click();
-  const versionIndex = state.source.versions.findIndex((v) => v.id === versionId);
-  if (versionIndex < 0) throw new Error(t('import.noMatch'));
-  $('versionRow').children[versionIndex].click();
-  const variants = state.source.variants.filter((v) => !v.versions || v.versions.includes(versionId));
-  const variantIndex = variants.findIndex((v) => v.id === variantId);
-  if (variantIndex < 0) throw new Error(t('import.noMatch'));
-  $('variantRow').children[variantIndex].click();
 }
 function restoreSelections(config, payload) {
   state.sel.clear();
   state.removed.clear();
+  importedConfigValues.clear();
+  importedUnknownOriginal.clear();
+  importedUnknownEdits.clear();
+  menuImportedOriginal.clear();
+  menuImportedNonDefault.clear();
+  menuTouched.clear();
+  for (const [symbol, value] of parseConfigValues(config)) importedConfigValues.set(symbol, value);
   const explicit = payload && Array.isArray(payload.plugins) ? payload.plugins : null;
   let skipped = 0;
   for (const p of PLUGINS.plugins) {
@@ -2104,25 +2344,32 @@ function restoreSelections(config, payload) {
     }
   }
   if (MENU_CATALOG?.menu?.options) {
-    const configValues = new Map();
-    for (const line of config.split('\n')) {
-      const enabled = line.match(/^CONFIG_([A-Za-z0-9_]+)=(.*)$/);
-      const disabled = line.match(/^# CONFIG_([A-Za-z0-9_]+) is not set$/);
-      if (enabled) configValues.set(enabled[1], enabled[2]);
-      else if (disabled) configValues.set(disabled[1], 'n');
-    }
     for (const option of MENU_CATALOG.menu.options) {
-      if (configValues.has(option.symbol)) {
-        let value = configValues.get(option.symbol);
+      if (importedConfigValues.has(option.symbol)) {
+        let value = importedConfigValues.get(option.symbol);
         if (option.type === 'string') {
           try { value = JSON.parse(value); } catch (e) { value = value.replace(/^"|"$/g, ''); }
         }
         menuValues.set(option.symbol, value);
-        menuTouched.add(option.symbol);
+        menuImportedOriginal.set(option.symbol, value);
+        let defaultValue = simpleKconfigDefault(option);
+        if ((option.type === 'bool' || option.type === 'tristate') && !defaultValue) defaultValue = 'n';
+        if (String(value) !== String(defaultValue)) menuImportedNonDefault.add(option.symbol);
       }
     }
   }
-  importLogStep('plugins-restored', { selected: state.sel.size, removed: state.removed.size, skipped });
+  for (const [symbol, value] of importedConfigValues) {
+    if (!menuOptionBySymbol.has(symbol) && !isCatalogTargetSymbol(symbol) && !symbol.startsWith('TARGET_')) {
+      importedUnknownOriginal.set(symbol, value);
+    }
+  }
+  importLogStep('values-restored', {
+    catalog: menuImportedOriginal.size,
+    importedOnly: importedUnknownOriginal.size,
+    selectedPlugins: state.sel.size,
+    removedPlugins: state.removed.size,
+    skippedPlugins: skipped,
+  });
   if (payload) {
     if (payload.tag) $('tagBox').value = String(payload.tag).slice(0, 24);
     if (LANIP_RE.test(String(payload.lanip || ''))) $('lanipBox').value = state.lanip = payload.lanip;
@@ -2141,47 +2388,49 @@ function restoreSelections(config, payload) {
   }
   renderFirmwareSettings();
   renderGroups();
+  menuExpanded = true;
+  menuPath = null;
+  menuVisibleLimit = MENU_PAGE_SIZE;
+  importedUnknownLimit = MENU_PAGE_SIZE;
+  $('menuconfigSelectedOnly').checked = true;
   renderMenuconfig();
+  renderImportedWorkspace();
   updateStats();
 }
 async function importConfigFile(file) {
+  const seq = ++configImportSeq;
+  importingConfig = true;
   beginImportLog(file);
-  if (!file || file.size < 32 || file.size > 2 * 1024 * 1024) throw new Error(t('import.size'));
-  importLogStep('file-accepted');
-  let text = await file.text();
-  importLogStep('file-read');
-  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
-  if (text.includes('\0')) throw new Error(t('import.binary'));
-  let payload = null;
-  if (/\.json$/i.test(file.name) || text.trimStart().startsWith('{')) {
-    importLogStep('json-detected');
-    try { payload = JSON.parse(text); } catch (e) { throw new Error(t('import.jsonInvalid', { msg: e.message })); }
-    if (typeof payload.config !== 'string') throw new Error(t('import.jsonNoConfig'));
-    text = payload.config;
+  try {
+    if (!file || file.size < 32 || file.size > 2 * 1024 * 1024) throw new Error(t('import.size'));
+    importLogStep('file-accepted');
+    let text = await file.text();
+    importLogStep('file-read');
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+    if (text.includes('\0')) throw new Error(t('import.binary'));
+    let payload = null;
+    if (/\.json$/i.test(file.name) || text.trimStart().startsWith('{')) {
+      importLogStep('json-detected');
+      try { payload = JSON.parse(text); } catch (e) { throw new Error(t('import.jsonInvalid', { msg: e.message })); }
+      if (typeof payload.config !== 'string') throw new Error(t('import.jsonNoConfig'));
+      text = payload.config;
+    }
+    text = text.replace(/\r\n/g, '\n');
+    const configId = await selectImportedTarget(text, file.name, payload);
+    if (seq !== configImportSeq) return;
+    if (!configId) {
+      finishImportLog('cancelled');
+      return;
+    }
+    state.importedConfig = text.endsWith('\n') ? text : text + '\n';
+    state.importedConfigId = configId;
+    importLogStep('profile-selected', { verified: importedTargetVerified, state: importStateSnapshot() });
+    restoreSelections(state.importedConfig, payload);
+    finishImportLog('success');
+    showToast(t('import.ok', { id: configId }));
+  } finally {
+    if (seq === configImportSeq) importingConfig = false;
   }
-  text = text.replace(/\r\n/g, '\n');
-  const candidates = configCandidates(text);
-  importLogStep('candidates-found', { count: candidates.length, candidates });
-  const customConfig = candidates.length === 0;
-  const payloadId = typeof payload?.configId === 'string' ? payload.configId : '';
-  if (payload && payload.configId && !candidates.includes(payloadId) &&
-      !payloadId.startsWith('custom-target/')) throw new Error(t('import.noMatch'));
-  const configId = customConfig
-    ? await selectCustomConfig(text, payload)
-    : payload && candidates.includes(payloadId)
-      ? payloadId : askConfigCandidate(candidates);
-  if (!configId) {
-    finishImportLog('cancelled');
-    return;
-  }
-  importLogStep('candidate-selected', { index: candidates.indexOf(configId) + 1, configId });
-  await selectConfigId(configId);
-  importLogStep('profile-selected', { state: importStateSnapshot() });
-  state.importedConfig = text.endsWith('\n') ? text : text + '\n';
-  state.importedConfigId = configId;
-  restoreSelections(state.importedConfig, payload);
-  finishImportLog('success');
-  showToast(t('import.ok', { id: configId }));
 }
 $('importBtn').addEventListener('click', () => $('configImport').click());
 $('importLogBtn').addEventListener('click', downloadImportLog);
@@ -2262,6 +2511,12 @@ function openSubmitModal() {
     pageVersion: state.siteVersion,
   });
   mb.appendChild(sum);
+  if (state.importedConfig && !importedTargetVerified) {
+    const warning = document.createElement('p');
+    warning.className = 'import-error';
+    warning.textContent = '⚠ Custom Target 未经当前 Catalog 验证；Actions 将在 make defconfig 后核验目标。';
+    mb.appendChild(warning);
+  }
 
   const card = (titleKey, descText, btnKey, onClick) => {
     const c = document.createElement('div');
