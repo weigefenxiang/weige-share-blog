@@ -6,8 +6,9 @@
 'use strict';
 
 /* ============ 常量 / Constants ============ */
-const OFFICIAL_REPO = 'weigefenxiang/WeiG-OpenWrt-AutoBuild';
-const REPO_NAME = OFFICIAL_REPO.split('/')[1];
+let OFFICIAL_REPO = 'weigefenxiang/WeiG-OpenWrt-AutoBuild';
+let REPO_NAME = OFFICIAL_REPO.split('/')[1];
+let PROJECT = null;
 const BRANCH = 'main';
 const FALLBACK = 'en';               // 译文缺失时的兜底语言 / Fallback language when a translation is missing
 const SOURCE_LANG = 'zh-CN';         // 源语言,词条必须完整 / Source language; its entries must be complete
@@ -77,7 +78,7 @@ let menuOptionBySymbol = new Map(), menuTargetSymbols = new Set();
 let menuExactPaths = new Map(), menuChildPaths = new Map(), menuDescendants = new Map();
 let menuChoiceOptions = new Map(), menuChildrenByParent = new Map(), menuNestedCounts = new Map();
 let menuSearchText = new Map();
-const MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
+let MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
 const MENU_PAGE_SIZE = 80;
 const LANG_SHORT = {
   'zh-CN': '简', 'zh-TW': '繁', en: 'EN', ru: 'RU', es: 'ES', pt: 'PT',
@@ -403,6 +404,23 @@ async function init() {
     I18N = await loadJson('i18n.json');
     state.lang = pickLang();
     renderLangSel();
+    try {
+      PROJECT = await loadJson('project.json');
+      if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(PROJECT.repository || '')) {
+        OFFICIAL_REPO = PROJECT.repository;
+        REPO_NAME = OFFICIAL_REPO.split('/')[1];
+      }
+      if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(PROJECT.catalogRepository || '')) {
+        MENU_CATALOG_REPO = PROJECT.catalogRepository;
+      }
+      const repoUrl = `https://github.com/${OFFICIAL_REPO}`;
+      $('repoLink').href = repoUrl;
+      $('footRepo').href = repoUrl;
+      $('actionsLink').href = `${repoUrl}/actions`;
+      document.querySelectorAll('.blog-link').forEach((link) => {
+        if (/^https?:\/\//.test(PROJECT.blogUrl || '')) link.href = PROJECT.blogUrl;
+      });
+    } catch (e) { /* old deployments keep the built-in project defaults */ }
     [DEVICES, CONFIG_MANIFEST, TIMEZONES, MENU_INDEX] = await Promise.all([
       loadJson('devices.json'), loadJson('config-manifest.json'), loadJson('timezones.json'),
       loadJson('menuconfig-index.json'),
@@ -637,7 +655,7 @@ function catalogUrls(asset) {
 function stableCatalogIndex(index) {
   const sources = (index?.sources || []).map((source) => ({
     ...source,
-    branches: (source.branches || []).filter((branch) => branch.state !== 'unavailable')
+    branches: (source.branches || [])
       .sort((a, b) => b.branch.localeCompare(a.branch, undefined, { numeric: true })),
   })).filter((source) => source.branches.length);
   return { ...index, sources };
@@ -1221,6 +1239,7 @@ function initMenuconfigControls() {
     if (menuExpanded) renderMenuconfig();
   };
   $('menuconfigBack').onclick = () => {
+    if ($('menuconfigBack').disabled) return;
     const previous = menuHistory.pop();
     if (previous) {
       menuPath = previous.path;
@@ -1558,7 +1577,9 @@ function renderMenuconfig() {
   $('menuconfigSelectedCount').textContent = String(selected.length);
   $('menuconfigContent').hidden = selectedOnly && !menuSelectedExpanded;
   if (selectedOnly && !menuSelectedExpanded) {
-    $('menuconfigBack').hidden = true;
+    $('menuconfigBack').hidden = false;
+    $('menuconfigBack').disabled = menuHistory.length === 0;
+    $('menuconfigBack').setAttribute('aria-disabled', String($('menuconfigBack').disabled));
     renderImportedWorkspace();
     return;
   }
@@ -1596,7 +1617,9 @@ function renderMenuconfig() {
       if (count) nodes.push({ label: name, path, count });
     }
   }
-  $('menuconfigBack').hidden = !menuHistory.length || !!query;
+  $('menuconfigBack').hidden = !!query;
+  $('menuconfigBack').disabled = menuHistory.length === 0;
+  $('menuconfigBack').setAttribute('aria-disabled', String($('menuconfigBack').disabled));
   const nodeFragment = document.createDocumentFragment();
   for (const node of nodes) {
     const button = document.createElement('button');
@@ -3543,7 +3566,9 @@ async function runSelfTest() {
   d1(missing.length ? 'fail' : 'ok', missing.length ? t('st.browser.fail', { list: missing.join('、') }) : t('st.browser.ok'));
 
   const d2 = addRow(t('st.data'));
-  const path2 = state.device ? state.device.id + '/plugins.json' : 'devices.json';
+  const path2 = state.device
+    ? (state.device.plugins === 'seed' ? 'seed/plugins.json' : state.device.id + '/plugins.json')
+    : 'devices.json';
   const tiers = [];
   for (const [i, u] of dataUrls(path2).entries()) {
     const r = await timedFetch(u, 6000);
@@ -3559,6 +3584,16 @@ async function runSelfTest() {
   const d3 = addRow(t('st.config') + (src ? ' (' + src.label + ')' : ''));
   let cfgText = null, tierHit = '';
   if (!src) d3('fail', t('st.config.noData'));
+  else if (state.device?.id === 'catalog-target') {
+    try {
+      if (!MENU_CATALOG) throw new Error('Catalog has not finished loading');
+      cfgText = catalogTargetConfig();
+      tierHit = `${state.source.id}/${state.version.branch} · ${MENU_CATALOG.source?.commit?.slice(0, 8) || 'Catalog'}`;
+      d3('ok', t('st.config.ok', { tier: tierHit }));
+    } catch (error) {
+      d3('fail', `${t('st.config.fail')} · ${error.message}`);
+    }
+  }
   else {
     for (const [i, u] of dataUrls(state.device.id + '/' + src.config).entries()) {
       const r = await timedFetch(u, 10000);
@@ -3570,18 +3605,22 @@ async function runSelfTest() {
   const d4 = addRow(t('st.gen'));
   if (!src || !cfgText || !PLUGINS) d4('fail', t('st.gen.skip'));
   else {
-    const patches = (state.variant && state.variant.patch) || [];
-    let text = cfgText, hit = 0;
-    for (const pair of patches) { if (text.includes(pair.from)) hit++; text = text.split(pair.from).join(pair.to); }
-    const probes = PLUGINS.plugins.filter((p) => pluginState(p) === 'ok').slice(0, 2);
-    let flip = 0;
-    for (const p of probes) {
-      const pkg = p.pkgs[src.id];
-      if (text.includes('# CONFIG_PACKAGE_' + pkg + ' is not set') || text.includes('CONFIG_PACKAGE_' + pkg + '=m') || text.includes('CONFIG_PACKAGE_' + pkg + '=y')) flip++;
+    try {
+      const text = await generateConfigText();
+      const headerOk = text.includes(`# page-version=${state.siteVersion}`) &&
+        text.includes(`# device=${state.device.id} source=${state.source.id} version=${state.version.id}`);
+      const targets = targetLines(text);
+      const configLines = text.split('\n').filter((line) =>
+        /^CONFIG_[A-Za-z0-9_.+@-]+=/.test(line) || /^# CONFIG_[A-Za-z0-9_.+@-]+ is not set$/.test(line));
+      const okAll = headerOk && targets.length > 0 && configLines.length > 0;
+      d4(okAll ? 'ok' : 'fail', okAll
+        ? uiText(`真实生成成功 · ${configLines.length} 配置项 · ${targets.length} 目标签名`,
+          `真實產生成功 · ${configLines.length} 設定項 · ${targets.length} 目標簽章`,
+          `Real generation passed · ${configLines.length} settings · ${targets.length} target signatures`)
+        : `${t('st.gen.fail')} · header=${headerOk} target=${targets.length} config=${configLines.length}`);
+    } catch (error) {
+      d4('fail', `${t('st.gen.fail')} · ${error.message}`);
     }
-    const okAll = hit === patches.length && flip === probes.length;
-    d4(okAll ? 'ok' : 'fail',
-      t('st.gen.ok', { hit, total: patches.length, flip, ftotal: probes.length }) + (okAll ? '' : t('st.gen.fail')));
   }
 
   const d5 = addRow(t('st.github'));

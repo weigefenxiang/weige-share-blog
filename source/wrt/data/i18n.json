@@ -320,9 +320,9 @@
    "vi": "Đã hiểu"
   },
   "step.device": {
-   "zh-CN": "选择机型",
+   "zh-CN": "选择构建参数",
    "zh-TW": "選擇機型",
-   "en": "Choose device",
+   "en": "Choose build parameters",
    "ru": "Выбор модели",
    "es": "Elige el modelo",
    "pt": "Escolha o modelo",
@@ -333,9 +333,9 @@
    "vi": "Chọn thiết bị"
   },
   "step.device.hint": {
-   "zh-CN": "灰色机型架构已支持但尚未开放,点它看说明",
+   "zh-CN": "选择源码、分支、Target 与 Profile",
    "zh-TW": "灰色機型架構已支援但尚未開放,點它看說明",
-   "en": "Greyed-out devices are supported in code but not open yet — click one for details",
+   "en": "Choose the source, branch, target, and profile",
    "ru": "Серые модели уже поддерживаются архитектурой, но пока недоступны — нажмите, чтобы узнать почему.",
    "es": "El código ya admite los modelos en gris, pero aún no están disponibles. Haz clic para ver los detalles.",
    "pt": "Modelos em cinza já têm suporte na arquitetura, mas ainda não estão disponíveis. Clique para saber mais",

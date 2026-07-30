@@ -255,6 +255,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-scroll{max-height:clamp(280px,55vh,620px);overflow-y:auto;overflow-x:hidden;padding:0 10px 12px;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
 .menuconfig-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .menuconfig-back{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);cursor:pointer}
+.menuconfig-back:disabled{opacity:.42;cursor:default}
 .menuconfig-breadcrumb{display:flex;min-width:0;max-width:100%;flex:1 1 420px;align-items:center;gap:5px;overflow:hidden;white-space:nowrap;font-size:clamp(12px,1.25vw,16px)}
 .menuconfig-breadcrumb::-webkit-scrollbar{display:none}
 .menuconfig-breadcrumb-link{padding:2px 0;border:0;background:transparent;color:var(--accent-text);font:inherit;font-weight:700;cursor:pointer}
@@ -426,10 +427,12 @@ input:focus-visible { border-color: var(--accent); }
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px; font-size: 17px;
   border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--accent) 5%, var(--card));
+  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 42%, transparent);
   min-width: 0;
   transition: background-color .12s ease;
 }
-.plugin:hover { background: var(--card2); }
+.plugin:hover { background: color-mix(in srgb, var(--accent) 11%, var(--card)); }
 .plugin input { flex: none; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
 /* 名字是按钮:单击弹出说明气泡;V11 默认单行省略号,JS 按 缩1px→两行→再缩1px 三步适配 / name is a button opening the info popover; V11 defaults to one ellipsized line, JS fits in three steps: −1px → two lines → −1px more */
 .plugin-name {
