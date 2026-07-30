@@ -267,6 +267,8 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-category-count{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
 .menuconfig-panel{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .menuconfig-toolbar input[type=search]{flex:0 1 260px;min-width:140px;max-width:260px}
+.menuconfig-state-help{flex:none;padding:6px 9px;border:1px solid color-mix(in srgb,var(--accent) 40%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--accent) 7%,var(--card2));color:var(--accent-text);font-weight:700;white-space:nowrap;cursor:help}
+.menuconfig-state-help:hover,.menuconfig-state-help:focus-visible{border-color:var(--accent);color:var(--accent)}
 .menuconfig-choice{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,360px);gap:12px;align-items:center;margin-bottom:6px;padding:9px 10px;border:1px solid color-mix(in srgb,var(--border) 78%,transparent);border-radius:8px;background:color-mix(in srgb,var(--card) 78%,var(--card2));color:var(--text);font-weight:600}
 .menuconfig-choice-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-choice select{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text)}
@@ -276,8 +278,8 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-option-name{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-prompt small{flex:none;max-width:46%;overflow:hidden;color:var(--text3);font-size:11.5px;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-option.package-option{grid-template-columns:minmax(0,1fr) auto}
-.menuconfig-package{display:grid;grid-template-columns:minmax(130px,220px) minmax(180px,1fr);gap:14px;min-width:0;align-items:baseline}
-.menuconfig-package-name{overflow:hidden;font-weight:650;white-space:nowrap;text-overflow:ellipsis}
+.menuconfig-package{display:grid;grid-template-columns:minmax(260px,1.5fr) minmax(140px,1fr);gap:14px;min-width:0;align-items:baseline}
+.menuconfig-package-name{min-width:0;overflow:hidden;font-weight:650;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-package-desc{overflow:hidden;color:var(--text2);white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-option-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}
 .kconfig-tri{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
@@ -312,6 +314,7 @@ input:focus-visible { border-color: var(--accent); }
   .menuconfig-breadcrumb{flex-basis:calc(100% - 44px)}
   .menuconfig-toolbar input[type=search]{order:3;flex:1 1 calc(100% - 120px);max-width:none}
   .menuconfig-toolbar>label{order:4;white-space:nowrap}
+  .menuconfig-state-help{order:4}
   .menuconfig-category{min-height:44px}
   .menuconfig-category-text{flex:1;font-size:16px}
   .menuconfig-category-text.menu-fit-s1{font-size:15px}

@@ -229,6 +229,15 @@ function applyI18n() {
     uiText('显示已关闭项', '顯示已關閉項目', 'Show disabled');
   if ($('importUnknownMore')) $('importUnknownMore').textContent =
     uiText('再显示 50 项', '再顯示 50 項', 'Show 50 more');
+  if ($('menuconfigStateHelp')) {
+    const help = uiText(
+      'N：禁用，不编译。\nM：模块化或编译为可安装软件包，默认不写入固件。\nY：启用并编译进固件。',
+      'N：停用，不編譯。\nM：模組化或編譯為可安裝軟體套件，預設不寫入韌體。\nY：啟用並編譯進韌體。',
+      'N: Disabled; not built.\nM: Modular or built as an installable package; not included in the firmware by default.\nY: Enabled and built into the firmware.');
+    $('menuconfigStateHelp').dataset.help = help;
+    $('menuconfigStateHelp').setAttribute('aria-label',
+      uiText('N、M、Y 状态说明', 'N、M、Y 狀態說明', 'N, M, and Y state help'));
+  }
   $('advLabel').title = t('adv.title');
   // Fork 提示内嵌两个链接,不能整段 textContent,需拆分文案后用 DOM 节点拼装 / The fork hint embeds two links, so the text is split and assembled from DOM nodes instead of one textContent
   const hint = $('selfHint');
@@ -724,9 +733,17 @@ function applyMenuTranslation(element, chinese, usageChinese = '', mobileChip = 
   return element;
 }
 function showMenuTooltip(element) {
+  if (state.lang === 'en' || !element?.dataset.translation) return;
+  showMenuPopup(element, element.dataset.translation);
+}
+function showMenuHelp(element) {
+  if (!element?.dataset.help) return;
+  showMenuPopup(element, element.dataset.help);
+}
+function showMenuPopup(element, text) {
   const tooltip = $('menuTooltip');
-  if (state.lang === 'en' || !tooltip || !element?.dataset.translation) return;
-  tooltip.textContent = element.dataset.translation;
+  if (!tooltip || !text) return;
+  tooltip.textContent = text;
   tooltip.hidden = false;
   const rect = element.getBoundingClientRect();
   const tipRect = tooltip.getBoundingClientRect();
@@ -1186,6 +1203,10 @@ function initMenuconfigControls() {
     resetMenuScroll();
     renderMenuconfig();
   };
+  $('menuconfigStateHelp').onclick = (event) => {
+    event.stopPropagation();
+    showMenuHelp($('menuconfigStateHelp'));
+  };
   $('menuconfigScroll').onscroll = () => {
     hideMenuTooltip();
     const scroller = $('menuconfigScroll');
@@ -1225,17 +1246,31 @@ function initMenuconfigControls() {
     showMenuTooltip(chip.closest('.menu-translation'));
   }, true);
   document.addEventListener('pointerover', (event) => {
+    const help = event.target.closest('.menuconfig-state-help');
+    if (help && !matchMedia('(hover: none)').matches) {
+      showMenuHelp(help);
+      return;
+    }
     const translated = event.target.closest('.menu-translation');
     if (state.lang !== 'en' && translated && !matchMedia('(hover: none)').matches) {
       showMenuTooltip(translated);
     }
   });
   document.addEventListener('pointerout', (event) => {
+    if (event.target.closest('.menuconfig-state-help')) {
+      if (!event.relatedTarget?.closest?.('.menuconfig-state-help')) hideMenuTooltip();
+      return;
+    }
     if (!event.target.closest('.menu-translation') ||
         event.relatedTarget?.closest?.('.menu-translation')) return;
     hideMenuTooltip();
   });
   document.addEventListener('focusin', (event) => {
+    const help = event.target.closest('.menuconfig-state-help');
+    if (help) {
+      showMenuHelp(help);
+      return;
+    }
     const translated = event.target.closest('.menu-translation');
     if (translated) showMenuTooltip(translated);
   });
