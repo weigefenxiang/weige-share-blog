@@ -76,6 +76,12 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 
 <img src="https://img.weigeshare.cc.cd/img/002.StandardSolution_Review_System_Demo.png" >
 
+#### 旧界面
+
+经过多次迭代
+
+<img src=https://img.weigeshare.cc.cd/img/002.002.StandardSolution_Review_System_Demo_old.png >
+
 
 | **支持录入**         | **自动生成**         |
 | ---------------- | ---------------- |
