@@ -685,9 +685,19 @@ async function responseJson(response, compressed) {
 }
 async function refreshMenuIndex() {
   try {
+    const localSources = MENU_INDEX?.sources || [];
     const remote = await fetchCatalogJson('index.json');
     const index = stableCatalogIndex(remote.data);
     if (index.schema >= 2 && Array.isArray(index.sources) && index.sources.length) {
+      for (const source of localSources) {
+        if (index.sources.some((item) => item.id === source.id)) continue;
+        index.sources.push({
+          ...source,
+          branches: source.branches.map((branch) => ({
+            ...branch, state: 'unavailable', errorStage: 'catalog-refresh-required',
+          })),
+        });
+      }
       index.catalogRepo = MENU_CATALOG_REPO;
       index.loadedFrom = remote.url;
       MENU_INDEX = index;
@@ -3417,6 +3427,13 @@ function openSubmitModal() {
   const plugins = sel.normal.map((p) => p.id)
     .concat(sel.forced.map((p) => '+' + p.id))
     .concat(sel.removed.map((p) => '-' + p.id));
+  const firmware = {
+    timezone: state.timezone,
+    theme: $('fwThemeBox').value,
+    ntp: $('ntpBox').value,
+    opkg: $('opkgBox').value,
+  };
+  Object.assign(state, firmware);
   const title = '[build] ' + tag + ' · ' + state.device.id + '/' + state.source.id + '/' +
     state.version.id + '/' + state.variant.id;
   const issueUrl = 'https://github.com/' + repo + '/issues/new?template=custom-build.yml&title=' +
@@ -3477,9 +3494,7 @@ function openSubmitModal() {
           device: state.device.id, source: state.source.id, version: state.version.id,
           branch: state.version.branch,
           variant: state.variant.id, plugins, tag, lanip: state.lanip, config,
-          firmware: {
-            timezone: state.timezone, theme: state.theme, ntp: state.ntp, opkg: state.opkg,
-          },
+          firmware,
         };
         if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;

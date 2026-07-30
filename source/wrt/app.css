@@ -14,6 +14,12 @@
   --ok: #15803d;
   --gold: #b45309;
   --gold-bg: #fef3c7;
+  --plugin-panel: #f4f8ff;
+  --plugin-head: #e5efff;
+  --plugin-item: #f0f6ff;
+  --plugin-hover: #e1edff;
+  --plugin-selected: #d2e4ff;
+  --plugin-muted: #f3f5f8;
   --radius: 10px;
   --shadow: 0 1px 3px rgba(16, 24, 40, .08);
 }
@@ -33,6 +39,12 @@ html[data-theme="dark"] {
   --ok: #4ade80;
   --gold: #fbbf24;
   --gold-bg: #3a2f14;
+  --plugin-panel: #172238;
+  --plugin-head: #1b2c49;
+  --plugin-item: #1b2942;
+  --plugin-hover: #22375b;
+  --plugin-selected: #294b7a;
+  --plugin-muted: #1d2430;
   --shadow: none;
 }
 @media (prefers-color-scheme: dark) {
@@ -52,6 +64,12 @@ html[data-theme="dark"] {
     --ok: #4ade80;
     --gold: #fbbf24;
     --gold-bg: #3a2f14;
+    --plugin-panel: #172238;
+    --plugin-head: #1b2c49;
+    --plugin-item: #1b2942;
+    --plugin-hover: #22375b;
+    --plugin-selected: #294b7a;
+    --plugin-muted: #1d2430;
     --shadow: none;
   }
 }
@@ -402,11 +420,11 @@ input:focus-visible { border-color: var(--accent); }
 .hot-only input { width: 16px; height: 16px; accent-color: var(--accent); }
 
 /* 分组(手风琴) */
-.group { margin-bottom: 12px; background: var(--card); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
+.group { margin-bottom: 12px; background: var(--plugin-panel); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; box-shadow: var(--shadow); }
 .group-head {
   display: flex; align-items: center; gap: 8px; width: 100%;
   padding: 13px 14px; font-size: 17px; font-weight: 600;
-  background: var(--card2); border: none; border-bottom: 1px solid var(--border);
+  background: var(--plugin-head); border: none; border-bottom: 1px solid var(--border);
   color: var(--text); text-align: left;
 }
 .group-ico { font-size: 15px; }
@@ -427,12 +445,12 @@ input:focus-visible { border-color: var(--accent); }
   display: flex; align-items: center; gap: 8px;
   padding: 10px 14px; font-size: 17px;
   border-bottom: 1px solid var(--border); border-right: 1px solid var(--border);
-  background: color-mix(in srgb, var(--accent) 5%, var(--card));
-  box-shadow: inset 3px 0 0 color-mix(in srgb, var(--accent) 42%, transparent);
+  background: var(--plugin-item);
   min-width: 0;
   transition: background-color .12s ease;
 }
-.plugin:hover { background: color-mix(in srgb, var(--accent) 11%, var(--card)); }
+.plugin:hover { background: var(--plugin-hover); }
+.plugin:has(input:checked) { background: var(--plugin-selected); }
 .plugin input { flex: none; width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
 /* 名字是按钮:单击弹出说明气泡;V11 默认单行省略号,JS 按 缩1px→两行→再缩1px 三步适配 / name is a button opening the info popover; V11 defaults to one ellipsized line, JS fits in three steps: −1px → two lines → −1px more */
 .plugin-name {
@@ -459,8 +477,8 @@ input:focus-visible { border-color: var(--accent); }
 .flag-remove { color: var(--warn); background: var(--gold-bg); }
 .plugin-disabled { opacity: .45; }
 .plugin-disabled input { cursor: not-allowed; }
-.plugin-disabled:hover { background: none; }
-.plugin-builtin { opacity: .7; }
+.plugin-disabled, .plugin-disabled:hover { background: var(--plugin-muted); }
+.plugin-builtin { opacity: .72; background: color-mix(in srgb, var(--plugin-item) 72%, var(--plugin-muted)); }
 .plugin-forceable { outline: 1px dashed color-mix(in srgb, var(--danger) 45%, transparent); outline-offset: -3px; }
 .plugin-removable { outline: 1px dashed color-mix(in srgb, var(--warn) 45%, transparent); outline-offset: -3px; }
 .adv-toggle { display: inline-flex; align-items: center; gap: 5px; cursor: pointer; color: var(--warn); font-weight: 600; }

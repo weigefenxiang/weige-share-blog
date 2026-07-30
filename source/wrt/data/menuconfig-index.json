@@ -36,6 +36,15 @@
       "branches": [
         { "id": "master", "branch": "master", "asset": "lede--master.json.gz", "fallback": "menuconfig-demo.json" }
       ]
+    },
+    {
+      "id": "hanwckf",
+      "label": "hanwckf mt798x (Legacy)",
+      "repo": "hanwckf/immortalwrt-mt798x",
+      "legacy": true,
+      "branches": [
+        { "id": "21.02", "branch": "openwrt-21.02", "asset": "hanwckf--openwrt-21.02.json.gz" }
+      ]
     }
   ]
 }
