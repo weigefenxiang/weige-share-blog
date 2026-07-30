@@ -17,6 +17,24 @@ const GROUP_ICONS = {
   '监控统计': '📊', '管控与安全': '🔒', '定时与唤醒': '⏰',
   '校园网认证': '🎓', '系统工具': '🧰', '其他与高级': '🧩',
 };
+const COMMON_TIMEZONES = [
+  'Etc/GMT+12', 'Pacific/Pago_Pago', 'Pacific/Honolulu', 'America/Anchorage',
+  'America/Los_Angeles', 'America/Vancouver', 'America/Denver', 'America/Phoenix',
+  'America/Chicago', 'America/Mexico_City', 'America/New_York', 'America/Toronto',
+  'America/Halifax', 'America/Caracas', 'America/Santiago', 'America/St_Johns',
+  'America/Sao_Paulo', 'America/Argentina/Buenos_Aires', 'Atlantic/South_Georgia',
+  'Atlantic/Azores', 'Atlantic/Cape_Verde', 'Etc/GMT', 'Europe/London', 'Africa/Casablanca',
+  'Europe/Paris', 'Europe/Berlin', 'Europe/Rome', 'Europe/Madrid', 'Africa/Lagos',
+  'Europe/Athens', 'Europe/Helsinki', 'Europe/Bucharest', 'Africa/Cairo', 'Africa/Johannesburg',
+  'Europe/Moscow', 'Europe/Istanbul', 'Asia/Riyadh', 'Africa/Nairobi', 'Asia/Tehran',
+  'Asia/Dubai', 'Asia/Baku', 'Asia/Kabul', 'Asia/Karachi', 'Asia/Tashkent',
+  'Asia/Kolkata', 'Asia/Colombo', 'Asia/Kathmandu', 'Asia/Dhaka', 'Asia/Yangon',
+  'Asia/Bangkok', 'Asia/Jakarta', 'Asia/Shanghai', 'Asia/Hong_Kong', 'Asia/Taipei',
+  'Asia/Singapore', 'Asia/Kuala_Lumpur', 'Asia/Manila', 'Australia/Perth',
+  'Asia/Tokyo', 'Asia/Seoul', 'Australia/Darwin', 'Australia/Adelaide',
+  'Australia/Brisbane', 'Australia/Sydney', 'Pacific/Guam', 'Pacific/Noumea',
+  'Pacific/Auckland', 'Pacific/Fiji', 'Pacific/Tongatapu', 'Pacific/Kiritimati',
+];
 
 const state = {
   device: null,
@@ -32,7 +50,7 @@ const state = {
   lanip: localStorage.getItem('wrt_lanip') || '192.168.1.1',   // 后台登录地址,默认 192.168.1.1 / admin LAN IP, defaults to 192.168.1.1
   rootpw: '',
   rootpwAuto: false,
-  timezone: 'Asia/Shanghai',
+  timezone: '',
   theme: 'luci-theme-argon',
   ntp: 'cn',
   opkg: 'auto',
@@ -389,6 +407,7 @@ async function init() {
       loadJson('devices.json'), loadJson('config-manifest.json'), loadJson('timezones.json'),
       loadJson('menuconfig-index.json'),
     ]);
+    initializeTimezone();
     MENU_INDEX = stableCatalogIndex(MENU_INDEX);
     try {
       const stamp = await loadJson('site-version.json');
@@ -2215,6 +2234,16 @@ function timezoneOffset(zonename) {
 function timezoneLabel(zone) {
   return `(UTC${timezoneOffset(zone.zonename)}) ${zone.zonename}`;
 }
+function browserTimezone() {
+  try { return Intl.DateTimeFormat().resolvedOptions().timeZone || ''; }
+  catch (e) { return ''; }
+}
+function initializeTimezone() {
+  const available = new Set(TIMEZONES.zones.map((zone) => zone.zonename));
+  const saved = localStorage.getItem('wrt_timezone') || '';
+  const detected = browserTimezone();
+  state.timezone = [saved, detected, 'Asia/Shanghai'].find((name) => available.has(name)) || TIMEZONES.zones[0].zonename;
+}
 function currentTimezone() {
   return TIMEZONES.zones.find((zone) => zone.zonename === state.timezone) ||
     TIMEZONES.zones.find((zone) => zone.zonename === 'Asia/Shanghai');
@@ -2227,6 +2256,24 @@ function timezoneSearchText(zone) {
 function timezoneOptions() {
   return [...$('timezoneMenu').querySelectorAll('.timezone-option')];
 }
+function timezoneOffsetMinutes(zone) {
+  const match = timezoneOffset(zone.zonename).match(/^([+-])(\d{2}):(\d{2})$/);
+  if (!match) return 0;
+  const minutes = Number(match[2]) * 60 + Number(match[3]);
+  return match[1] === '-' ? -minutes : minutes;
+}
+function timezoneMenuZones(needle) {
+  const commonRank = new Map(COMMON_TIMEZONES.map((name, index) => [name, index]));
+  const sourceRank = new Map(TIMEZONES.zones.map((zone, index) => [zone.zonename, index]));
+  const selected = currentTimezone().zonename;
+  const zones = TIMEZONES.zones.filter((zone) => needle
+    ? timezoneSearchText(zone).includes(needle)
+    : commonRank.has(zone.zonename) || zone.zonename === selected);
+  return zones.sort((a, b) =>
+    timezoneOffsetMinutes(a) - timezoneOffsetMinutes(b) ||
+    (commonRank.get(a.zonename) ?? Number.MAX_SAFE_INTEGER) - (commonRank.get(b.zonename) ?? Number.MAX_SAFE_INTEGER) ||
+    sourceRank.get(a.zonename) - sourceRank.get(b.zonename));
+}
 function setTimezoneActive(index) {
   const options = timezoneOptions();
   if (!options.length) { timezoneActive = -1; return; }
@@ -2238,7 +2285,7 @@ function setTimezoneActive(index) {
 function openTimezoneMenu(query = '') {
   const menu = $('timezoneMenu');
   const needle = query.trim().toLocaleLowerCase();
-  const zones = TIMEZONES.zones.filter((zone) => !needle || timezoneSearchText(zone).includes(needle));
+  const zones = timezoneMenuZones(needle);
   menu.textContent = '';
   zones.forEach((zone, index) => {
     const option = document.createElement('button');
@@ -2263,6 +2310,7 @@ function closeTimezoneMenu() {
 }
 function selectTimezone(zone) {
   state.timezone = zone.zonename;
+  localStorage.setItem('wrt_timezone', zone.zonename);
   $('timezoneBox').value = timezoneLabel(zone);
   closeTimezoneMenu();
 }
