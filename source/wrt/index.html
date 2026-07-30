@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=3c39f2142c">
+<link rel="stylesheet" href="app.css?v=c94a4ba576">
 </head>
 <body>
 <header class="site-header">
@@ -86,7 +86,7 @@
         </div>
         <div class="menuconfig-box" id="menuconfigBox" hidden>
           <button class="menuconfig-toggle" id="menuconfigToggle" type="button" aria-expanded="false" aria-controls="menuconfigBody">
-            <strong>Advanced menuconfig — 高级配置</strong>
+            <strong class="menu-translation" data-translation="高级配置" tabindex="0">Advanced menuconfig</strong>
             <span class="hint" id="menuconfigStatus"></span>
             <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
           </button>
@@ -98,23 +98,29 @@
               </div>
               <div class="import-target-card" id="importTargetCard" hidden></div>
             </div>
-            <div class="menuconfig-toolbar">
-              <button class="menuconfig-back" id="menuconfigBack" type="button" hidden>←</button>
-              <strong id="menuconfigPanelTitle"></strong>
-              <input type="search" id="menuconfigSearch" placeholder="Search option / symbol — 搜索选项或符号">
-              <label><input type="checkbox" id="menuconfigSelectedOnly"> Selected only / 仅看已选</label>
-            </div>
-            <button class="menuconfig-selected-toggle" id="menuconfigSelectedToggle" type="button"
-              aria-expanded="false" aria-controls="menuconfigContent" hidden>
-              <span><strong>Selected options / 已选选项</strong> <small id="menuconfigSelectedCount">0</small></span>
-              <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
-            </button>
-            <div id="menuconfigContent">
-              <div class="menuconfig-grid" id="menuconfigGrid"></div>
-              <div class="menuconfig-panel" id="menuconfigPanel" hidden>
-                <div id="menuconfigOptions"></div>
+            <div class="menuconfig-workspace">
+              <div class="menuconfig-workspace-head">
+                <div class="menuconfig-toolbar">
+                  <button class="menuconfig-back" id="menuconfigBack" type="button" hidden>←</button>
+                  <nav class="menuconfig-breadcrumb" id="menuconfigPanelTitle" aria-label="Menu path"></nav>
+                  <input type="search" id="menuconfigSearch" placeholder="Search option / symbol">
+                  <label title="仅看已选"><input type="checkbox" id="menuconfigSelectedOnly"> Selected only</label>
+                </div>
+                <button class="menuconfig-selected-toggle" id="menuconfigSelectedToggle" type="button"
+                  aria-expanded="false" aria-controls="menuconfigContent" hidden>
+                  <span><strong>Selected options</strong> <small id="menuconfigSelectedCount">0</small></span>
+                  <span class="menuconfig-chevron" aria-hidden="true">⌄</span>
+                </button>
               </div>
-              <button class="menuconfig-more" id="menuconfigMore" type="button" hidden>Show 50 more / 再显示 50 项</button>
+              <div class="menuconfig-scroll" id="menuconfigScroll">
+                <div id="menuconfigContent">
+                  <div class="menuconfig-grid" id="menuconfigGrid"></div>
+                  <div class="menuconfig-panel" id="menuconfigPanel" hidden>
+                    <div id="menuconfigOptions"></div>
+                  </div>
+                  <button class="menuconfig-more" id="menuconfigMore" type="button" hidden tabindex="-1">More</button>
+                </div>
+              </div>
             </div>
             <details class="import-unknown" id="importUnknownBox" hidden>
               <summary id="importUnknownSummary"></summary>
@@ -259,6 +265,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=c9c42e1a7d"></script>
+<script src="app.js?v=d01afe7d5d"></script>
 </body>
 </html>
