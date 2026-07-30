@@ -646,17 +646,24 @@ function menuOptionTranslation(option) {
     usage: state.lang === 'zh-CN' ? option.usageZh : option.usageEn,
   };
 }
-function applyMenuTranslation(element, chinese, usageChinese = '') {
+function applyMenuTranslation(element, chinese, usageChinese = '', mobileChip = false) {
   const lines = [String(chinese || '').trim(), String(usageChinese || '').trim()].filter(Boolean);
-  if (!lines.length) return element;
+  if (state.lang === 'en' || !lines.length) return element;
   element.classList.add('menu-translation');
   element.dataset.translation = lines.join('\n');
   if (!element.hasAttribute('tabindex')) element.tabIndex = 0;
+  if (mobileChip) {
+    const chip = document.createElement('span');
+    chip.className = 'menu-translation-chip';
+    chip.textContent = isZh() ? '译' : 'Tr';
+    chip.setAttribute('aria-label', isZh() ? '显示译文' : 'Show translation');
+    element.appendChild(chip);
+  }
   return element;
 }
 function showMenuTooltip(element) {
   const tooltip = $('menuTooltip');
-  if (!tooltip || !element?.dataset.translation) return;
+  if (state.lang === 'en' || !tooltip || !element?.dataset.translation) return;
   tooltip.textContent = element.dataset.translation;
   tooltip.hidden = false;
   const rect = element.getBoundingClientRect();
@@ -1118,6 +1125,7 @@ function initMenuconfigControls() {
     renderMenuconfig();
   };
   $('menuconfigScroll').onscroll = () => {
+    hideMenuTooltip();
     const scroller = $('menuconfigScroll');
     if (scroller.dataset.hasMore !== 'true' ||
         scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 120) return;
@@ -1144,17 +1152,21 @@ function initMenuconfigControls() {
   };
   $('importReset').onclick = resetImportedChanges;
   document.addEventListener('pointerdown', (event) => {
-    const translated = event.target.closest('.menu-translation');
-    if (translated && matchMedia('(hover: none)').matches) {
-      event.preventDefault();
-      showMenuTooltip(translated);
-      return;
-    }
+    if (event.target.closest('.menu-translation-chip')) return;
     hideMenuTooltip();
   });
+  document.addEventListener('click', (event) => {
+    const chip = event.target.closest('.menu-translation-chip');
+    if (!chip) return;
+    event.preventDefault();
+    event.stopPropagation();
+    showMenuTooltip(chip.closest('.menu-translation'));
+  }, true);
   document.addEventListener('pointerover', (event) => {
     const translated = event.target.closest('.menu-translation');
-    if (translated && !matchMedia('(hover: none)').matches) showMenuTooltip(translated);
+    if (state.lang !== 'en' && translated && !matchMedia('(hover: none)').matches) {
+      showMenuTooltip(translated);
+    }
   });
   document.addEventListener('pointerout', (event) => {
     if (!event.target.closest('.menu-translation') ||
@@ -1186,22 +1198,19 @@ function renderMenuOption(option, showPath = false) {
       .replace(new RegExp(`^${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.*\\s*`, 'i'), '')).trim();
     prompt.appendChild(description);
   }
-  const translation = menuOptionTranslation(option);
-  applyMenuTranslation(prompt, translation.title, translation.usage);
   if (!packageName) {
     const symbol = document.createElement('small');
     const prefix = showPath && option.path?.length ? `${option.path.map(menuPathLabel).join(' › ')} · ` : '';
     symbol.textContent = `${prefix}${option.symbol}${childCount ? ` · ${childCount} sub-options` : ''}`;
     prompt.appendChild(symbol);
-  } else {
-    prompt.classList.add('menu-translation');
-    prompt.tabIndex = 0;
-    prompt.dataset.translation = [
-      prompt.dataset.translation,
-      option.symbol,
-      showPath && option.path?.length ? option.path.map(menuPathLabel).join(' › ') : '',
-    ].filter(Boolean).join('\n');
   }
+  const translation = menuOptionTranslation(option);
+  const packageMeta = packageName ? [
+    option.symbol,
+    showPath && option.path?.length ? option.path.map(menuPathLabel).join(' › ') : '',
+  ].filter(Boolean).join('\n') : '';
+  applyMenuTranslation(prompt, translation.title,
+    [translation.usage, packageMeta].filter(Boolean).join('\n'), true);
   row.appendChild(prompt);
   const actions = document.createElement('span');
   actions.className = 'menuconfig-option-actions';
@@ -1261,7 +1270,6 @@ function renderMenuLeaf(options, showPath, list) {
     text.className = 'menuconfig-choice-text';
     const choiceLabel = String(choice?.promptEn || choice?.prompt || 'Choice').trim();
     text.append(document.createTextNode(choiceLabel));
-    applyMenuTranslation(row, choice?.promptZh, choice?.usageZh);
     const select = document.createElement('select');
     select.setAttribute('aria-label', choiceLabel);
     const selected = members.find((option) =>
@@ -1284,6 +1292,7 @@ function renderMenuLeaf(options, showPath, list) {
       const option = menuOptionBySymbol.get(select.value);
       if (option) setMenuValue(option, optionMaxLevel(option) > 1 ? 'y' : 'm');
     };
+    applyMenuTranslation(text, choice?.promptZh, choice?.usageZh, true);
     row.append(text, select);
     list.appendChild(row);
   }
@@ -1429,13 +1438,14 @@ function renderMenuconfig() {
     const text = document.createElement('span');
     text.className = 'menuconfig-category-text';
     text.append(document.createTextNode(meta.en || node.label));
-    applyMenuTranslation(button,
-      meta.i18n?.[state.lang] || node.translation || meta.zhCN,
-      state.lang === 'zh-CN' ? (node.usageZh || meta.usageZh) : meta.usageEn);
     const count = document.createElement('small');
     count.className = 'menuconfig-category-count';
     count.textContent = `${node.count} ›`;
     button.append(text, count);
+    applyMenuTranslation(button,
+      meta.i18n?.[state.lang] || node.translation || meta.zhCN,
+      state.lang === 'zh-CN' ? (node.usageZh || meta.usageZh) : meta.usageEn,
+      true);
     button.onclick = () => {
       openMenuLevel(node.path, menuParent, node.label);
       renderMenuconfig();
@@ -1444,6 +1454,7 @@ function renderMenuconfig() {
   }
   grid.appendChild(nodeFragment);
   grid.hidden = !nodes.length;
+  fitMenuCategoryNames(grid);
   const ordinaryCount = renderMenuLeaf(options, showPath, list);
   if (!nodes.length && !options.length) {
     const empty = document.createElement('p');
@@ -2263,9 +2274,29 @@ function fitOneName(el) {
 function fitPluginNames(scope) {
   (scope || document).querySelectorAll('.plugin-name').forEach(fitOneName);
 }
+function fitMenuCategoryNames(scope) {
+  (scope || document).querySelectorAll('.menuconfig-category-text').forEach((element) => {
+    element.classList.remove('menu-fit-s1', 'menu-fit-s2', 'menu-fit-s3', 'menu-fit-two-line');
+    if (!matchMedia('(max-width: 640px)').matches || !element.clientWidth) return;
+    const over = () => element.scrollWidth > element.clientWidth + 1;
+    if (!over()) return;
+    for (const className of ['menu-fit-s1', 'menu-fit-s2', 'menu-fit-s3']) {
+      element.classList.add(className);
+      if (!over()) return;
+    }
+    element.classList.remove('menu-fit-s1', 'menu-fit-s2', 'menu-fit-s3');
+    element.classList.add('menu-fit-two-line');
+  });
+}
 /* 窗口尺寸变化后防抖重测 / debounced re-fit on window resize */
 let fitTimer = 0;
-window.addEventListener('resize', () => { clearTimeout(fitTimer); fitTimer = setTimeout(() => fitPluginNames(), 150); });
+window.addEventListener('resize', () => {
+  clearTimeout(fitTimer);
+  fitTimer = setTimeout(() => {
+    fitPluginNames();
+    fitMenuCategoryNames();
+  }, 150);
+});
 
 /* 插件项只显示名字以保持列表紧凑,说明收进气泡,点名字才弹出 / Plugin rows show only the name to keep the list compact; details live in a popover opened by clicking the name */
 function renderPlugin(p) {

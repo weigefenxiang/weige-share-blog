@@ -282,6 +282,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-child:disabled{color:var(--text3);cursor:not-allowed;opacity:.45}
 .menuconfig-more{display:none}
 .menu-translation{position:relative}
+.menu-translation-chip{display:none}
 .menu-tooltip{position:fixed;z-index:999;max-width:min(390px,calc(100vw - 24px));padding:8px 10px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--card) 96%,#000);box-shadow:0 10px 28px rgba(0,0,0,.32);color:var(--text);font-size:13px;font-weight:500;line-height:1.45;white-space:pre-line;pointer-events:none}
 .import-workspace{margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card2)}
 .import-summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -297,18 +298,31 @@ input:focus-visible { border-color: var(--accent); }
 .import-unknown-actions button:hover,.menuconfig-restore:hover{border-color:var(--accent);color:var(--accent)}
 @media(max-width:640px){
   .menuconfig-toggle{gap:7px}.menuconfig-toggle strong{font-size:15px}.menuconfig-toggle .hint{font-size:12px}
-  .menuconfig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .menuconfig-grid{grid-template-columns:minmax(0,1fr)}
   .menuconfig-scroll{height:min(58vh,520px);padding-inline:8px}
   .menuconfig-workspace-head{padding-inline:8px}
   .menuconfig-toolbar{gap:8px}
   .menuconfig-breadcrumb{flex-basis:calc(100% - 44px)}
   .menuconfig-toolbar input[type=search]{order:3;flex:1 1 calc(100% - 120px);max-width:none}
   .menuconfig-toolbar>label{order:4;white-space:nowrap}
-  .menuconfig-choice{grid-template-columns:minmax(0,1fr) minmax(120px,42%);gap:8px}
-  .menuconfig-option{grid-template-columns:minmax(0,1fr) auto;gap:7px}
-  .menuconfig-option-actions>input{max-width:42vw}
-  .menuconfig-package{grid-template-columns:minmax(105px,38%) minmax(0,1fr);gap:8px}
+  .menuconfig-category{min-height:44px}
+  .menuconfig-category-text{flex:1;font-size:16px}
+  .menuconfig-category-text.menu-fit-s1{font-size:15px}
+  .menuconfig-category-text.menu-fit-s2{font-size:14px}
+  .menuconfig-category-text.menu-fit-s3{font-size:13px}
+  .menuconfig-category-text.menu-fit-two-line{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .menuconfig-choice{grid-template-columns:minmax(0,1fr);gap:7px}
+  .menuconfig-choice-text{display:flex;align-items:center;gap:7px;white-space:normal}
+  .menuconfig-option{grid-template-columns:minmax(0,1fr);gap:7px}
+  .menuconfig-option-actions{justify-content:flex-end}
+  .menuconfig-option-actions>input{width:100%;max-width:none}
+  .menuconfig-prompt{flex-wrap:wrap}
+  .menuconfig-option-name{white-space:normal}
+  .menuconfig-prompt small{flex-basis:100%;max-width:100%}
+  .menuconfig-package{grid-template-columns:minmax(0,1fr);gap:4px}
+  .menuconfig-package-desc{white-space:normal}
   .kconfig-tri button{min-width:31px;padding-inline:6px}
+  html:not([lang=en]) .menu-translation-chip{display:inline-flex;flex:none;align-items:center;justify-content:center;min-width:25px;height:23px;padding:0 5px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:6px;background:color-mix(in srgb,var(--accent) 8%,var(--card2));color:var(--accent);font-size:12px;font-weight:700;line-height:1}
   .import-summary{align-items:flex-start;flex-direction:column}
   .import-unknown-row{grid-template-columns:1fr}
 }
