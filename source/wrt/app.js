@@ -3133,21 +3133,126 @@ function importedConfigMeta(text, fileName, payload) {
       ? (profileSymbol.startsWith('DEVICE_') ? profileSymbol : `DEVICE_${profileSymbol}`) : '',
   };
 }
-function chooseImportedBranch(source, hint) {
-  const normalized = String(hint || '').toLowerCase();
-  const exact = source.branches.find((branch) =>
-    branch.id.toLowerCase() === normalized || branch.branch.toLowerCase() === normalized);
-  if (exact) return exact;
-  if (normalized) {
-    throw new Error(`配置分支 ${hint} 当前已隐藏或未支持；可用稳定分支：` +
-      source.branches.map((branch) => branch.branch).join('、'));
-  }
-  const list = source.branches.map((branch, index) => `${index + 1}. ${branch.branch}`).join('\n');
-  const answer = prompt(`配置没有记录分支，请选择：\n${list}`);
-  if (answer === null) return null;
-  const index = Number(answer) - 1;
-  if (!Number.isInteger(index) || !source.branches[index]) throw new Error(t('import.badChoice'));
-  return source.branches[index];
+function chooseImportedSourceBranch(meta) {
+  const sources = MENU_INDEX?.sources || [];
+  if (!sources.length) return Promise.reject(new Error('Catalog source index is empty'));
+  importLogStep('source-branch-candidates', {
+    detectedSource: meta.sourceHint || '',
+    detectedBranch: meta.branchHint || '',
+    sources: sources.map((source) => ({
+      id: source.id,
+      branches: source.branches.map((branch) => ({
+        id: branch.id, branch: branch.branch, state: branch.state || 'fresh',
+      })),
+    })),
+  });
+  return new Promise((resolve) => {
+    openModal(uiText('确认配置来源', '確認設定來源', 'Confirm config source'));
+    const body = $('modalBody');
+    body.textContent = '';
+    const intro = document.createElement('p');
+    intro.textContent = uiText(
+      '普通 .config 可能没有准确记录源码和分支。请核对后继续。',
+      '一般 .config 可能沒有準確記錄原始碼和分支。請核對後繼續。',
+      'A plain .config may not identify its exact source and branch. Please verify them.');
+    const form = document.createElement('div');
+    form.className = 'import-source-grid';
+    const sourceField = document.createElement('label');
+    sourceField.className = 'import-source-field';
+    const sourceLabel = document.createElement('span');
+    sourceLabel.textContent = 'Source';
+    const sourceSelect = document.createElement('select');
+    sourceSelect.className = 'target-select';
+    const detectedSource = sources.find((source) => source.id === meta.sourceHint);
+    const currentSource = sources.find((source) => source.id === state.source?.id);
+    for (const source of sources) {
+      const option = document.createElement('option');
+      option.value = source.id;
+      option.textContent = source.label || source.id;
+      sourceSelect.appendChild(option);
+    }
+    sourceSelect.value = (detectedSource || currentSource || sources[0]).id;
+    sourceField.append(sourceLabel, sourceSelect);
+
+    const branchField = document.createElement('label');
+    branchField.className = 'import-source-field';
+    const branchLabel = document.createElement('span');
+    branchLabel.textContent = 'Branch';
+    const branchSelect = document.createElement('select');
+    branchSelect.className = 'target-select';
+    branchField.append(branchLabel, branchSelect);
+    form.append(sourceField, branchField);
+
+    const target = document.createElement('div');
+    target.className = 'import-target-preview';
+    const targetParts = [
+      ['Target System', meta.system],
+      ['Subtarget', meta.subtarget],
+      ['Target Profile', meta.profileSymbol],
+    ].filter(([, value]) => value);
+    for (const [label, value] of targetParts) {
+      const item = document.createElement('div');
+      const key = document.createElement('span');
+      const val = document.createElement('strong');
+      key.textContent = label;
+      val.textContent = value;
+      item.append(key, val);
+      target.appendChild(item);
+    }
+
+    const actions = document.createElement('div');
+    actions.className = 'modal-actions';
+    const confirm = document.createElement('button');
+    confirm.type = 'button';
+    confirm.className = 'btn btn-primary';
+    confirm.textContent = uiText('继续', '繼續', 'Continue');
+    const cancel = document.createElement('button');
+    cancel.type = 'button';
+    cancel.className = 'btn';
+    cancel.textContent = uiText('取消', '取消', 'Cancel');
+    actions.append(confirm, cancel);
+    body.append(intro, form);
+    if (targetParts.length) body.appendChild(target);
+    body.appendChild(actions);
+
+    const fillBranches = () => {
+      const source = sources.find((item) => item.id === sourceSelect.value) || sources[0];
+      branchSelect.textContent = '';
+      for (const branch of source.branches) {
+        const option = document.createElement('option');
+        option.value = branch.id;
+        option.textContent = catalogBranchLabel(branch);
+        option.disabled = branch.state === 'unavailable';
+        branchSelect.appendChild(option);
+      }
+      const normalized = String(meta.branchHint || '').toLowerCase();
+      const detected = source.branches.find((branch) =>
+        branch.id.toLowerCase() === normalized || branch.branch.toLowerCase() === normalized);
+      const current = source.id === state.source?.id
+        ? source.branches.find((branch) => branch.id === state.version?.id) : null;
+      const selected = [detected, current, ...source.branches]
+        .find((branch) => branch && branch.state !== 'unavailable');
+      if (selected) branchSelect.value = selected.id;
+      confirm.disabled = !selected;
+    };
+    sourceSelect.addEventListener('change', fillBranches);
+    fillBranches();
+
+    const finish = (value) => {
+      modalCancelHandler = null;
+      closeModal();
+      resolve(value);
+    };
+    modalCancelHandler = () => resolve(null);
+    cancel.addEventListener('click', () => finish(null));
+    confirm.addEventListener('click', () => {
+      const source = sources.find((item) => item.id === sourceSelect.value);
+      const branch = source?.branches.find((item) => item.id === branchSelect.value);
+      if (!source || !branch || branch.state === 'unavailable') return;
+      finish({ source, branch });
+    });
+    sourceSelect.focus();
+  });
 }
 function renderImportedCustomPicker() {
   ensureTargetSelectorControls(DEFAULT_TARGET_SELECTORS);
@@ -3171,13 +3276,9 @@ function renderImportedCustomPicker() {
 async function selectImportedTarget(text, fileName, payload) {
   const meta = importedConfigMeta(text, fileName, payload);
   importLogStep('target-detected', meta);
-  const source = MENU_INDEX?.sources?.find((item) => item.id === meta.sourceHint);
-  if (!source) {
-    throw new Error(`当前只支持 ${MENU_INDEX?.sources?.map((item) => item.id).join('、') || '稳定目录'}；` +
-      `检测到的源码为 ${meta.sourceHint || '未知'}`);
-  }
-  const branch = chooseImportedBranch(source, meta.branchHint);
-  if (!branch) return '';
+  const selected = await chooseImportedSourceBranch(meta);
+  if (!selected) return '';
+  const { source, branch } = selected;
   importLogStep('branch-selected', { source: source.id, branch: branch.branch });
   await loadCatalog(source, branch, false);
   const target = MENU_CATALOG?.targets?.find((item) =>
@@ -3394,6 +3495,7 @@ function targetRepo() {
 }
 
 let lastFocus = null;
+let modalCancelHandler = null;
 function openModal(title) {
   $('modalTitle').textContent = title;
   lastFocus = document.activeElement;
@@ -3403,10 +3505,13 @@ function openModal(title) {
 }
 function closeModal() {
   if ($('modal').hidden) return;
+  const cancel = modalCancelHandler;
+  modalCancelHandler = null;
   $('modal').hidden = true;
   $('modal').querySelector('.modal').classList.remove('modal-wide');   // 宽版仅用于说明弹窗 / wide layout is help-modal-only
   document.body.classList.remove('modal-open');
   if (lastFocus && lastFocus.focus) lastFocus.focus();
+  if (cancel) cancel();
 }
 $('modalClose').addEventListener('click', closeModal);
 $('modal').addEventListener('click', (e) => { if (e.target === $('modal')) closeModal(); });

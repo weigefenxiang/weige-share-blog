@@ -587,6 +587,18 @@ input:focus-visible { border-color: var(--accent); }
   color: var(--text); overflow-wrap: anywhere;
 }
 .import-log-note { font-size: 13px; }
+.import-source-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0;
+}
+.import-source-field { display: grid; gap: 5px; color: var(--text2); font-size: 14px; }
+.import-source-field .target-select { width: 100%; min-width: 0; }
+.import-target-preview {
+  display: grid; gap: 8px; padding: 11px 12px; border: 1px solid var(--border);
+  border-radius: var(--radius); background: var(--card2);
+}
+.import-target-preview div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; }
+.import-target-preview span { color: var(--text2); }
+.import-target-preview strong { min-width: 0; overflow-wrap: anywhere; }
 .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .modal-actions .btn { margin: 0; }
 .summary-box {
@@ -676,6 +688,8 @@ input:focus-visible { border-color: var(--accent); }
   .target-picker .target-profile { flex-basis: 100%; }
   .catalog-load-state{flex-basis:100%}
   .timezone-menu { width: 100%; max-width: 100%; }
+  .import-source-grid { grid-template-columns: 1fr; }
+  .import-target-preview div { grid-template-columns: 1fr; gap: 2px; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */
   .toast { bottom: calc(128px + env(safe-area-inset-bottom)); }
 }
