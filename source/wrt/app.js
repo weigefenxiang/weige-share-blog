@@ -2040,8 +2040,7 @@ function timezoneOffset(zonename) {
   } catch (e) { return '+00:00'; }
 }
 function timezoneLabel(zone) {
-  const alias = zone.zonename === 'Asia/Shanghai' ? ` — ${t('fw.timezone.beijing')}` : '';
-  return `(UTC${timezoneOffset(zone.zonename)}) ${zone.zonename}${alias}`;
+  return `(UTC${timezoneOffset(zone.zonename)}) ${zone.zonename}`;
 }
 function currentTimezone() {
   return TIMEZONES.zones.find((zone) => zone.zonename === state.timezone) ||

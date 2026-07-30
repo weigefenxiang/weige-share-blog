@@ -239,7 +239,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-toggle[aria-expanded=true] .menuconfig-chevron{transform:rotate(180deg)}
 .menuconfig-workspace{margin-top:12px;overflow:hidden;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--card2) 56%,var(--card))}
 .menuconfig-workspace-head{padding:0 10px 9px;border-bottom:1px solid var(--border);background:var(--card)}
-.menuconfig-scroll{height:clamp(380px,55vh,620px);overflow-y:auto;overflow-x:hidden;padding:0 10px 12px;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
+.menuconfig-scroll{max-height:clamp(280px,55vh,620px);overflow-y:auto;overflow-x:hidden;padding:0 10px 12px;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
 .menuconfig-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .menuconfig-back{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);cursor:pointer}
 .menuconfig-breadcrumb{display:flex;min-width:0;max-width:100%;flex:1 1 420px;align-items:center;gap:5px;overflow:hidden;white-space:nowrap;font-size:clamp(12px,1.25vw,16px)}
@@ -254,16 +254,16 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-selected-toggle small{display:inline-flex;min-width:24px;justify-content:center;margin-left:6px;padding:2px 7px;border-radius:999px;background:var(--accent);color:#fff}
 .menuconfig-selected-toggle[aria-expanded=true] .menuconfig-chevron{transform:rotate(180deg)}
 .menuconfig-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:7px;margin-top:10px}
-.menuconfig-category{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:8px 11px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);font-weight:600;line-height:1.25;text-align:left;cursor:pointer}
+.menuconfig-category{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:42px;padding:8px 11px;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--accent) 7%,var(--card2));color:var(--text);font-weight:600;line-height:1.25;text-align:left;cursor:pointer}
 .menuconfig-category:hover,.menuconfig-category:focus-visible{border-color:var(--accent);background:color-mix(in srgb,var(--accent) 6%,var(--card2));color:var(--accent)}
 .menuconfig-category-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-category-count{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
 .menuconfig-panel{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
 .menuconfig-toolbar input[type=search]{flex:0 1 260px;min-width:140px;max-width:260px}
-.menuconfig-choice{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,360px);gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600}
+.menuconfig-choice{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,360px);gap:12px;align-items:center;margin-bottom:6px;padding:9px 10px;border:1px solid color-mix(in srgb,var(--border) 78%,transparent);border-radius:8px;background:color-mix(in srgb,var(--card) 78%,var(--card2));color:var(--text);font-weight:600}
 .menuconfig-choice-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-choice select{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text)}
-.menuconfig-option{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border)}
+.menuconfig-option{display:grid;grid-template-columns:minmax(220px,1fr) auto;gap:12px;align-items:center;margin-bottom:6px;padding:9px 10px;border:1px solid color-mix(in srgb,var(--border) 78%,transparent);border-radius:8px;background:color-mix(in srgb,var(--card) 78%,var(--card2))}
 .menuconfig-option.has-children{border-left:2px solid color-mix(in srgb,var(--accent) 55%,transparent);padding-left:9px}
 .menuconfig-prompt{display:flex;min-width:0;align-items:baseline;gap:8px;overflow:visible}
 .menuconfig-option-name{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
@@ -299,7 +299,7 @@ input:focus-visible { border-color: var(--accent); }
 @media(max-width:640px){
   .menuconfig-toggle{gap:7px}.menuconfig-toggle strong{font-size:15px}.menuconfig-toggle .hint{font-size:12px}
   .menuconfig-grid{grid-template-columns:minmax(0,1fr)}
-  .menuconfig-scroll{height:min(58vh,520px);padding-inline:8px}
+  .menuconfig-scroll{max-height:min(58vh,520px);padding-inline:8px}
   .menuconfig-workspace-head{padding-inline:8px}
   .menuconfig-toolbar{gap:8px}
   .menuconfig-breadcrumb{flex-basis:calc(100% - 44px)}
@@ -456,8 +456,8 @@ input:focus-visible { border-color: var(--accent); }
 }
 .firmware-settings label { display: grid; gap: 5px; min-width: 0; color: var(--text3); font-size: 14px; }
 .firmware-settings select, .firmware-settings input {
-  width: 100%; min-width: 0; border: 1px solid var(--border); border-radius: 8px;
-  background: var(--card); color: var(--text); padding: 9px 8px;
+  box-sizing: border-box; width: 100%; height: 44px; min-width: 0; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--card); color: var(--text); padding: 0 10px;
 }
 .timezone-combo { position: relative; display: block; min-width: 0; }
 .timezone-menu {
