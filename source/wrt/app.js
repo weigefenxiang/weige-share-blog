@@ -36,7 +36,7 @@ const state = {
   theme: 'luci-theme-argon',
   ntp: 'cn',
   opkg: 'auto',
-  siteVersion: 'v--------',
+  siteVersion: 'v----------',
   importedConfig: null,
   importedConfigId: '',
 };
@@ -86,6 +86,30 @@ const MENU_UI_I18N = {
   },
 };
 const menuUi = (key) => MENU_UI_I18N[key]?.[state.lang] || MENU_UI_I18N[key]?.en || key;
+const TARGET_FIELD_I18N = {
+  source: {
+    'zh-CN': '源码', 'zh-TW': '原始碼', ru: 'Источник', es: 'Fuente', pt: 'Fonte',
+    ja: 'ソース', ko: '소스', de: 'Quelle', fr: 'Source', vi: 'Nguồn',
+  },
+  branch: {
+    'zh-CN': '分支', 'zh-TW': '分支', ru: 'Ветка', es: 'Rama', pt: 'Ramificação',
+    ja: 'ブランチ', ko: '브랜치', de: 'Branch', fr: 'Branche', vi: 'Nhánh',
+  },
+  system: {
+    'zh-CN': '目标系统', 'zh-TW': '目標系統', ru: 'Целевая система', es: 'Sistema de destino',
+    pt: 'Sistema de destino', ja: 'ターゲットシステム', ko: '대상 시스템',
+    de: 'Zielsystem', fr: 'Système cible', vi: 'Hệ thống đích',
+  },
+  subtarget: {
+    'zh-CN': '子目标', 'zh-TW': '子目標', ru: 'Подцель', es: 'Subdestino', pt: 'Subalvo',
+    ja: 'サブターゲット', ko: '하위 대상', de: 'Unterziel', fr: 'Sous-cible', vi: 'Đích con',
+  },
+  profile: {
+    'zh-CN': '目标配置', 'zh-TW': '目標設定', ru: 'Целевой профиль', es: 'Perfil de destino',
+    pt: 'Perfil de destino', ja: 'ターゲットプロファイル', ko: '대상 프로필',
+    de: 'Zielprofil', fr: 'Profil cible', vi: 'Hồ sơ đích',
+  },
+};
 const DEFAULT_TARGET_SELECTORS = [
   { id: 'system', labelEn: 'Target System', labelZh: '目标系统' },
   { id: 'subtarget', labelEn: 'Subtarget', labelZh: '子目标' },
@@ -134,6 +158,7 @@ function t(key, params) {
   if (params) for (const k in params) s = s.split('{' + k + '}').join(params[k]);
   return s;
 }
+const uiText = (zhCN, zhTW, en) => state.lang === 'zh-CN' ? zhCN : state.lang === 'zh-TW' ? zhTW : en;
 const isZh = () => String(state.lang).startsWith('zh');
 const isZhCn = () => state.lang === 'zh-CN';
 
@@ -152,14 +177,14 @@ function pName(p) {
   if (isZhCn()) return maskText(p.name);
   const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
   const m = row && row.name;
-  const value = (m && (m[state.lang] || m[FALLBACK])) || p.name;
+  const value = (m && (m[state.lang] || m[FALLBACK])) || p.id;
   return isZh() ? maskText(value) : value;
 }
 function pDesc(p) {
   if (isZhCn()) return maskText(p.desc || '');
   const row = PLUG_I18N && PLUG_I18N.plugins && PLUG_I18N.plugins[p.id];
   const m = row && row.desc;
-  const value = (m && (m[state.lang] || m[FALLBACK])) || p.desc || '';
+  const value = (m && (m[state.lang] || m[FALLBACK])) || '';
   return isZh() ? maskText(value) : value;
 }
 
@@ -191,6 +216,19 @@ function applyI18n() {
     $('catalogLocator').placeholder = menuUi('locator');
     $('catalogLocator').setAttribute('aria-label', menuUi('locator'));
   }
+  refreshTargetLabels();
+  if ($('importReset')) $('importReset').textContent =
+    uiText('恢复上传原值', '還原上傳原值', 'Restore uploaded values');
+  if ($('importUnknownHint')) $('importUnknownHint').textContent = uiText(
+    'Catalog 未收录这些配置项，不自动推断依赖。关闭会写入 “is not set”；删除配置行则交给 make defconfig 决定默认值。',
+    'Catalog 未收錄這些設定項，不自動推斷相依性。關閉會寫入 “is not set”；刪除設定列則交由 make defconfig 決定預設值。',
+    'These items are not in the Catalog, so dependencies are not inferred. Disable writes “is not set”; deleting a line leaves the default to make defconfig.');
+  if ($('importUnknownSearch')) $('importUnknownSearch').placeholder =
+    uiText('搜索 CONFIG 名称', '搜尋 CONFIG 名稱', 'Search CONFIG symbol');
+  if ($('importUnknownDisabledLabel')) $('importUnknownDisabledLabel').textContent =
+    uiText('显示已关闭项', '顯示已關閉項目', 'Show disabled');
+  if ($('importUnknownMore')) $('importUnknownMore').textContent =
+    uiText('再显示 50 项', '再顯示 50 項', 'Show 50 more');
   $('advLabel').title = t('adv.title');
   // Fork 提示内嵌两个链接,不能整段 textContent,需拆分文案后用 DOM 节点拼装 / The fork hint embeds two links, so the text is split and assembled from DOM nodes instead of one textContent
   const hint = $('selfHint');
@@ -343,9 +381,11 @@ async function init() {
     MENU_INDEX = stableCatalogIndex(MENU_INDEX);
     try {
       const stamp = await loadJson('site-version.json');
-      if (/^v\d{8}$/.test(stamp.version)) state.siteVersion = stamp.version;
+      if (/^v\d{10}$/.test(stamp.version)) state.siteVersion = stamp.version;
     } catch (e) { /* 旧部署没有版本文件时保持占位符 / old deployments keep the placeholder */ }
-    $('siteVersion').textContent = state.siteVersion;
+    document.querySelectorAll('.site-version-value').forEach((node) => {
+      node.textContent = state.siteVersion;
+    });
     const first = DEVICES.devices.find((d) => d.enabled === true && d.kind === 'target')
       || DEVICES.devices.find((d) => d.enabled === true) || DEVICES.devices[0];
     await switchDevice(first, true);
@@ -464,6 +504,25 @@ function targetControlId(id) {
   const known = { system: 'targetSystem', subtarget: 'targetSubtarget', profile: 'targetProfile' };
   return known[id] || `targetExtra_${String(id).replace(/[^A-Za-z0-9_-]/g, '_')}`;
 }
+function targetFieldTranslation(id, selector = null) {
+  const localized = selector?.i18n?.[state.lang] || TARGET_FIELD_I18N[id]?.[state.lang];
+  if (state.lang === 'en' || !localized) return '';
+  return localized;
+}
+function applyTargetFieldTranslation(element, id, selector = null) {
+  if (!element) return;
+  element.classList.remove('menu-translation');
+  element.removeAttribute('data-translation');
+  element.removeAttribute('tabindex');
+  applyMenuTranslation(element, targetFieldTranslation(id, selector));
+}
+function refreshTargetLabels() {
+  applyTargetFieldTranslation($('targetSourceLabel'), 'source');
+  applyTargetFieldTranslation($('targetBranchLabel'), 'branch');
+  document.querySelectorAll('[data-target-field]').forEach((element) => {
+    applyTargetFieldTranslation(element, element.dataset.targetField, element.targetSelector);
+  });
+}
 function ensureTargetSelectorControls(schema = DEFAULT_TARGET_SELECTORS) {
   const container = $('targetDynamicSelectors');
   if (!container) return;
@@ -473,11 +532,14 @@ function ensureTargetSelectorControls(schema = DEFAULT_TARGET_SELECTORS) {
   container.textContent = '';
   for (const selector of schema) {
     const label = document.createElement('label');
-    if (!['system', 'subtarget', 'profile'].includes(selector.id)) label.className = 'target-extra';
+    const safeId = String(selector.id).replace(/[^A-Za-z0-9_-]/g, '_');
+    label.className = `target-field target-${safeId}`;
+    if (!['system', 'subtarget', 'profile'].includes(selector.id)) label.classList.add('target-extra');
     const title = document.createElement('span');
-    title.textContent = selector.labelZh
-      ? `${selector.labelEn || selector.id} — ${selector.labelZh}`
-      : selector.labelEn || selector.id;
+    title.textContent = selector.labelEn || selector.id;
+    title.dataset.targetField = selector.id;
+    title.targetSelector = selector;
+    applyTargetFieldTranslation(title, selector.id, selector);
     const select = document.createElement('select');
     select.id = targetControlId(selector.id);
     select.dataset.targetSelector = selector.id;
@@ -518,7 +580,7 @@ function renderCatalogTargetSelectors(preferred = {}) {
   for (const selector of schema) {
     const selectId = targetControlId(selector.id);
     const value = fillTargetSelect(selectId, nodes, (item) => item.value,
-      (item) => item.labelZh ? `${item.labelEn || item.value} — ${item.labelZh}` : item.labelEn || item.value,
+      (item) => item.labelEn || item.value,
       preferred[selector.id] || preferred[`${selector.id}Symbol`] || targetSelectorValues[selector.id]);
     targetSelectorValues[selector.id] = value;
     const selected = nodes.find((item) => item.value === value);
@@ -596,8 +658,8 @@ function selectedCatalogBranch(source = selectedCatalogSource()) {
   return source?.branches.find((item) => item.id === $('targetBranch').value) || source?.branches[0];
 }
 function catalogBranchLabel(branch) {
-  if (branch.state === 'stale') return `⚠ ${branch.branch} · stale / 旧数据`;
-  if (branch.state === 'unavailable') return `✕ ${branch.branch} · unavailable / 不可用`;
+  if (branch.state === 'stale') return `⚠ ${branch.branch} · stale`;
+  if (branch.state === 'unavailable') return `✕ ${branch.branch} · unavailable`;
   return branch.branch;
 }
 function showCatalogStatus(branch, catalog = MENU_CATALOG) {
@@ -635,15 +697,15 @@ function menuOptionTranslation(option) {
     if (plugin) {
       const row = PLUG_I18N?.plugins?.[plugin.id];
       const name = state.lang === 'zh-CN' ? plugin.name
-        : row?.name?.[state.lang] || row?.name?.en || plugin.name;
+        : row?.name?.[state.lang] || (state.lang !== 'en' ? row?.name?.en : '') || '';
       const desc = state.lang === 'zh-CN' ? plugin.desc
-        : row?.desc?.[state.lang] || row?.desc?.en || plugin.desc;
+        : row?.desc?.[state.lang] || (state.lang !== 'en' ? row?.desc?.en : '') || '';
       return { title: name, usage: desc };
     }
   }
   return {
     title: state.lang === 'zh-CN' ? option.promptZh : '',
-    usage: state.lang === 'zh-CN' ? option.usageZh : option.usageEn,
+    usage: state.lang === 'zh-CN' ? option.usageZh : '',
   };
 }
 function applyMenuTranslation(element, chinese, usageChinese = '', mobileChip = false) {
@@ -1189,6 +1251,7 @@ function renderMenuOption(option, showPath = false) {
   const name = document.createElement('span');
   name.className = packageName ? 'menuconfig-package-name' : 'menuconfig-option-name';
   name.textContent = packageName || menuOptionLabel(option);
+  name.title = name.textContent;
   prompt.appendChild(name);
   if (packageName) {
     const description = document.createElement('span');
@@ -1196,6 +1259,7 @@ function renderMenuOption(option, showPath = false) {
     const raw = String(option.promptEn || option.prompt || '');
     description.textContent = String(option.usageEn || raw
       .replace(new RegExp(`^${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.*\\s*`, 'i'), '')).trim();
+    description.title = description.textContent;
     prompt.appendChild(description);
   }
   if (!packageName) {
@@ -1284,7 +1348,8 @@ function renderMenuLeaf(options, showPath, list) {
       const entry = document.createElement('option');
       entry.value = option.symbol;
       entry.textContent = menuOptionLabel(option) || option.symbol;
-      entry.title = [option.promptZh, option.usageZh].filter(Boolean).join(' — ');
+      const optionTranslation = menuOptionTranslation(option);
+      entry.title = [optionTranslation.title, optionTranslation.usage].filter(Boolean).join(' — ');
       entry.selected = option.symbol === selected?.symbol;
       select.appendChild(entry);
     }
@@ -1292,7 +1357,10 @@ function renderMenuLeaf(options, showPath, list) {
       const option = menuOptionBySymbol.get(select.value);
       if (option) setMenuValue(option, optionMaxLevel(option) > 1 ? 'y' : 'm');
     };
-    applyMenuTranslation(text, choice?.promptZh, choice?.usageZh, true);
+    applyMenuTranslation(text,
+      state.lang === 'zh-CN' ? choice?.promptZh : '',
+      state.lang === 'zh-CN' ? choice?.usageZh : '',
+      true);
     row.append(text, select);
     list.appendChild(row);
   }
@@ -1305,13 +1373,15 @@ function renderMenuLeaf(options, showPath, list) {
 function breadcrumbTranslation(label) {
   const meta = menuLabelMeta(label);
   const localized = meta.i18n?.[state.lang] || (state.lang === 'zh-CN' ? meta.zhCN : '');
-  if (localized || meta.zhCN) return {
-    title: localized || meta.zhCN,
+  if (localized) return {
+    title: localized,
     usage: state.lang === 'zh-CN' ? (meta.usageZh || '') : (meta.usageEn || ''),
   };
   const option = MENU_CATALOG?.menu?.options?.find((item) =>
     item.prompt === label || item.promptEn === label);
-  return { title: option?.promptZh || '', usage: option?.usageZh || '' };
+  return state.lang === 'zh-CN'
+    ? { title: option?.promptZh || '', usage: option?.usageZh || '' }
+    : { title: '', usage: '' };
 }
 function jumpMenuBreadcrumb(index) {
   if (index === 0) {
@@ -1442,8 +1512,10 @@ function renderMenuconfig() {
     count.className = 'menuconfig-category-count';
     count.textContent = `${node.count} ›`;
     button.append(text, count);
+    const localized = meta.i18n?.[state.lang] ||
+      (state.lang === 'zh-CN' ? (node.translation || meta.zhCN) : '');
     applyMenuTranslation(button,
-      meta.i18n?.[state.lang] || node.translation || meta.zhCN,
+      localized,
       state.lang === 'zh-CN' ? (node.usageZh || meta.usageZh) : meta.usageEn,
       true);
     button.onclick = () => {
@@ -1462,7 +1534,9 @@ function renderMenuconfig() {
     empty.textContent = query.length === 1
       ? 'Type one more character.'
       : 'No available options.';
-    empty.title = query.length === 1 ? '请再输入一个字符。' : '没有可用选项。';
+    empty.title = state.lang === 'en' ? '' : query.length === 1
+      ? uiText('请再输入一个字符。', '請再輸入一個字元。', 'Type one more character.')
+      : uiText('没有可用选项。', '沒有可用選項。', 'No available options.');
     list.appendChild(empty);
   }
   panel.hidden = !options.length && !!nodes.length;
@@ -1502,7 +1576,7 @@ function renderImportedUnknownRow(symbol) {
   let input;
   if ([original, value].some((item) => ['y', 'm', 'n'].includes(item))) {
     input = document.createElement('select');
-    for (const item of [['y', 'Y'], ['m', 'M'], ['n', '关闭']]) {
+    for (const item of [['y', 'Y'], ['m', 'M'], ['n', uiText('关闭', '關閉', 'Disabled')]]) {
       const option = document.createElement('option');
       option.value = item[0];
       option.textContent = item[1];
@@ -1521,11 +1595,13 @@ function renderImportedUnknownRow(symbol) {
   actions.className = 'import-unknown-actions';
   const close = document.createElement('button');
   close.type = 'button';
-  close.textContent = '关闭';
+  close.textContent = uiText('关闭', '關閉', 'Disable');
   close.onclick = () => setImportedEdit(symbol, 'n');
   const remove = document.createElement('button');
   remove.type = 'button';
-  remove.textContent = edit?.action === 'delete' ? '已删除' : '删除行';
+  remove.textContent = edit?.action === 'delete'
+    ? uiText('已删除', '已刪除', 'Deleted')
+    : uiText('删除行', '刪除列', 'Delete line');
   remove.disabled = edit?.action === 'delete';
   remove.onclick = () => {
     importedUnknownEdits.set(symbol, { action: 'delete' });
@@ -1533,7 +1609,7 @@ function renderImportedUnknownRow(symbol) {
   };
   const restore = document.createElement('button');
   restore.type = 'button';
-  restore.textContent = '恢复';
+  restore.textContent = uiText('恢复', '還原', 'Restore');
   restore.disabled = !edit;
   restore.onclick = () => {
     importedUnknownEdits.delete(symbol);
@@ -1555,22 +1631,33 @@ function renderImportedWorkspace() {
     return value !== 'n' && value !== '0' && value !== '""';
   }).length;
   const modified = menuTouched.size + importedUnknownEdits.size;
-  $('importSummaryText').textContent =
+  $('importSummaryText').textContent = uiText(
     `已识别 ${menuImportedOriginal.size} 项 · 仅导入 ${importedUnknownOriginal.size} 项` +
-    `（启用 ${activeUnknown}）· 精选插件 ${state.sel.size + state.removed.size} 项 · 已修改 ${modified} 项`;
+      `（启用 ${activeUnknown}）· 精选插件 ${state.sel.size + state.removed.size} 项 · 已修改 ${modified} 项`,
+    `已識別 ${menuImportedOriginal.size} 項 · 僅匯入 ${importedUnknownOriginal.size} 項` +
+      `（啟用 ${activeUnknown}）· 精選外掛 ${state.sel.size + state.removed.size} 項 · 已修改 ${modified} 項`,
+    `Recognized ${menuImportedOriginal.size} · import-only ${importedUnknownOriginal.size}` +
+      ` (enabled ${activeUnknown}) · curated plugins ${state.sel.size + state.removed.size} · modified ${modified}`);
   const targetCard = $('importTargetCard');
   targetCard.hidden = importedTargetVerified;
   targetCard.textContent = '';
   if (!importedTargetVerified) {
-    targetCard.append(document.createTextNode(
+    targetCard.append(document.createTextNode(uiText(
       `⚠ Custom Target：${state.device.target.system} / ${state.device.target.subtarget} / ` +
-      `${state.device.target.profileLabel} 未经当前 Catalog 验证，Actions 将在 make defconfig 后核验。 `));
+        `${state.device.target.profileLabel} 未经当前 Catalog 验证，Actions 将在 make defconfig 后核验。 `,
+      `⚠ Custom Target：${state.device.target.system} / ${state.device.target.subtarget} / ` +
+        `${state.device.target.profileLabel} 未經目前 Catalog 驗證，Actions 將在 make defconfig 後核驗。 `,
+      `⚠ Custom Target: ${state.device.target.system} / ${state.device.target.subtarget} / ` +
+        `${state.device.target.profileLabel} is not verified by the current Catalog; Actions will verify it after make defconfig. `)));
     const useCatalog = document.createElement('button');
     useCatalog.type = 'button';
     useCatalog.className = 'text-btn';
-    useCatalog.textContent = '改用网页 Target';
+    useCatalog.textContent = uiText('改用网页 Target', '改用網頁 Target', 'Use page Target');
     useCatalog.onclick = async () => {
-      if (!confirm('改用网页 Target 会退出上传配置工作区，并放弃上传文件中的自定义配置。继续吗？')) return;
+      if (!confirm(uiText(
+        '改用网页 Target 会退出上传配置工作区，并放弃上传文件中的自定义配置。继续吗？',
+        '改用網頁 Target 會離開上傳設定工作區，並放棄上傳檔案中的自訂設定。繼續嗎？',
+        'Using the page Target exits the imported-config workspace and discards custom settings from the uploaded file. Continue?'))) return;
       const sourceId = state.source.id;
       const branchId = state.version.id;
       clearImportedWorkspace();
@@ -1583,8 +1670,10 @@ function renderImportedWorkspace() {
   }
   const box = $('importUnknownBox');
   box.hidden = importedUnknownOriginal.size === 0;
-  $('importUnknownSummary').textContent =
-    `仅导入配置项（${importedUnknownOriginal.size}，已修改 ${importedUnknownEdits.size}）`;
+  $('importUnknownSummary').textContent = uiText(
+    `仅导入配置项（${importedUnknownOriginal.size}，已修改 ${importedUnknownEdits.size}）`,
+    `僅匯入設定項（${importedUnknownOriginal.size}，已修改 ${importedUnknownEdits.size}）`,
+    `Import-only settings (${importedUnknownOriginal.size}, modified ${importedUnknownEdits.size})`);
   const list = $('importUnknownOptions');
   list.textContent = '';
   const query = $('importUnknownSearch').value.trim().toLowerCase();
@@ -1603,7 +1692,9 @@ function renderImportedWorkspace() {
   if (!symbols.length) {
     const empty = document.createElement('p');
     empty.className = 'hint';
-    empty.textContent = query.length === 1 ? '请再输入一个字符。' : '没有符合条件的配置项。';
+    empty.textContent = query.length === 1
+      ? uiText('请再输入一个字符。', '請再輸入一個字元。', 'Type one more character.')
+      : uiText('没有符合条件的配置项。', '沒有符合條件的設定項。', 'No matching settings.');
     list.appendChild(empty);
   }
   $('importUnknownMore').hidden = symbols.length <= importedUnknownLimit;
@@ -1628,7 +1719,8 @@ function clearImportedWorkspace() {
 function resetImportedChanges() {
   if (!state.importedConfig) return;
   restoreSelections(state.importedConfig, null);
-  showToast('已恢复上传配置的原始值');
+  showToast(uiText('已恢复上传配置的原始值', '已還原上傳設定的原始值',
+    'Restored the original uploaded settings'));
 }
 function renderTargetPicker(preferState = true) {
   ensureTargetSelectorControls(DEFAULT_TARGET_SELECTORS);

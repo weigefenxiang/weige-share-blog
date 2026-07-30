@@ -221,9 +221,16 @@ input:focus-visible { border-color: var(--accent); }
 .pill .info:hover { opacity: 1; background: rgba(128, 128, 128, .15); }
 
 .target-picker {
-  display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;
+  display: flex; align-items: end; gap: 10px; flex-wrap: wrap;
 }
 .target-dynamic{display:contents}
+.target-picker .target-field{flex:1 1 160px}
+.target-picker .target-source{flex:.8 1 130px}
+.target-picker .target-branch{flex:1 1 170px}
+.target-picker .target-system{flex:.9 1 150px}
+.target-picker .target-subtarget{flex:.8 1 140px}
+.target-picker .target-profile{flex:1.8 1 260px}
+.target-picker .target-extra{flex:1 1 180px}
 .catalog-locator{position:relative;margin-top:10px}
 .catalog-locator input{width:100%;height:42px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);font:inherit}
 .catalog-locator-results{position:absolute;z-index:70;top:calc(100% + 5px);left:0;right:0;max-height:min(390px,55vh);overflow:auto;padding:5px;border:1px solid var(--border);border-radius:10px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.3)}
@@ -311,16 +318,19 @@ input:focus-visible { border-color: var(--accent); }
   .menuconfig-category-text.menu-fit-s2{font-size:14px}
   .menuconfig-category-text.menu-fit-s3{font-size:13px}
   .menuconfig-category-text.menu-fit-two-line{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
-  .menuconfig-choice{grid-template-columns:minmax(0,1fr);gap:7px}
-  .menuconfig-choice-text{display:flex;align-items:center;gap:7px;white-space:normal}
-  .menuconfig-option{grid-template-columns:minmax(0,1fr);gap:7px}
+  .menuconfig-choice{grid-template-columns:minmax(0,1fr) minmax(110px,42%);gap:7px}
+  .menuconfig-choice-text{position:relative;display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .menuconfig-choice select{min-width:0}
+  .menuconfig-option{grid-template-columns:minmax(0,1fr) auto;gap:7px}
   .menuconfig-option-actions{justify-content:flex-end}
   .menuconfig-option-actions>input{width:100%;max-width:none}
-  .menuconfig-prompt{flex-wrap:wrap}
-  .menuconfig-option-name{white-space:normal}
-  .menuconfig-prompt small{flex-basis:100%;max-width:100%}
-  .menuconfig-package{grid-template-columns:minmax(0,1fr);gap:4px}
-  .menuconfig-package-desc{white-space:normal}
+  .menuconfig-prompt{position:relative;display:block;min-width:0}
+  .menuconfig-option-name{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+  .menuconfig-prompt small{display:none}
+  .menuconfig-package{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
+  .menuconfig-package-name,.menuconfig-package-desc{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:1}
+  .menuconfig-prompt.menu-translation,.menuconfig-package.menu-translation,.menuconfig-choice-text.menu-translation{padding-right:31px}
+  .menuconfig-prompt>.menu-translation-chip,.menuconfig-package>.menu-translation-chip,.menuconfig-choice-text>.menu-translation-chip{position:absolute;right:0;top:50%;transform:translateY(-50%)}
   .kconfig-tri button{min-width:31px;padding-inline:6px}
   html:not([lang=en]) .menu-translation-chip{display:inline-flex;flex:none;align-items:center;justify-content:center;min-width:25px;height:23px;padding:0 5px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:6px;background:color-mix(in srgb,var(--accent) 8%,var(--card2));color:var(--accent);font-size:12px;font-weight:700;line-height:1}
   .import-summary{align-items:flex-start;flex-direction:column}
@@ -512,7 +522,7 @@ input:focus-visible { border-color: var(--accent); }
 .site-footer { padding: 20px 16px 28px; font-size: 14px; color: var(--text3); }
 .site-footer p { margin: 4px 0; }
 .site-footer a { color: var(--accent-text); }
-.site-footer .footer-version { margin-top: 8px; text-align: right; }
+.site-footer .footer-version { display: none; margin-top: 8px; text-align: right; }
 
 .popover {
   position: absolute; z-index: 40; max-width: 320px;
@@ -607,7 +617,8 @@ input:focus-visible { border-color: var(--accent); }
 @media (max-width: 860px) {
   .plugin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .firmware-settings { grid-template-columns: minmax(230px, 1.6fr) minmax(150px, 1fr); }
-  .target-picker { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .target-picker .target-field { flex: 1 1 calc(33.333% - 10px); }
+  .target-picker .target-profile { flex-grow: 2; }
 }
 @media (max-width: 560px) {
   .brand h1 { font-size: 16px; }
@@ -627,9 +638,12 @@ input:focus-visible { border-color: var(--accent); }
   .stats { width: 100%; justify-content: space-between; }
   .actions { margin-left: 0; width: 100%; }
   .actions .btn { flex: 1; min-height: 44px; }
+  .site-version-action { display: none; }
+  .site-footer .footer-version { display: block; }
   .risk-row { align-items: flex-start; }
   .firmware-settings { grid-template-columns: 1fr; }
-  .target-picker { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .target-picker .target-field { flex: 1 1 calc(50% - 10px); }
+  .target-picker .target-profile { flex-basis: 100%; }
   .timezone-menu { width: 100%; max-width: 100%; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */
   .toast { bottom: calc(128px + env(safe-area-inset-bottom)); }
@@ -646,8 +660,9 @@ input:focus-visible { border-color: var(--accent); }
   .plugin { padding: 10px 12px; }
   .group-head { padding: 10px 12px; }
   .text-btn { padding: 6px 10px; font-size: 12.5px; }
-  .target-picker { grid-template-columns: 1fr; }
+  .target-picker .target-field { flex-basis: 100%; }
   .menuconfig-option:has(input[type=text]),.menuconfig-option:has(input[type=number]){grid-template-columns:1fr}
+  .menuconfig-option:has(input[type=text]) .menuconfig-option-name,.menuconfig-option:has(input[type=number]) .menuconfig-option-name{-webkit-line-clamp:1}
   .menuconfig-option:has(input) .menuconfig-option-actions{justify-content:stretch}
   .menuconfig-option:has(input) .menuconfig-option-actions input{width:100%;max-width:none}
 }
