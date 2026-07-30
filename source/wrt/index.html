@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=a3f91a8569">
+<link rel="stylesheet" href="app.css?v=6caae40770">
 </head>
 <body>
 <header class="site-header">
@@ -83,6 +83,10 @@
           <label class="target-field target-source"><span id="targetSourceLabel">Source</span><select id="targetSource"></select></label>
           <label class="target-field target-branch"><span id="targetBranchLabel">Branch</span><select id="targetBranch"></select></label>
           <div class="target-dynamic" id="targetDynamicSelectors"></div>
+          <button class="catalog-load-state" id="catalogLoadState" type="button" hidden disabled>
+            <span class="catalog-load-spinner" aria-hidden="true"></span>
+            <span id="catalogLoadText">Loading Target and menuconfig…</span>
+          </button>
         </div>
         <div class="catalog-locator">
           <input type="search" id="catalogLocator" autocomplete="off"
@@ -274,6 +278,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=8f9f9fe2e9"></script>
+<script src="app.js?v=e94880596a"></script>
 </body>
 </html>

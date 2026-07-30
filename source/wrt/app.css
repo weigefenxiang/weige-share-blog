@@ -231,6 +231,12 @@ input:focus-visible { border-color: var(--accent); }
 .target-picker .target-subtarget{flex:.8 1 140px}
 .target-picker .target-profile{flex:1.8 1 260px}
 .target-picker .target-extra{flex:1 1 180px}
+.catalog-load-state{display:flex;flex:1.8 1 300px;align-items:center;justify-content:center;gap:9px;height:44px;padding:0 12px;border:1px dashed color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:9px;background:color-mix(in srgb,var(--accent) 6%,var(--card));color:var(--text2);font:inherit}
+.catalog-load-state[data-state=loading]{cursor:wait}
+.catalog-load-state[data-state=error]{border-color:color-mix(in srgb,var(--danger) 55%,var(--border));color:var(--danger);cursor:pointer}
+.catalog-load-spinner{width:17px;height:17px;flex:none;border:2px solid color-mix(in srgb,var(--accent) 24%,transparent);border-top-color:var(--accent);border-radius:50%;animation:catalog-spin .75s linear infinite}
+.catalog-load-state[data-state=error] .catalog-load-spinner{animation:none;border-color:var(--danger);border-top-color:transparent}
+@keyframes catalog-spin{to{transform:rotate(360deg)}}
 .catalog-locator{position:relative;margin-top:10px}
 .catalog-locator input{width:100%;height:42px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);font:inherit}
 .catalog-locator-results{position:absolute;z-index:70;top:calc(100% + 5px);left:0;right:0;max-height:min(390px,55vh);overflow:auto;padding:5px;border:1px solid var(--border);border-radius:10px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.3)}
@@ -647,6 +653,7 @@ input:focus-visible { border-color: var(--accent); }
   .firmware-settings { grid-template-columns: 1fr; }
   .target-picker .target-field { flex: 1 1 calc(50% - 10px); }
   .target-picker .target-profile { flex-basis: 100%; }
+  .catalog-load-state{flex-basis:100%}
   .timezone-menu { width: 100%; max-width: 100%; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */
   .toast { bottom: calc(128px + env(safe-area-inset-bottom)); }

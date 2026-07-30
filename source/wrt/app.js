@@ -44,6 +44,7 @@ const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1
 let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
 let MENU_INDEX = null, MENU_CATALOG = null;
 let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0, menuCatalogPromise = null;
+let catalogLoadMode = 'idle', catalogLoadError = '';
 let menuPath = null, menuParent = '', menuExpanded = false, menuSelectedExpanded = false;
 let menuVisibleLimit = 80, menuHistory = [], menuBreadcrumb = [];
 const menuValues = new Map();
@@ -238,6 +239,7 @@ function applyI18n() {
     $('menuconfigStateHelp').setAttribute('aria-label',
       uiText('N、M、Y 状态说明', 'N、M、Y 狀態說明', 'N, M, and Y state help'));
   }
+  renderCatalogLoadState();
   $('advLabel').title = t('adv.title');
   // Fork 提示内嵌两个链接,不能整段 textContent,需拆分文案后用 DOM 节点拼装 / The fork hint embeds two links, so the text is split and assembled from DOM nodes instead of one textContent
   const hint = $('selfHint');
@@ -706,9 +708,9 @@ function menuOptionTranslation(option) {
     if (plugin) {
       const row = PLUG_I18N?.plugins?.[plugin.id];
       const name = state.lang === 'zh-CN' ? plugin.name
-        : row?.name?.[state.lang] || (state.lang !== 'en' ? row?.name?.en : '') || '';
+        : state.lang === 'en' ? '' : row?.name?.[state.lang] || '';
       const desc = state.lang === 'zh-CN' ? plugin.desc
-        : row?.desc?.[state.lang] || (state.lang !== 'en' ? row?.desc?.en : '') || '';
+        : state.lang === 'en' ? '' : row?.desc?.[state.lang] || '';
       return { title: name, usage: desc };
     }
   }
@@ -758,6 +760,40 @@ function showMenuPopup(element, text) {
 function hideMenuTooltip() {
   const tooltip = $('menuTooltip');
   if (tooltip) tooltip.hidden = true;
+}
+function renderCatalogLoadState() {
+  const box = $('catalogLoadState');
+  if (!box) return;
+  box.hidden = catalogLoadMode === 'idle';
+  box.disabled = catalogLoadMode !== 'error';
+  box.dataset.state = catalogLoadMode;
+  box.title = catalogLoadMode === 'error' ? catalogLoadError : '';
+  $('targetPicker')?.setAttribute('aria-busy', String(catalogLoadMode === 'loading'));
+  if ($('catalogLoadText')) {
+    $('catalogLoadText').textContent = catalogLoadMode === 'error'
+      ? uiText('Catalog 加载失败，点击重试', 'Catalog 載入失敗，點擊重試',
+        'Catalog failed to load. Click to retry')
+      : uiText('正在加载 Target 与 menuconfig…', '正在載入 Target 與 menuconfig…',
+        'Loading Target and menuconfig…');
+  }
+}
+function setCatalogLoadState(mode, error = '') {
+  catalogLoadMode = mode;
+  catalogLoadError = String(error?.message || error || '');
+  if (mode !== 'idle') {
+    $('targetDynamicSelectors').textContent = '';
+    $('menuconfigBox').hidden = true;
+  }
+  renderCatalogLoadState();
+}
+function retryCatalogLoad() {
+  if (catalogLoadMode !== 'error') return;
+  const source = selectedCatalogSource();
+  const branch = selectedCatalogBranch(source);
+  if (!source || !branch) return;
+  MENU_CATALOG = null;
+  menuCatalogKey = '';
+  loadCatalog(source, branch).catch(() => {});
 }
 function addMenuIndex(map, key, value) {
   if (!map.has(key)) map.set(key, []);
@@ -839,6 +875,7 @@ async function loadCatalog(source, branch, applyDefault = true) {
   if (menuLoadingKey === key && menuCatalogPromise) return menuCatalogPromise;
   menuLoadingKey = key;
   const seq = ++menuCatalogSeq;
+  setCatalogLoadState('loading');
   $('menuconfigStatus').className = 'hint';
   $('menuconfigStatus').textContent = 'Loading catalog…';
   menuCatalogPromise = (async () => {
@@ -878,9 +915,7 @@ async function loadCatalog(source, branch, applyDefault = true) {
     if (seq !== menuCatalogSeq) return null;
     MENU_CATALOG = null;
     menuCatalogKey = '';
-    $('menuconfigBox').hidden = false;
-    $('menuconfigStatus').className = 'hint catalog-unavailable';
-    $('menuconfigStatus').textContent = `Catalog unavailable: ${error.message}`;
+    setCatalogLoadState('error', error);
     throw error;
   }).finally(() => {
     if (seq === menuCatalogSeq) {
@@ -921,7 +956,7 @@ function renderCatalogPicker(preferState = true, requested = null) {
   if (!branch || branch.state === 'unavailable') {
     MENU_CATALOG = null;
     menuCatalogKey = '';
-    $('menuconfigBox').hidden = false;
+    setCatalogLoadState('error', branch?.error || 'Catalog branch unavailable');
     $('menuconfigGrid').textContent = '';
     $('menuconfigPanel').hidden = true;
     showCatalogStatus(branch || { state: 'unavailable', errorStage: 'catalog-index' });
@@ -929,12 +964,13 @@ function renderCatalogPicker(preferState = true, requested = null) {
   }
   const key = `${source.id}/${branch.branch}`;
   if (!MENU_CATALOG || menuCatalogKey !== key) {
-    loadCatalog(source, branch);
+    loadCatalog(source, branch).catch(() => {});
     return null;
   }
   const preferred = requested ||
     (preferState && state.device?.id === 'catalog-target' ? state.device.target : {});
   const selectedTarget = renderCatalogTargetSelectors(preferred);
+  setCatalogLoadState('idle');
   $('menuconfigBox').hidden = false;
   showCatalogStatus(branch, MENU_CATALOG);
   renderMenuconfig();
@@ -1207,6 +1243,7 @@ function initMenuconfigControls() {
     event.stopPropagation();
     showMenuHelp($('menuconfigStateHelp'));
   };
+  $('catalogLoadState').onclick = retryCatalogLoad;
   $('menuconfigScroll').onscroll = () => {
     hideMenuTooltip();
     const scroller = $('menuconfigScroll');
@@ -1246,6 +1283,13 @@ function initMenuconfigControls() {
     showMenuTooltip(chip.closest('.menu-translation'));
   }, true);
   document.addEventListener('pointerover', (event) => {
+    const clippedDescription = event.target.closest('.menuconfig-package-desc');
+    if (clippedDescription &&
+        clippedDescription.scrollWidth > clippedDescription.clientWidth + 1 &&
+        !matchMedia('(hover: none)').matches) {
+      showMenuPopup(clippedDescription, clippedDescription.textContent.trim());
+      return;
+    }
     const help = event.target.closest('.menuconfig-state-help');
     if (help && !matchMedia('(hover: none)').matches) {
       showMenuHelp(help);
@@ -1257,6 +1301,10 @@ function initMenuconfigControls() {
     }
   });
   document.addEventListener('pointerout', (event) => {
+    if (event.target.closest('.menuconfig-package-desc')) {
+      if (!event.relatedTarget?.closest?.('.menuconfig-package-desc')) hideMenuTooltip();
+      return;
+    }
     if (event.target.closest('.menuconfig-state-help')) {
       if (!event.relatedTarget?.closest?.('.menuconfig-state-help')) hideMenuTooltip();
       return;
@@ -1286,7 +1334,7 @@ function renderMenuOption(option, showPath = false) {
   const name = document.createElement('span');
   name.className = packageName ? 'menuconfig-package-name' : 'menuconfig-option-name';
   name.textContent = packageName || menuOptionLabel(option);
-  name.title = name.textContent;
+  if (!packageName) name.title = name.textContent;
   prompt.appendChild(name);
   if (packageName) {
     const description = document.createElement('span');
@@ -1294,7 +1342,6 @@ function renderMenuOption(option, showPath = false) {
     const raw = String(option.promptEn || option.prompt || '');
     description.textContent = String(option.usageEn || raw
       .replace(new RegExp(`^${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.*\\s*`, 'i'), '')).trim();
-    description.title = description.textContent;
     prompt.appendChild(description);
   }
   if (!packageName) {
@@ -1304,12 +1351,9 @@ function renderMenuOption(option, showPath = false) {
     prompt.appendChild(symbol);
   }
   const translation = menuOptionTranslation(option);
-  const packageMeta = packageName ? [
-    option.symbol,
-    showPath && option.path?.length ? option.path.map(menuPathLabel).join(' › ') : '',
-  ].filter(Boolean).join('\n') : '';
-  applyMenuTranslation(prompt, translation.title,
-    [translation.usage, packageMeta].filter(Boolean).join('\n'), true);
+  if (!packageName || translation.title) {
+    applyMenuTranslation(prompt, translation.title, translation.usage, true);
+  }
   row.appendChild(prompt);
   const actions = document.createElement('span');
   actions.className = 'menuconfig-option-actions';
@@ -1941,11 +1985,13 @@ function renderDevices() {
   $('targetPicker').hidden = false;
   for (const id of ['sourceStep', 'versionStep', 'variantStep']) $(id).hidden = true;
   if (!importedTargetVerified && state.device?.id === 'custom-target') {
+    setCatalogLoadState('idle');
     renderImportedCustomPicker();
     updateDeviceSummary();
     return;
   }
   const usingCatalog = !!MENU_INDEX?.sources?.length;
+  if (!usingCatalog) setCatalogLoadState('idle');
   const selected = usingCatalog ? renderCatalogPicker() : renderTargetPicker();
   $('targetPicker').onchange = async (event) => {
     const select = event.target.closest('select');
