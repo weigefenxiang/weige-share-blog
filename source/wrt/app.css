@@ -224,10 +224,17 @@ input:focus-visible { border-color: var(--accent); }
   display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px;
 }
 .target-dynamic{display:contents}
+.catalog-locator{position:relative;margin-top:10px}
+.catalog-locator input{width:100%;height:42px;padding:0 12px;border:1px solid var(--border);border-radius:9px;background:var(--card);color:var(--text);font:inherit}
+.catalog-locator-results{position:absolute;z-index:70;top:calc(100% + 5px);left:0;right:0;max-height:min(390px,55vh);overflow:auto;padding:5px;border:1px solid var(--border);border-radius:10px;background:var(--card);box-shadow:0 16px 38px rgba(0,0,0,.3)}
+.catalog-locator-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;width:100%;padding:8px 10px;border:0;border-radius:7px;background:transparent;color:var(--text);font:inherit;text-align:left;cursor:pointer}
+.catalog-locator-item:hover,.catalog-locator-item:focus-visible{background:color-mix(in srgb,var(--accent) 10%,var(--card2));color:var(--accent)}
+.catalog-locator-item small{color:var(--text3);font-size:12px}
 .target-picker label.target-single select{border-style:dashed;color:var(--text2)}
 .target-picker label.target-extra{grid-column:auto}
 .menuconfig-box{margin-top:14px;padding:12px;border:1px solid var(--border);border-radius:12px;background:var(--card)}
 .menuconfig-toggle{display:flex;align-items:center;gap:10px;width:100%;padding:2px;border:0;background:transparent;color:var(--text);text-align:left;cursor:pointer}
+.menuconfig-toggle strong{flex:none;white-space:nowrap}.menuconfig-toggle .hint{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-toggle .hint{margin-left:auto}.menuconfig-chevron{color:var(--text3);transition:transform .15s}
 .menuconfig-toggle[aria-expanded=true] .menuconfig-chevron{transform:rotate(180deg)}
 .menuconfig-workspace{margin-top:12px;overflow:hidden;border:1px solid var(--border);border-radius:10px;background:color-mix(in srgb,var(--card2) 56%,var(--card))}
@@ -235,7 +242,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-scroll{height:clamp(380px,55vh,620px);overflow-y:auto;overflow-x:hidden;padding:0 10px 12px;overscroll-behavior:contain;scrollbar-gutter:stable;-webkit-overflow-scrolling:touch}
 .menuconfig-toolbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px}
 .menuconfig-back{width:34px;height:34px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text);cursor:pointer}
-.menuconfig-breadcrumb{display:flex;min-width:180px;max-width:100%;flex:1 1 280px;align-items:center;gap:5px;overflow-x:auto;white-space:nowrap;scrollbar-width:none}
+.menuconfig-breadcrumb{display:flex;min-width:0;max-width:100%;flex:1 1 420px;align-items:center;gap:5px;overflow:hidden;white-space:nowrap;font-size:clamp(12px,1.25vw,16px)}
 .menuconfig-breadcrumb::-webkit-scrollbar{display:none}
 .menuconfig-breadcrumb-link{padding:2px 0;border:0;background:transparent;color:var(--accent-text);font:inherit;font-weight:700;cursor:pointer}
 .menuconfig-breadcrumb-link:hover,.menuconfig-breadcrumb-link:focus-visible{color:var(--accent);text-decoration:underline;text-underline-offset:3px}
@@ -252,7 +259,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-category-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-category-count{flex:none;padding-left:8px;color:var(--text3);font-weight:500}
 .menuconfig-panel{margin-top:10px;padding-top:10px;border-top:1px solid var(--border)}
-.menuconfig-toolbar input[type=search]{flex:1 1 280px;min-width:180px}
+.menuconfig-toolbar input[type=search]{flex:0 1 260px;min-width:140px;max-width:260px}
 .menuconfig-choice{display:grid;grid-template-columns:minmax(220px,1fr) minmax(220px,360px);gap:12px;align-items:center;padding:8px 4px;border-bottom:1px solid var(--border);color:var(--text);font-weight:600}
 .menuconfig-choice-text{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-choice select{width:100%;min-width:0;padding:7px 9px;border:1px solid var(--border);border-radius:8px;background:var(--card2);color:var(--text)}
@@ -261,6 +268,10 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-prompt{display:flex;min-width:0;align-items:baseline;gap:8px;overflow:visible}
 .menuconfig-option-name{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-prompt small{flex:none;max-width:46%;overflow:hidden;color:var(--text3);font-size:11.5px;white-space:nowrap;text-overflow:ellipsis}
+.menuconfig-option.package-option{grid-template-columns:minmax(0,1fr) auto}
+.menuconfig-package{display:grid;grid-template-columns:minmax(130px,220px) minmax(180px,1fr);gap:14px;min-width:0;align-items:baseline}
+.menuconfig-package-name{overflow:hidden;font-weight:650;white-space:nowrap;text-overflow:ellipsis}
+.menuconfig-package-desc{overflow:hidden;color:var(--text2);white-space:nowrap;text-overflow:ellipsis}
 .menuconfig-option-actions{display:flex;align-items:center;justify-content:flex-end;gap:7px}
 .kconfig-tri{display:flex;border:1px solid var(--border);border-radius:8px;overflow:hidden}
 .kconfig-tri button{min-width:34px;padding:5px 8px;border:0;border-right:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer}
@@ -271,8 +282,7 @@ input:focus-visible { border-color: var(--accent); }
 .menuconfig-child:disabled{color:var(--text3);cursor:not-allowed;opacity:.45}
 .menuconfig-more{display:none}
 .menu-translation{position:relative}
-.menu-translation::after{content:attr(data-translation);position:absolute;z-index:80;top:calc(100% + 7px);left:0;width:max-content;max-width:min(340px,78vw);padding:8px 10px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--card) 96%,#000);box-shadow:0 10px 28px rgba(0,0,0,.28);color:var(--text);font-size:13px;font-weight:500;line-height:1.45;white-space:pre-line;pointer-events:none;opacity:0;visibility:hidden;transform:translateY(-3px);transition:opacity .12s ease,transform .12s ease,visibility .12s}
-.menu-translation:hover::after,.menu-translation:focus-visible::after,.menu-translation.translation-open::after{opacity:1;visibility:visible;transform:translateY(0)}
+.menu-tooltip{position:fixed;z-index:999;max-width:min(390px,calc(100vw - 24px));padding:8px 10px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:8px;background:color-mix(in srgb,var(--card) 96%,#000);box-shadow:0 10px 28px rgba(0,0,0,.32);color:var(--text);font-size:13px;font-weight:500;line-height:1.45;white-space:pre-line;pointer-events:none}
 .import-workspace{margin-top:12px;padding:10px;border:1px solid var(--border);border-radius:9px;background:var(--card2)}
 .import-summary{display:flex;align-items:center;justify-content:space-between;gap:10px}
 .import-target-card{margin-top:8px;padding:8px 10px;border-left:3px solid var(--warn);background:color-mix(in srgb,var(--warn) 8%,transparent);color:var(--text2)}
@@ -286,16 +296,18 @@ input:focus-visible { border-color: var(--accent); }
 .import-unknown-actions button,.menuconfig-restore{padding:5px 8px;border:1px solid var(--border);border-radius:7px;background:transparent;color:var(--text2);cursor:pointer}
 .import-unknown-actions button:hover,.menuconfig-restore:hover{border-color:var(--accent);color:var(--accent)}
 @media(max-width:640px){
+  .menuconfig-toggle{gap:7px}.menuconfig-toggle strong{font-size:15px}.menuconfig-toggle .hint{font-size:12px}
   .menuconfig-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .menuconfig-scroll{height:min(58vh,520px);padding-inline:8px}
   .menuconfig-workspace-head{padding-inline:8px}
   .menuconfig-toolbar{gap:8px}
   .menuconfig-breadcrumb{flex-basis:calc(100% - 44px)}
-  .menuconfig-toolbar input[type=search]{order:3;flex-basis:calc(100% - 120px)}
+  .menuconfig-toolbar input[type=search]{order:3;flex:1 1 calc(100% - 120px);max-width:none}
   .menuconfig-toolbar>label{order:4;white-space:nowrap}
   .menuconfig-choice{grid-template-columns:minmax(0,1fr) minmax(120px,42%);gap:8px}
   .menuconfig-option{grid-template-columns:minmax(0,1fr) auto;gap:7px}
   .menuconfig-option-actions>input{max-width:42vw}
+  .menuconfig-package{grid-template-columns:minmax(105px,38%) minmax(0,1fr);gap:8px}
   .kconfig-tri button{min-width:31px;padding-inline:6px}
   .import-summary{align-items:flex-start;flex-direction:column}
   .import-unknown-row{grid-template-columns:1fr}
