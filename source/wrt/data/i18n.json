@@ -2438,6 +2438,58 @@
    "fr": "Le journal de diagnostic n’inclut ni la configuration complète ni les mots de passe. Téléchargez-le pour le dépannage.",
    "vi": "Nhật ký chẩn đoán không chứa toàn bộ cấu hình hoặc mật khẩu. Có thể tải xuống để khắc phục sự cố."
   },
+  "import.sourceTitle": {
+   "zh-CN": "确认配置来源",
+   "zh-TW": "確認設定來源",
+   "en": "Confirm config source",
+   "ru": "Подтвердите источник конфигурации",
+   "es": "Confirmar el origen de la configuración",
+   "pt": "Confirmar a origem da configuração",
+   "ja": "設定のソースを確認",
+   "ko": "설정 소스 확인",
+   "de": "Konfigurationsquelle bestätigen",
+   "fr": "Confirmer la source de configuration",
+   "vi": "Xác nhận nguồn cấu hình"
+  },
+  "import.sourceIntro": {
+   "zh-CN": "普通 .config 可能没有准确记录源码和分支。请核对后继续。",
+   "zh-TW": "一般 .config 可能沒有準確記錄原始碼和分支。請核對後繼續。",
+   "en": "A plain .config may not identify its exact source and branch. Please verify them.",
+   "ru": "Обычный .config может не содержать точный источник и ветку. Проверьте их перед продолжением.",
+   "es": "Un .config normal puede no identificar con precisión el origen y la rama. Verifícalos antes de continuar.",
+   "pt": "Um .config comum pode não identificar corretamente a origem e o ramo. Verifique-os antes de continuar.",
+   "ja": "通常の .config には正確なソースやブランチが記録されていない場合があります。続行前に確認してください。",
+   "ko": "일반 .config에는 정확한 소스와 브랜치가 기록되지 않을 수 있습니다. 계속하기 전에 확인하세요.",
+   "de": "Eine normale .config enthält möglicherweise keine eindeutige Quelle oder Branch. Bitte vor dem Fortfahren prüfen.",
+   "fr": "Un fichier .config ordinaire peut ne pas identifier précisément la source et la branche. Vérifiez-les avant de continuer.",
+   "vi": "Tệp .config thông thường có thể không ghi chính xác nguồn và nhánh. Hãy kiểm tra trước khi tiếp tục."
+  },
+  "import.sourceContinue": {
+   "zh-CN": "继续",
+   "zh-TW": "繼續",
+   "en": "Continue",
+   "ru": "Продолжить",
+   "es": "Continuar",
+   "pt": "Continuar",
+   "ja": "続行",
+   "ko": "계속",
+   "de": "Weiter",
+   "fr": "Continuer",
+   "vi": "Tiếp tục"
+  },
+  "import.sourceCancel": {
+   "zh-CN": "取消",
+   "zh-TW": "取消",
+   "en": "Cancel",
+   "ru": "Отмена",
+   "es": "Cancelar",
+   "pt": "Cancelar",
+   "ja": "キャンセル",
+   "ko": "취소",
+   "de": "Abbrechen",
+   "fr": "Annuler",
+   "vi": "Hủy"
+  },
   "devpkg.title": {
    "zh-CN": "全部软件包(开发者)",
    "zh-TW": "全部軟體套件(開發者)",

@@ -587,18 +587,59 @@ input:focus-visible { border-color: var(--accent); }
   color: var(--text); overflow-wrap: anywhere;
 }
 .import-log-note { font-size: 13px; }
+.modal-import-source {
+  max-width: 600px;
+  background: color-mix(in srgb, var(--accent) 3%, var(--card));
+  box-shadow: 0 22px 64px rgba(0, 0, 0, .34);
+}
+.modal-import-source .modal-head {
+  background: color-mix(in srgb, var(--accent) 4%, var(--card));
+}
+.modal-import-source .modal-body > p:first-child {
+  margin: 0; padding: 10px 12px 10px 38px; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--border));
+  border-radius: 10px; background: color-mix(in srgb, var(--accent) 8%, var(--card2));
+  color: var(--text2); line-height: 1.6; position: relative;
+}
+.modal-import-source .modal-body > p:first-child::before {
+  content: "i"; position: absolute; left: 12px; top: 11px; width: 18px; height: 18px;
+  display: grid; place-items: center; border-radius: 50%; background: var(--accent);
+  color: #fff; font: 700 12px/1 sans-serif;
+}
 .import-source-grid {
   display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 14px 0;
 }
-.import-source-field { display: grid; gap: 5px; color: var(--text2); font-size: 14px; }
-.import-source-field .target-select { width: 100%; min-width: 0; }
-.import-target-preview {
-  display: grid; gap: 8px; padding: 11px 12px; border: 1px solid var(--border);
-  border-radius: var(--radius); background: var(--card2);
+.import-source-field {
+  display: grid; gap: 7px; padding: 10px; border: 1px solid color-mix(in srgb, var(--accent) 18%, var(--border));
+  border-radius: 10px; background: color-mix(in srgb, var(--accent) 5%, var(--card2));
+  color: var(--text2); font-size: 13px; font-weight: 650;
 }
-.import-target-preview div { display: grid; grid-template-columns: 120px minmax(0, 1fr); gap: 10px; }
-.import-target-preview span { color: var(--text2); }
+.import-source-field .target-select {
+  width: 100%; min-width: 0; height: 44px; padding: 0 36px 0 11px;
+  border: 1px solid var(--border); border-radius: 8px;
+  background-color: var(--card2); color: var(--text); font-family: inherit; font-size: 15px; font-weight: 600;
+  outline: none;
+}
+.import-source-field .target-select:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+.import-source-field .target-select option { background: var(--card); color: var(--text); }
+html[data-theme="dark"] .import-source-field .target-select { color-scheme: dark; }
+html[data-theme="light"] .import-source-field .target-select { color-scheme: light; }
+@media (prefers-color-scheme: dark) {
+  html:not([data-theme]) .import-source-field .target-select { color-scheme: dark; }
+}
+.import-target-preview {
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px;
+  padding: 8px; border: 1px solid color-mix(in srgb, var(--accent) 20%, var(--border));
+  border-radius: 11px; background: color-mix(in srgb, var(--accent) 4%, var(--card2));
+}
+.import-target-preview div {
+  display: grid; gap: 4px; min-width: 0; padding: 9px 10px;
+  border-radius: 8px; background: color-mix(in srgb, var(--accent) 6%, var(--card));
+}
+.import-target-preview span { color: var(--text3); font-size: 12px; }
 .import-target-preview strong { min-width: 0; overflow-wrap: anywhere; }
+.modal-import-source .modal-actions { justify-content: flex-end; margin-top: 16px; }
 .modal-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
 .modal-actions .btn { margin: 0; }
 .summary-box {
@@ -689,7 +730,7 @@ input:focus-visible { border-color: var(--accent); }
   .catalog-load-state{flex-basis:100%}
   .timezone-menu { width: 100%; max-width: 100%; }
   .import-source-grid { grid-template-columns: 1fr; }
-  .import-target-preview div { grid-template-columns: 1fr; gap: 2px; }
+  .import-target-preview { grid-template-columns: 1fr; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */
   .toast { bottom: calc(128px + env(safe-area-inset-bottom)); }
 }

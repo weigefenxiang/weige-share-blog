@@ -762,8 +762,8 @@ function menuOptionTranslation(option) {
     }
   }
   return {
-    title: state.lang === 'zh-CN' ? option.promptZh : '',
-    usage: state.lang === 'zh-CN' ? option.usageZh : '',
+    title: option.promptI18n?.[state.lang] || (state.lang === 'zh-CN' ? option.promptZh : ''),
+    usage: option.usageI18n?.[state.lang] || (state.lang === 'zh-CN' ? option.usageZh : ''),
   };
 }
 function applyMenuTranslation(element, chinese, usageChinese = '', mobileChip = false) {
@@ -895,6 +895,8 @@ function buildMenuIndexes(catalog) {
     menuSearchText.set(option.symbol,
       `${option.prompt} ${option.promptEn || ''} ${option.promptZh || ''} ${option.symbol} ` +
       `${option.usageEn || ''} ${option.usageZh || ''} ${(option.help || '')} ` +
+      `${Object.values(option.promptI18n || {}).join(' ')} ` +
+      `${Object.values(option.usageI18n || {}).join(' ')} ` +
       `${(option.path || []).join(' ')} ${(option.path || []).map(menuPathLabel).join(' ')} ` +
       `${(option.path || []).flatMap((name) => Object.values(menuLabelMeta(name).i18n || {})).join(' ')}`.toLowerCase());
   }
@@ -1485,8 +1487,8 @@ function renderMenuLeaf(options, showPath, list) {
       if (option) setMenuValue(option, optionMaxLevel(option) > 1 ? 'y' : 'm');
     };
     applyMenuTranslation(text,
-      state.lang === 'zh-CN' ? choice?.promptZh : '',
-      state.lang === 'zh-CN' ? choice?.usageZh : '',
+      choice?.promptI18n?.[state.lang] || (state.lang === 'zh-CN' ? choice?.promptZh : ''),
+      choice?.usageI18n?.[state.lang] || (state.lang === 'zh-CN' ? choice?.usageZh : ''),
       true);
     row.append(text, select);
     list.appendChild(row);
@@ -1502,13 +1504,15 @@ function breadcrumbTranslation(label) {
   const localized = meta.i18n?.[state.lang] || (state.lang === 'zh-CN' ? meta.zhCN : '');
   if (localized) return {
     title: localized,
-    usage: state.lang === 'zh-CN' ? (meta.usageZh || '') : (meta.usageEn || ''),
+    usage: meta.usageI18n?.[state.lang] ||
+      (state.lang === 'zh-CN' ? (meta.usageZh || '') : ''),
   };
   const option = MENU_CATALOG?.menu?.options?.find((item) =>
     item.prompt === label || item.promptEn === label);
-  return state.lang === 'zh-CN'
-    ? { title: option?.promptZh || '', usage: option?.usageZh || '' }
-    : { title: '', usage: '' };
+  return {
+    title: option?.promptI18n?.[state.lang] || (state.lang === 'zh-CN' ? option?.promptZh || '' : ''),
+    usage: option?.usageI18n?.[state.lang] || (state.lang === 'zh-CN' ? option?.usageZh || '' : ''),
+  };
 }
 function jumpMenuBreadcrumb(index) {
   if (index === 0) {
@@ -1647,7 +1651,8 @@ function renderMenuconfig() {
       (state.lang === 'zh-CN' ? (node.translation || meta.zhCN) : '');
     applyMenuTranslation(button,
       localized,
-      state.lang === 'zh-CN' ? (node.usageZh || meta.usageZh) : meta.usageEn,
+      meta.usageI18n?.[state.lang] ||
+        (state.lang === 'zh-CN' ? (node.usageZh || meta.usageZh) : ''),
       true);
     button.onclick = () => {
       openMenuLevel(node.path, menuParent, node.label);
@@ -3147,14 +3152,12 @@ function chooseImportedSourceBranch(meta) {
     })),
   });
   return new Promise((resolve) => {
-    openModal(uiText('确认配置来源', '確認設定來源', 'Confirm config source'));
+    openModal(t('import.sourceTitle'));
+    $('modal').querySelector('.modal').classList.add('modal-import-source');
     const body = $('modalBody');
     body.textContent = '';
     const intro = document.createElement('p');
-    intro.textContent = uiText(
-      '普通 .config 可能没有准确记录源码和分支。请核对后继续。',
-      '一般 .config 可能沒有準確記錄原始碼和分支。請核對後繼續。',
-      'A plain .config may not identify its exact source and branch. Please verify them.');
+    intro.textContent = t('import.sourceIntro');
     const form = document.createElement('div');
     form.className = 'import-source-grid';
     const sourceField = document.createElement('label');
@@ -3205,11 +3208,11 @@ function chooseImportedSourceBranch(meta) {
     const confirm = document.createElement('button');
     confirm.type = 'button';
     confirm.className = 'btn btn-primary';
-    confirm.textContent = uiText('继续', '繼續', 'Continue');
+    confirm.textContent = t('import.sourceContinue');
     const cancel = document.createElement('button');
     cancel.type = 'button';
     cancel.className = 'btn';
-    cancel.textContent = uiText('取消', '取消', 'Cancel');
+    cancel.textContent = t('import.sourceCancel');
     actions.append(confirm, cancel);
     body.append(intro, form);
     if (targetParts.length) body.appendChild(target);
@@ -3508,7 +3511,7 @@ function closeModal() {
   const cancel = modalCancelHandler;
   modalCancelHandler = null;
   $('modal').hidden = true;
-  $('modal').querySelector('.modal').classList.remove('modal-wide');   // 宽版仅用于说明弹窗 / wide layout is help-modal-only
+  $('modal').querySelector('.modal').classList.remove('modal-wide', 'modal-import-source');
   document.body.classList.remove('modal-open');
   if (lastFocus && lastFocus.focus) lastFocus.focus();
   if (cancel) cancel();

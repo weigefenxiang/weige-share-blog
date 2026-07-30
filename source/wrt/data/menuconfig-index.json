@@ -39,7 +39,7 @@
     },
     {
       "id": "hanwckf",
-      "label": "hanwckf mt798x (Legacy)",
+      "label": "hanwckf mt798x",
       "repo": "hanwckf/immortalwrt-mt798x",
       "legacy": true,
       "branches": [
