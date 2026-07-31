@@ -1338,7 +1338,9 @@ function initMenuconfigControls() {
     if (clippedDescription &&
         clippedDescription.scrollWidth > clippedDescription.clientWidth + 1 &&
         !matchMedia('(hover: none)').matches) {
-      showMenuPopup(clippedDescription, clippedDescription.textContent.trim());
+      showMenuPopup(clippedDescription, state.lang === 'en'
+        ? clippedDescription.textContent.trim()
+        : clippedDescription.dataset.translation || clippedDescription.textContent.trim());
       return;
     }
     const help = event.target.closest('.menuconfig-state-help');
@@ -1402,7 +1404,10 @@ function renderMenuOption(option, showPath = false) {
     prompt.appendChild(symbol);
   }
   const translation = menuOptionTranslation(option);
-  if (!packageName || translation.title) {
+  if (packageName && translation.usage) {
+    prompt.querySelector('.menuconfig-package-desc').dataset.translation = translation.usage;
+  }
+  if (!packageName || translation.title || translation.usage) {
     applyMenuTranslation(prompt, translation.title, translation.usage, true);
   }
   row.appendChild(prompt);
