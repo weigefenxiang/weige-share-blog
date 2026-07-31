@@ -755,11 +755,11 @@ function menuOptionTranslation(option) {
       (item.pkgs?.[state.source.id] || item.pkg) === packageName);
     if (plugin) {
       const row = PLUG_I18N?.plugins?.[plugin.id];
-      const name = state.lang === 'zh-CN' ? plugin.name
-        : state.lang === 'en' ? '' : row?.name?.[state.lang] || '';
       const desc = state.lang === 'zh-CN' ? plugin.desc
         : state.lang === 'en' ? '' : row?.desc?.[state.lang] || '';
-      return { title: name, usage: desc };
+      // Advanced menuconfig keeps the package symbol/name in its canonical form.
+      // Only the description gets a localized hover/mobile translation.
+      return { title: '', usage: desc };
     }
   }
   return {
@@ -1405,9 +1405,9 @@ function renderMenuOption(option, showPath = false) {
   }
   const translation = menuOptionTranslation(option);
   if (packageName && translation.usage) {
-    prompt.querySelector('.menuconfig-package-desc').dataset.translation = translation.usage;
-  }
-  if (!packageName || translation.title || translation.usage) {
+    const description = prompt.querySelector('.menuconfig-package-desc');
+    applyMenuTranslation(description, '', translation.usage, true);
+  } else if (!packageName && (translation.title || translation.usage)) {
     applyMenuTranslation(prompt, translation.title, translation.usage, true);
   }
   row.appendChild(prompt);

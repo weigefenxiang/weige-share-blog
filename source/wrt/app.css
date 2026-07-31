@@ -357,8 +357,8 @@ input:focus-visible { border-color: var(--accent); }
   .menuconfig-prompt small{display:none}
   .menuconfig-package{position:relative;display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
   .menuconfig-package-name,.menuconfig-package-desc{display:-webkit-box;overflow:hidden;white-space:normal;-webkit-box-orient:vertical;-webkit-line-clamp:1}
-  .menuconfig-prompt.menu-translation,.menuconfig-package.menu-translation,.menuconfig-choice-text.menu-translation{padding-right:31px}
-  .menuconfig-prompt>.menu-translation-chip,.menuconfig-package>.menu-translation-chip,.menuconfig-choice-text>.menu-translation-chip{position:absolute;right:0;top:50%;transform:translateY(-50%)}
+  .menuconfig-prompt.menu-translation,.menuconfig-package.menu-translation,.menuconfig-package-desc.menu-translation,.menuconfig-choice-text.menu-translation{padding-right:31px}
+  .menuconfig-prompt>.menu-translation-chip,.menuconfig-package>.menu-translation-chip,.menuconfig-package-desc>.menu-translation-chip,.menuconfig-choice-text>.menu-translation-chip{position:absolute;right:0;top:50%;transform:translateY(-50%)}
   .kconfig-tri button{min-width:31px;padding-inline:6px}
   html:not([lang=en]) .menu-translation-chip{display:inline-flex;flex:none;align-items:center;justify-content:center;min-width:25px;height:23px;padding:0 5px;border:1px solid color-mix(in srgb,var(--accent) 45%,var(--border));border-radius:6px;background:color-mix(in srgb,var(--accent) 8%,var(--card2));color:var(--accent);font-size:12px;font-weight:700;line-height:1}
   .import-summary{align-items:flex-start;flex-direction:column}
