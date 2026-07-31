@@ -696,6 +696,20 @@ html[data-theme="light"] .import-source-field .target-select { color-scheme: lig
   pointer-events: none;
 }
 .toast.show { opacity: .95; transform: translateX(-50%) translateY(0); }
+.toast.toast-device {
+  left: auto; right: 20px; bottom: calc(74px + env(safe-area-inset-bottom));
+  transform: translateY(8px); width: min(360px, calc(100vw - 32px)); max-width: none;
+  display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  overflow: hidden; border: 1px solid color-mix(in srgb, var(--accent) 42%, var(--border));
+  border-radius: 10px; background: color-mix(in srgb, var(--accent) 10%, var(--card));
+  box-shadow: var(--shadow); color: var(--text); font-size: 13.5px; line-height: 1.35;
+  white-space: nowrap; text-overflow: ellipsis;
+}
+.toast.toast-device::before {
+  content: "✓"; display: grid; flex: none; width: 18px; height: 18px; place-items: center;
+  border-radius: 50%; background: var(--accent); color: #fff; font: 700 12px/1 sans-serif;
+}
+.toast.toast-device.show { transform: translateY(0); }
 
 @media (max-width: 860px) {
   .plugin-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
@@ -733,6 +747,7 @@ html[data-theme="light"] .import-source-field .target-select { color-scheme: lig
   .import-target-preview { grid-template-columns: 1fr; }
   /* 操作栏换行后更高,toast 上移避免遮住"已选 N 个插件" */
   .toast { bottom: calc(128px + env(safe-area-inset-bottom)); }
+  .toast.toast-device { right: 16px; bottom: calc(128px + env(safe-area-inset-bottom)); }
 }
 /* 超窄屏(小手机/分屏)再紧一档 */
 @media (max-width: 400px) {

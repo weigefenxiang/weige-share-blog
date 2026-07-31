@@ -341,13 +341,14 @@ async function loadJson(path) {
 
 /* ============ 轻提示 / Toast ============ */
 let toastTimer = 0;
-function showToast(msg) {
+function showToast(msg, kind = '') {
   const el = $('toast');
   el.textContent = msg;
+  el.classList.toggle('toast-device', kind === 'device');
   el.hidden = false;
   el.classList.add('show');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => { el.classList.remove('show'); el.hidden = true; }, 2800);
+  toastTimer = setTimeout(() => { el.classList.remove('show', 'toast-device'); el.hidden = true; }, 2800);
 }
 
 /* ============ 气泡说明 / Info popover ============ */
@@ -485,7 +486,7 @@ function renderLangSel() {
 }
 
 let switchSeq = 0;
-async function switchDevice(dev, first) {
+async function switchDevice(dev, first, notify = false) {
   const seq = ++switchSeq;
   state.device = dev;
   const data = await loadJson(dev.plugins === 'seed' ? 'seed/plugins.json' : dev.id + '/plugins.json');
@@ -504,7 +505,7 @@ async function switchDevice(dev, first) {
   updateStats();
   updateLoginInfo();
   updateDevpkgBox();
-  if (!first) showToast(t('toast.deviceSwitched', { name: dev.name }));
+  if (!first && notify) showToast(t('toast.deviceSwitched', { name: dev.name }), 'device');
 }
 
 /* 通用 Target 兼容回退记录；在线目录正常时由独立 Catalog 提供。 */
@@ -2075,7 +2076,7 @@ function renderDevices() {
       }
       const record = renderTargetPicker(false);
       if (!record) return;
-      if (record.device.id !== state.device.id) await switchDevice(record.device);
+      if (record.device.id !== state.device.id) await switchDevice(record.device, false, true);
       activateTargetRecord(record);
   };
   if (!usingCatalog && selected && selected.device.id !== state.device.id) switchDevice(selected.device);
