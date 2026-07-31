@@ -1328,19 +1328,42 @@ function initMenuconfigControls() {
   });
   document.addEventListener('click', (event) => {
     const chip = event.target.closest('.menu-translation-chip');
-    if (!chip) return;
-    event.preventDefault();
-    event.stopPropagation();
-    showMenuTooltip(chip.closest('.menu-translation'));
+    if (chip) {
+      event.preventDefault();
+      event.stopPropagation();
+      showMenuTooltip(chip.closest('.menu-translation'));
+      return;
+    }
+    const packageName = event.target.closest('.menuconfig-package-name');
+    if (packageName && packageName.scrollWidth > packageName.clientWidth + 1) {
+      const packageRow = packageName.closest('.menuconfig-package');
+      const description = packageRow?.querySelector('.menuconfig-package-desc');
+      const full = [
+        packageName.dataset.fullText || packageName.textContent.trim(),
+        description?.dataset.fullText || description?.textContent.trim(),
+        state.lang === 'en' ? '' : description?.dataset.translation || '',
+      ].filter(Boolean).join('\n');
+      showMenuPopup(packageName, full);
+      return;
+    }
+    const description = event.target.closest('.menuconfig-package-desc');
+    if (description && (description.scrollWidth > description.clientWidth + 1 || description.scrollHeight > description.clientHeight + 1)) {
+      const full = [
+        description.dataset.fullText || description.textContent.trim(),
+        state.lang === 'en' ? '' : description.dataset.translation || '',
+      ].filter(Boolean).join('\n');
+      showMenuPopup(description, full);
+    }
   }, true);
   document.addEventListener('pointerover', (event) => {
     const clippedDescription = event.target.closest('.menuconfig-package-desc');
     if (clippedDescription &&
         clippedDescription.scrollWidth > clippedDescription.clientWidth + 1 &&
         !matchMedia('(hover: none)').matches) {
-      showMenuPopup(clippedDescription, state.lang === 'en'
-        ? clippedDescription.textContent.trim()
-        : clippedDescription.dataset.translation || clippedDescription.textContent.trim());
+      showMenuPopup(clippedDescription, [
+        clippedDescription.dataset.fullText || clippedDescription.textContent.trim(),
+        state.lang === 'en' ? '' : clippedDescription.dataset.translation || '',
+      ].filter(Boolean).join('\n'));
       return;
     }
     const help = event.target.closest('.menuconfig-state-help');
@@ -1387,7 +1410,8 @@ function renderMenuOption(option, showPath = false) {
   const name = document.createElement('span');
   name.className = packageName ? 'menuconfig-package-name' : 'menuconfig-option-name';
   name.textContent = packageName || menuOptionLabel(option);
-  if (!packageName) name.title = name.textContent;
+  if (packageName) name.dataset.fullText = packageName;
+  else name.title = name.textContent;
   prompt.appendChild(name);
   if (packageName) {
     const description = document.createElement('span');
@@ -1395,6 +1419,7 @@ function renderMenuOption(option, showPath = false) {
     const raw = String(option.promptEn || option.prompt || '');
     description.textContent = String(option.usageEn || raw
       .replace(new RegExp(`^${packageName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.*\\s*`, 'i'), '')).trim();
+    description.dataset.fullText = description.textContent;
     prompt.appendChild(description);
   }
   if (!packageName) {
