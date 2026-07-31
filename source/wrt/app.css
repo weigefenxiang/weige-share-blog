@@ -728,7 +728,19 @@ html[data-theme="light"] .import-source-field .target-select { color-scheme: lig
     right: max(8px, env(safe-area-inset-right));
     bottom: calc(132px + env(safe-area-inset-bottom));
   }
+  .menuconfig-toggle{align-items:flex-start;flex-wrap:wrap;gap:3px 8px}
+  .menuconfig-toggle strong{flex:1 1 calc(100% - 38px);min-width:0;overflow:hidden;text-overflow:ellipsis}
+  .menuconfig-toggle .hint{order:3;flex:1 1 100%;margin-left:0;white-space:nowrap}
+  .menuconfig-toolbar{align-items:stretch}
+  .menuconfig-breadcrumb{order:1;flex:1 1 calc(100% - 44px);max-width:calc(100% - 44px);overflow-x:auto;overflow-y:hidden;font-size:15px}
+  .menuconfig-toolbar input[type="search"]{order:2;flex:1 1 100%;max-width:none}
+  .menuconfig-toolbar>label{order:3;flex:1 1 auto;min-width:0}
+  .menuconfig-state-help{order:3;flex:none}
   .plugin-grid { grid-template-columns: 1fr; }
+  .legend,.toolbar,.group{margin-right:52px}
+  .legend{align-items:flex-start;padding-right:10px}
+  .legend .lg-item{min-width:0;white-space:nowrap}
+  .legend .lg-stats{flex:1 0 100%;width:auto;overflow-wrap:anywhere}
   .plugin { border-right: none; padding: 12px 14px; }
   .plugin input { width: 18px; height: 18px; }
   .toolbar { flex-wrap: wrap; }
@@ -759,6 +771,11 @@ html[data-theme="light"] .import-source-field .target-select { color-scheme: lig
   .brand-icon { width: 26px; height: 26px; }
   .brand h1 { font-size: 15px; }
   .step h2 { font-size: 15px; }
+  .menuconfig-toggle strong{font-size:14px}
+  .menuconfig-toggle .hint{font-size:12px}
+  .menuconfig-package-name{font-size:15px}
+  .menuconfig-option-actions{gap:4px}
+  .kconfig-tri button{min-width:29px;padding-inline:5px}
   .pill { font-size: 13px; padding: 6px 12px; min-height: 38px; }
   .pill-active { padding: 5px 11px; }
   .plugin { padding: 10px 12px; }
