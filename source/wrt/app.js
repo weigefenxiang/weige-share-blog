@@ -52,7 +52,8 @@ const state = {
   rootpw: '',
   rootpwAuto: false,
   timezone: '',
-  theme: 'luci-theme-argon',
+  theme: '@base',
+  minimumBoot: false,
   ntp: 'cn',
   opkg: 'auto',
   siteVersion: 'v----------',
@@ -60,7 +61,7 @@ const state = {
   importedConfigId: '',
 };
 const LANIP_RE = /^(192\.168|10\.\d{1,3}|172\.(1[6-9]|2\d|3[01]))\.\d{1,3}\.\d{1,3}$/;   // 仅接受内网 IPv4 / private IPv4 only
-let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null;
+let DEVICES = null, PLUGINS = null, I18N = null, TIMEZONES = null, MINIMUM_BOOT = null;
 let MENU_INDEX = null, MENU_CATALOG = null;
 let menuCatalogKey = '', menuLoadingKey = '', menuCatalogSeq = 0, menuCatalogPromise = null;
 let catalogLoadMode = 'idle', catalogLoadError = '';
@@ -78,6 +79,9 @@ let menuOptionBySymbol = new Map(), menuTargetSymbols = new Set();
 let menuExactPaths = new Map(), menuChildPaths = new Map(), menuDescendants = new Map();
 let menuChoiceOptions = new Map(), menuChildrenByParent = new Map(), menuNestedCounts = new Map();
 let menuSearchText = new Map();
+const minimumBootOriginal = new Map();
+const minimumBootTouchedOriginal = new Set();
+let minimumBootApplying = false;
 let MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
 const MENU_PAGE_SIZE = 80;
 const LANG_SHORT = {
@@ -258,6 +262,14 @@ function applyI18n() {
     $('menuconfigStateHelp').setAttribute('aria-label',
       uiText('N、M、Y 状态说明', 'N、M、Y 狀態說明', 'N, M, and Y state help'));
   }
+  if ($('minimumBootLabel')) $('minimumBootLabel').textContent =
+    uiText('最低开机', '最低開機', 'Minimum boot');
+  if ($('minimumBootTitle')) $('minimumBootTitle').textContent =
+    uiText('最低开机配置', '最低開機設定', 'Minimum boot preset');
+  if ($('minimumBootHint')) $('minimumBootHint').textContent = uiText(
+    '仅使用当前分支提供的项目；防火墙后端强制二选一',
+    '僅使用目前分支提供的項目；防火牆後端強制二選一',
+    'Only current-branch packages are used; choose exactly one firewall backend');
   renderCatalogLoadState();
   $('advLabel').title = t('adv.title');
   // Fork 提示内嵌两个链接,不能整段 textContent,需拆分文案后用 DOM 节点拼装 / The fork hint embeds two links, so the text is split and assembled from DOM nodes instead of one textContent
@@ -422,9 +434,9 @@ async function init() {
         if (/^https?:\/\//.test(PROJECT.blogUrl || '')) link.href = PROJECT.blogUrl;
       });
     } catch (e) { /* old deployments keep the built-in project defaults */ }
-    [DEVICES, CONFIG_MANIFEST, TIMEZONES, MENU_INDEX] = await Promise.all([
+    [DEVICES, CONFIG_MANIFEST, TIMEZONES, MENU_INDEX, MINIMUM_BOOT] = await Promise.all([
       loadJson('devices.json'), loadJson('config-manifest.json'), loadJson('timezones.json'),
-      loadJson('menuconfig-index.json'),
+      loadJson('menuconfig-index.json'), loadJson('minimum-boot.json'),
     ]);
     initializeTimezone();
     MENU_INDEX = stableCatalogIndex(MENU_INDEX);
@@ -443,6 +455,7 @@ async function init() {
     initDeviceFold();
     initMenuconfigControls();
     initCatalogLocator();
+    initMinimumBoot();
     applyI18n();
     $('advMode').checked = state.advanced;
     resetAdvGrey();   // V10:门禁行随记忆的开发者模式显隐,但永远从未勾开始 / V10: gate row follows the remembered developer mode, but always starts unticked
@@ -807,7 +820,11 @@ function showMenuPopup(element, text) {
 }
 function hideMenuTooltip() {
   const tooltip = $('menuTooltip');
-  if (tooltip) tooltip.hidden = true;
+  if (!tooltip) return;
+  tooltip.hidden = true;
+  tooltip.textContent = '';
+  tooltip.style.removeProperty('left');
+  tooltip.style.removeProperty('top');
 }
 function renderCatalogLoadState() {
   const box = $('catalogLoadState');
@@ -944,6 +961,8 @@ async function loadCatalog(source, branch, applyDefault = true) {
     buildMenuIndexes(catalog);
     menuValues.clear();
     menuTouched.clear();
+    minimumBootOriginal.clear();
+    minimumBootTouchedOriginal.clear();
     menuImportedOriginal.clear();
     menuImportedNonDefault.clear();
     for (const option of catalog.menu.options || []) {
@@ -956,6 +975,8 @@ async function loadCatalog(source, branch, applyDefault = true) {
       const preferred = String(choice.defaults?.[0] || '').split(/\s+/)[0];
       if (!selected && preferred) menuValues.set(preferred, 'y');
     }
+    if (state.minimumBoot) await applyMinimumBootPreset(false);
+    else renderMinimumBoot();
     resetMenuNavigation();
     menuVisibleLimit = MENU_PAGE_SIZE;
     renderCatalogPicker(false, { sourceId: source.id, branchId: branch.id });
@@ -1237,13 +1258,185 @@ function setMenuValue(option, value, openChildren = false) {
     }
   }
   const curatedChanged = syncMenuToCurated(option, value);
+  if (!minimumBootApplying) {
+    reconcileMinimumBootChange(option, value);
+    syncThemeFromMenu(option, value);
+  }
   if (openChildren && value !== 'n') openMenuChildren(option);
   renderMenuconfig();
+  renderMinimumBoot();
+  renderFirmwareSettings();
   if (curatedChanged) {
     renderGroups();
     updateStats();
   }
 }
+
+function minimumBootRows() {
+  if (!MINIMUM_BOOT) return [];
+  return [...(MINIMUM_BOOT.items || []), ...(MINIMUM_BOOT.firewallBackend?.candidates || [])];
+}
+function minimumBootHelp(item) {
+  const lang = state.lang === 'zh-CN' ? 'zh-CN' : 'en';
+  const usage = item.description?.[lang] || item.description?.en || '';
+  const without = item.without?.[lang] || item.without?.en || '';
+  return state.lang === 'zh-CN'
+    ? `用途：${usage}\n不选择：${without}`
+    : `Purpose: ${usage}\nWithout it: ${without}`;
+}
+function minimumBootOption(item) {
+  return menuOptionBySymbol.get(item.symbol) || null;
+}
+function minimumFirewallItems() {
+  return MINIMUM_BOOT?.firewallBackend?.candidates || [];
+}
+function setMenuValueQuiet(option, value) {
+  if (!option) return;
+  menuValues.set(option.symbol, value);
+  menuTouched.add(option.symbol);
+  syncMenuToCurated(option, value);
+}
+function enforceFirewallBackend(preferred = '') {
+  const available = minimumFirewallItems().filter(minimumBootOption);
+  if (!available.length) return;
+  let chosen = available.find((item) => item.symbol === preferred);
+  chosen ||= available.find((item) => menuValues.get(item.symbol) === 'y');
+  chosen ||= available.find((item) => simpleKconfigDefault(minimumBootOption(item)) === 'y');
+  chosen ||= available[0];
+  minimumBootApplying = true;
+  for (const item of available) setMenuValueQuiet(minimumBootOption(item), item === chosen ? 'y' : 'n');
+  minimumBootApplying = false;
+}
+function configSymbolValue(text, symbol) {
+  const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = String(text || '').match(new RegExp(`^CONFIG_${escaped}=([ym])$`, 'm'));
+  return match?.[1] || 'n';
+}
+async function currentBaseConfigText() {
+  if (state.importedConfig) return state.importedConfig;
+  if (state.device?.id === 'catalog-target') return '';
+  const configName = state.variant?.configs?.[state.version?.id] || state.variant?.config || state.source?.config;
+  if (!configName) return '';
+  try { return await (await fetchData(`${state.device.id}/${configName}`)).text(); }
+  catch (error) { return ''; }
+}
+async function applyMinimumBootPreset(readBase = true) {
+  if (!state.minimumBoot || !MENU_CATALOG) return;
+  const rows = minimumBootRows();
+  if (!minimumBootOriginal.size) {
+    const symbols = new Set(rows.map((item) => item.symbol));
+    for (const symbol of menuOptionBySymbol.keys()) {
+      if (symbol.startsWith('PACKAGE_luci-theme-')) symbols.add(symbol);
+    }
+    for (const symbol of symbols) {
+      minimumBootOriginal.set(symbol, menuValues.get(symbol) ?? 'n');
+      if (menuTouched.has(symbol)) minimumBootTouchedOriginal.add(symbol);
+    }
+  }
+  minimumBootApplying = true;
+  for (const item of MINIMUM_BOOT.items || []) {
+    const option = minimumBootOption(item);
+    if (option) setMenuValueQuiet(option, option.type === 'bool' ? 'y' : (item.default || 'y'));
+  }
+  minimumBootApplying = false;
+  let preferred = '';
+  if (readBase) {
+    const base = await currentBaseConfigText();
+    preferred = minimumFirewallItems().find((item) =>
+      configSymbolValue(base, item.symbol) === 'y')?.symbol || '';
+  }
+  enforceFirewallBackend(preferred);
+  const argon = menuOptionBySymbol.get('PACKAGE_luci-theme-argon');
+  if (argon && menuValues.get(argon.symbol) === 'y') {
+    minimumBootApplying = true;
+    for (const [symbol, option] of menuOptionBySymbol) {
+      if (symbol.startsWith('PACKAGE_luci-theme-')) {
+        setMenuValueQuiet(option, symbol === argon.symbol ? 'y' : 'n');
+      }
+    }
+    minimumBootApplying = false;
+    state.theme = 'luci-theme-argon';
+  }
+  renderMinimumBoot();
+  renderFirmwareSettings();
+  renderMenuconfig();
+  renderGroups();
+  updateStats();
+}
+function restoreMinimumBootPreset() {
+  minimumBootApplying = true;
+  for (const [symbol, value] of minimumBootOriginal) {
+    const option = menuOptionBySymbol.get(symbol);
+    if (!option) continue;
+    menuValues.set(symbol, value);
+    if (minimumBootTouchedOriginal.has(symbol)) menuTouched.add(symbol);
+    else menuTouched.delete(symbol);
+    syncMenuToCurated(option, value);
+  }
+  minimumBootApplying = false;
+  minimumBootOriginal.clear();
+  minimumBootTouchedOriginal.clear();
+  state.theme = '@base';
+}
+function reconcileMinimumBootChange(option, value) {
+  if (!state.minimumBoot || !minimumFirewallItems().some((item) => item.symbol === option.symbol)) return;
+  const other = minimumFirewallItems().find((item) =>
+    item.symbol !== option.symbol && minimumBootOption(item));
+  if (value === 'y') enforceFirewallBackend(option.symbol);
+  else enforceFirewallBackend(other?.symbol || option.symbol);
+}
+function syncThemeFromMenu(option, value) {
+  if (!option.symbol.startsWith('PACKAGE_luci-theme-')) return;
+  if (value === 'y') state.theme = option.symbol.slice('PACKAGE_'.length);
+  else if (`PACKAGE_${state.theme}` === option.symbol) state.theme = '@base';
+}
+function renderMinimumBoot() {
+  const panel = $('minimumBootPanel');
+  const grid = $('minimumBootGrid');
+  if (!panel || !grid) return;
+  panel.hidden = !state.minimumBoot;
+  if (!state.minimumBoot) return;
+  grid.textContent = '';
+  for (const item of minimumBootRows()) {
+    const option = minimumBootOption(item);
+    const row = document.createElement('label');
+    row.className = `minimum-boot-item menuconfig-state-help${option ? '' : ' is-unavailable'}`;
+    row.dataset.help = minimumBootHelp(item);
+    const name = document.createElement('span');
+    name.className = 'minimum-boot-name';
+    name.textContent = item.id;
+    const select = document.createElement('select');
+    select.className = 'minimum-boot-state';
+    const backend = minimumFirewallItems().some((candidate) => candidate.symbol === item.symbol);
+    const values = backend ? ['n', 'y'] : (option?.type === 'bool' ? ['n', 'y'] : ['n', 'm', 'y']);
+    for (const value of values) {
+      const entry = document.createElement('option');
+      entry.value = value;
+      entry.textContent = value.toUpperCase();
+      select.appendChild(entry);
+    }
+    select.value = option ? String(menuValues.get(item.symbol) ?? 'n') : 'n';
+    select.disabled = !option || (backend && minimumFirewallItems().filter(minimumBootOption).length === 1);
+    select.onchange = () => setMenuValue(option, select.value);
+    row.append(name, select);
+    grid.appendChild(row);
+  }
+}
+function initMinimumBoot() {
+  $('minimumBootToggle').onchange = async () => {
+    state.minimumBoot = $('minimumBootToggle').checked;
+    if (state.minimumBoot) await applyMinimumBootPreset(true);
+    else {
+      restoreMinimumBootPreset();
+      renderMinimumBoot();
+      renderFirmwareSettings();
+      renderMenuconfig();
+      renderGroups();
+      updateStats();
+    }
+  };
+}
+
 function initMenuconfigControls() {
   $('menuconfigToggle').onclick = () => {
     menuExpanded = !menuExpanded;
@@ -1397,6 +1590,10 @@ function initMenuconfigControls() {
     }
     const translated = event.target.closest('.menu-translation');
     if (translated) showMenuTooltip(translated);
+  });
+  document.addEventListener('focusout', (event) => {
+    if (event.target.closest('.menu-translation,.menuconfig-state-help') &&
+        !event.relatedTarget?.closest?.('.menu-translation,.menuconfig-state-help')) hideMenuTooltip();
   });
 }
 function renderMenuOption(option, showPath = false) {
@@ -1601,6 +1798,7 @@ function renderMenuPanelTitle(mode = 'path') {
   });
 }
 function renderMenuconfig() {
+  hideMenuTooltip();
   const box = $('menuconfigBox');
   if (!box || !MENU_CATALOG?.menu?.options) return;
   box.hidden = false;
@@ -2272,7 +2470,7 @@ function renderModes() {
   document.addEventListener('pointerdown', (event) => {
     if (!$('timezoneCombo').contains(event.target)) closeTimezoneMenu();
   });
-  $('fwThemeBox').addEventListener('change', () => { state.theme = $('fwThemeBox').value; });
+  $('fwThemeBox').addEventListener('change', () => setFirmwareTheme($('fwThemeBox').value));
   $('ntpBox').addEventListener('change', () => { state.ntp = $('ntpBox').value; });
   $('opkgBox').addEventListener('change', () => { state.opkg = $('opkgBox').value; });
 }
@@ -2412,13 +2610,18 @@ function renderTimezones() {
 function renderFirmwareSettings() {
   if (!state.source) return;
   renderTimezones();
-  const themes = ['OpenWrt', 'lede'].includes(state.source.id)
-    ? [['luci-theme-bootstrap', 'Bootstrap']]
-    : [['luci-theme-argon', 'Argon'], ['luci-theme-bootstrap', 'Bootstrap'],
-      ['luci-theme-material', 'Material'], ['luci-theme-openwrt-2020', 'OpenWrt 2020']];
-  if (!themes.some(([id]) => id === state.theme)) {
-    state.theme = ['OpenWrt', 'lede'].includes(state.source.id) ? 'luci-theme-bootstrap' : 'luci-theme-argon';
-  }
+  const knownLabels = {
+    'luci-theme-argon': 'Argon', 'luci-theme-bootstrap': 'Bootstrap',
+    'luci-theme-material': 'Material', 'luci-theme-openwrt-2020': 'OpenWrt 2020',
+  };
+  const catalogThemes = [...menuOptionBySymbol.keys()]
+    .filter((symbol) => symbol.startsWith('PACKAGE_luci-theme-'))
+    .map((symbol) => symbol.slice('PACKAGE_'.length));
+  const available = catalogThemes.length ? catalogThemes :
+    ['luci-theme-bootstrap', 'luci-theme-argon', 'luci-theme-material', 'luci-theme-openwrt-2020'];
+  const themes = [['@base', uiText('跟随基础配置', '跟隨基礎設定', 'Follow base config')]]
+    .concat([...new Set(available)].map((id) => [id, knownLabels[id] || id.replace(/^luci-theme-/, '')]));
+  if (!themes.some(([id]) => id === state.theme)) state.theme = '@base';
   state.theme = fillSelect('fwThemeBox', themes, state.theme);
   state.ntp = fillSelect('ntpBox', [
     ['cn', t('fw.ntp.cn')], ['global', t('fw.ntp.global')], ['cloudflare', t('fw.ntp.cloud')],
@@ -2428,6 +2631,23 @@ function renderFirmwareSettings() {
   else if (state.source.id !== 'lede') opkgEntries.push(['pku', 'PKU']);
   if (!opkgEntries.some(([id]) => id === state.opkg)) state.opkg = 'auto';
   state.opkg = fillSelect('opkgBox', opkgEntries, state.opkg);
+}
+function setFirmwareTheme(theme) {
+  state.theme = theme;
+  if (theme !== '@base' && MENU_CATALOG) {
+    minimumBootApplying = true;
+    for (const [symbol, option] of menuOptionBySymbol) {
+      if (!symbol.startsWith('PACKAGE_luci-theme-') || !optionVisible(option)) continue;
+      setMenuValueQuiet(option, symbol === `PACKAGE_${theme}` ? 'y' : 'n');
+    }
+    minimumBootApplying = false;
+    renderMenuconfig();
+    renderMinimumBoot();
+    renderGroups();
+    updateStats();
+  }
+  renderFirmwareSettings();
+  renderMinimumBoot();
 }
 
 /* 当前源的登录信息提示,root 与密码状态着色强调 / per-source login hint with colored emphasis on "root" and the password value */
@@ -2987,21 +3207,44 @@ function applyToConfig(text, sel) {
     for (const name of devPkgs) setY(name);
     for (const name of devRemoved) text = text.replace('CONFIG_PACKAGE_' + name + '=y', '# CONFIG_PACKAGE_' + name + ' is not set');
   }
-  // 固件 LuCI 主题是 Kconfig 选择:先关闭配置中已有主题,再只打开用户所选主题 / firmware theme is a Kconfig choice
-  text = text.replace(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=[ym]$/gm, '# CONFIG_PACKAGE_$1 is not set');
-  setY(state.theme);
   const zone = currentTimezone();
   text = applyImportedUnknownEdits(text);
   text = applyMenuConfig(text);
+  // “跟随基础配置”不改主题；选择具体主题时才关闭其他主题并只启用所选项。
+  if (state.theme !== '@base') {
+    text = text.replace(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=[ym]$/gm, '# CONFIG_PACKAGE_$1 is not set');
+    setY(state.theme);
+  }
+  let resolvedTheme = resolveConfigTheme(text, false);
+  if (!resolvedTheme) {
+    resolvedTheme = 'luci-theme-bootstrap';
+    setY(resolvedTheme);
+  }
+  const minimum = state.minimumBoot
+    ? minimumBootRows().filter((item) => configSymbolValue(text, item.symbol) !== 'n')
+      .map((item) => `${item.id}=${configSymbolValue(text, item.symbol)}`).join(' ')
+    : '';
   return '# Generated by WeiG-OpenWrt-AutoBuild web customizer\n' +
     '# page-version=' + state.siteVersion + '\n' +
     '# device=' + state.device.id + ' source=' + src + ' version=' + state.version.id +
     ' (' + state.version.branch + ') variant=' + state.variant.id + '\n' +
-    '# firmware-settings: zonename=' + zone.zonename + ' timezone=' + zone.timezone + ' theme=' + state.theme +
+    '# firmware-settings: zonename=' + zone.zonename + ' timezone=' + zone.timezone + ' theme=' + resolvedTheme +
     ' ntp=' + state.ntp + ' opkg=' + state.opkg + '\n' +
+    (minimum ? '# minimum-boot: ' + minimum + '\n' : '') +
     '# plugins: ' + (sel.normal.map((p) => p.id).join(' ') || '(none)') + '\n' +
     (sel.forced.length ? '# forced (advanced): ' + sel.forced.map((p) => p.id).join(' ') + '\n' : '') +
     (sel.removed.length ? '# removed builtin (advanced): ' + sel.removed.map((p) => p.id).join(' ') + '\n' : '') + text;
+}
+function resolveConfigTheme(text, fallback = true) {
+  const enabled = [...String(text).matchAll(/^CONFIG_PACKAGE_(luci-theme-[A-Za-z0-9._+-]+)=y$/gm)]
+    .map((match) => match[1]);
+  if (state.theme !== '@base' && enabled.includes(state.theme)) return state.theme;
+  return enabled[0] || (fallback ? 'luci-theme-bootstrap' : '');
+}
+function configFirmwareSettings(text) {
+  const match = String(text).match(/^# firmware-settings: .* theme=([^\s]+) ntp=/m);
+  return { timezone: state.timezone, theme: match?.[1] || resolveConfigTheme(text),
+    ntp: state.ntp, opkg: state.opkg };
 }
 
 async function generateConfigText() {
@@ -3633,7 +3876,7 @@ function openSubmitModal() {
           device: state.device.id, source: state.source.id, version: state.version.id,
           branch: state.version.branch,
           variant: state.variant.id, plugins, tag, lanip: state.lanip, config,
-          firmware,
+          firmware: configFirmwareSettings(config),
         };
         if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;

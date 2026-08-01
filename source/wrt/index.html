@@ -6,7 +6,7 @@
 <meta name="description" data-i18n="app.desc" content="OpenWrt 固件在线定制:选源码、勾插件,GitHub Actions 云编译,免费自取">
 <title>Wei.G · OpenWrt 固件在线定制</title>
 <link rel="icon" href="Wei.G.ico">
-<link rel="stylesheet" href="app.css?v=82663560b0">
+<link rel="stylesheet" href="app.css?v=60c672bf2c">
 </head>
 <body>
 <header class="site-header">
@@ -89,11 +89,24 @@
           </button>
         </div>
         <div class="catalog-locator">
-          <input type="search" id="catalogLocator" autocomplete="off"
-            placeholder="Search source, branch, target, menu or package"
-            aria-label="Search source, branch, target, menu or package">
+          <div class="catalog-locator-row">
+            <input type="search" id="catalogLocator" autocomplete="off"
+              placeholder="Search source, branch, target, menu or package"
+              aria-label="Search source, branch, target, menu or package">
+            <label class="minimum-boot-switch">
+              <input type="checkbox" id="minimumBootToggle">
+              <span id="minimumBootLabel">Minimum boot</span>
+            </label>
+          </div>
           <div class="catalog-locator-results" id="catalogLocatorResults" hidden></div>
         </div>
+        <section class="minimum-boot-panel" id="minimumBootPanel" hidden>
+          <div class="minimum-boot-head">
+            <strong id="minimumBootTitle">Minimum boot preset</strong>
+            <span id="minimumBootHint">Only current-branch packages are used; choose exactly one firewall backend</span>
+          </div>
+          <div class="minimum-boot-grid" id="minimumBootGrid"></div>
+        </section>
         <div class="menuconfig-box" id="menuconfigBox" hidden>
           <button class="menuconfig-toggle" id="menuconfigToggle" type="button" aria-expanded="false" aria-controls="menuconfigBody">
             <strong>Advanced menuconfig</strong>
@@ -278,6 +291,6 @@
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 
 <noscript><p class="wrap" style="padding:2rem 0">本页面需要启用 JavaScript 才能使用。/ JavaScript is required.</p></noscript>
-<script src="app.js?v=c9111a30cf"></script>
+<script src="app.js?v=33f2448319"></script>
 </body>
 </html>
