@@ -1,7 +1,6 @@
 ---
 title: 标准溶液计算审核系统（Standard Solution Review System）
 date: 2026-07-02 09:19:11
-sticky: 100
 tags:
   - Python
   - PyQt6

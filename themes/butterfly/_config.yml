@@ -23,7 +23,7 @@ menu:
   分类: /categories/ || fas fa-folder-open
   标签: /tags/ || fas fa-tags
   关于我: /about/ || fas fa-user
-  固件定制: https://wrt.weigeshare.cc.cd/ || fas fa-wifi
+  固件定制: /wrt/ || fas fa-wifi
   # Home: / || fas fa-home
   # List||fas fa-list:
   #   Music: /music/ || fas fa-music
