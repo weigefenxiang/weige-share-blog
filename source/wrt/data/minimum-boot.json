@@ -2,19 +2,6 @@
  "version": 2,
  "items": [
   {
-   "id": "luci-light",
-   "symbol": "PACKAGE_luci-light",
-   "default": "y",
-   "description": {
-    "zh-CN": "轻量 LuCI 网页管理界面",
-    "en": "Lightweight LuCI web interface"
-   },
-   "without": {
-    "zh-CN": "若也没有其他 LuCI 集合，可能无法通过网页管理路由器。",
-    "en": "Without another LuCI collection, web administration may be unavailable."
-   }
-  },
-  {
    "id": "luci-mod-admin-full",
    "symbol": "PACKAGE_luci-mod-admin-full",
    "default": "y",
