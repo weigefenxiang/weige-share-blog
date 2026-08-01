@@ -82,6 +82,7 @@ let menuSearchText = new Map();
 const minimumBootOriginal = new Map();
 const minimumBootTouchedOriginal = new Set();
 let minimumBootApplying = false;
+let minimumBootModalOpen = false;
 let MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
 const MENU_PAGE_SIZE = 80;
 const LANG_SHORT = {
@@ -263,13 +264,9 @@ function applyI18n() {
       uiText('N、M、Y 状态说明', 'N、M、Y 狀態說明', 'N, M, and Y state help'));
   }
   if ($('minimumBootLabel')) $('minimumBootLabel').textContent =
-    uiText('最低开机', '最低開機', 'Minimum boot');
-  if ($('minimumBootTitle')) $('minimumBootTitle').textContent =
-    uiText('最低开机配置', '最低開機設定', 'Minimum boot preset');
-  if ($('minimumBootHint')) $('minimumBootHint').textContent = uiText(
-    '仅使用当前分支提供的项目；防火墙后端强制二选一',
-    '僅使用目前分支提供的項目；防火牆後端強制二選一',
-    'Only current-branch packages are used; choose exactly one firewall backend');
+    uiText('推荐项', '推薦項', 'Recommended');
+  if ($('minimumBootConfig')) $('minimumBootConfig').textContent =
+    uiText('配置', '設定', 'Configure');
   renderCatalogLoadState();
   $('advLabel').title = t('adv.title');
   // Fork 提示内嵌两个链接,不能整段 textContent,需拆分文案后用 DOM 节点拼装 / The fork hint embeds two links, so the text is split and assembled from DOM nodes instead of one textContent
@@ -1390,44 +1387,102 @@ function syncThemeFromMenu(option, value) {
   if (value === 'y') state.theme = option.symbol.slice('PACKAGE_'.length);
   else if (`PACKAGE_${state.theme}` === option.symbol) state.theme = '@base';
 }
-function renderMinimumBoot() {
-  const panel = $('minimumBootPanel');
-  const grid = $('minimumBootGrid');
-  if (!panel || !grid) return;
-  panel.hidden = !state.minimumBoot;
-  if (!state.minimumBoot) return;
-  grid.textContent = '';
+function catalogSelectLock(option) {
+  return (MENU_CATALOG?.menu?.options || []).find((candidate) => {
+    const value = menuValues.get(candidate.symbol) ?? simpleKconfigDefault(candidate);
+    return value !== 'n' && (candidate.selects || []).some((rule) =>
+      rule.split(/\s+if\s+/, 2)[0] === option.symbol);
+  }) || null;
+}
+function renderRecommendedBackend(item, option) {
+  const row = document.createElement('div');
+  row.className = 'menuconfig-option package-option menuconfig-state-help';
+  row.dataset.help = minimumBootHelp(item);
+  const name = document.createElement('span');
+  name.className = 'menuconfig-package-name';
+  name.textContent = item.id;
+  const actions = document.createElement('span');
+  actions.className = 'menuconfig-option-actions';
+  const tri = document.createElement('span');
+  tri.className = 'kconfig-tri';
+  const alone = minimumFirewallItems().filter(minimumBootOption).length === 1;
+  const current = menuValues.get(item.symbol) ?? 'n';
+  for (const value of ['n', 'y']) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.textContent = value.toUpperCase();
+    button.className = current === value ? 'active' : '';
+    button.disabled = alone || (current === 'y' && value === 'n' && !minimumFirewallItems()
+      .some((other) => other.symbol !== item.symbol && minimumBootOption(other)));
+    button.onclick = () => setMenuValue(option, value);
+    tri.appendChild(button);
+  }
+  actions.appendChild(tri);
+  row.append(name, actions);
+  return row;
+}
+function renderMinimumBootModal() {
+  if (!minimumBootModalOpen || $('modal').hidden) return;
+  const body = $('modalBody');
+  body.textContent = '';
+  const intro = document.createElement('p');
+  intro.className = 'hint';
+  intro.textContent = uiText(
+    '项目与 N/M/Y 选项以当前 Catalog 为准；防火墙后端必须二选一。',
+    '項目與 N/M/Y 選項以目前 Catalog 為準；防火牆後端必須二選一。',
+    'Items and N/M/Y states come from the current Catalog; choose exactly one firewall backend.');
+  body.appendChild(intro);
   for (const item of minimumBootRows()) {
     const option = minimumBootOption(item);
-    const row = document.createElement('label');
-    row.className = `minimum-boot-item menuconfig-state-help${option ? '' : ' is-unavailable'}`;
-    row.dataset.help = minimumBootHelp(item);
-    const name = document.createElement('span');
-    name.className = 'minimum-boot-name';
-    name.textContent = item.id;
-    const select = document.createElement('select');
-    select.className = 'minimum-boot-state';
     const backend = minimumFirewallItems().some((candidate) => candidate.symbol === item.symbol);
-    const values = backend ? ['n', 'y'] : (option?.type === 'bool' ? ['n', 'y'] : ['n', 'm', 'y']);
-    for (const value of values) {
-      const entry = document.createElement('option');
-      entry.value = value;
-      entry.textContent = value.toUpperCase();
-      select.appendChild(entry);
+    if (!option) {
+      const row = document.createElement('div');
+      row.className = 'minimum-boot-item is-unavailable menuconfig-state-help';
+      row.dataset.help = minimumBootHelp(item);
+      row.innerHTML = `<span class="minimum-boot-name">${item.id}</span><span>N</span>`;
+      body.appendChild(row);
+      continue;
     }
-    select.value = option ? String(menuValues.get(item.symbol) ?? 'n') : 'n';
-    select.disabled = !option || (backend && minimumFirewallItems().filter(minimumBootOption).length === 1);
-    select.onchange = () => setMenuValue(option, select.value);
-    row.append(name, select);
-    grid.appendChild(row);
+    if (backend) {
+      body.appendChild(renderRecommendedBackend(item, option));
+      continue;
+    }
+    const row = renderMenuOption(option);
+    row.classList.add('recommended-option');
+    row.dataset.help = minimumBootHelp(item);
+    const lockedBy = catalogSelectLock(option);
+    if (lockedBy) {
+      row.querySelectorAll('.kconfig-tri button').forEach((button) => {
+        button.disabled = true;
+        button.title = `Selected by ${lockedBy.symbol}`;
+      });
+    }
+    body.appendChild(row);
   }
+}
+function openMinimumBootModal() {
+  if (!state.minimumBoot) return;
+  minimumBootModalOpen = true;
+  openModal(uiText('推荐项配置', '推薦項設定', 'Recommended configuration'));
+  $('modal').querySelector('.modal').classList.add('modal-wide');
+  modalCancelHandler = () => { minimumBootModalOpen = false; };
+  renderMinimumBootModal();
+}
+function renderMinimumBoot() {
+  const config = $('minimumBootConfig');
+  if (config) config.hidden = !state.minimumBoot;
+  renderMinimumBootModal();
 }
 function initMinimumBoot() {
   $('minimumBootToggle').onchange = async () => {
     state.minimumBoot = $('minimumBootToggle').checked;
-    if (state.minimumBoot) await applyMinimumBootPreset(true);
+    if (state.minimumBoot) {
+      await applyMinimumBootPreset(true);
+      openMinimumBootModal();
+    }
     else {
       restoreMinimumBootPreset();
+      if (minimumBootModalOpen) closeModal();
       renderMinimumBoot();
       renderFirmwareSettings();
       renderMenuconfig();
@@ -1435,6 +1490,7 @@ function initMinimumBoot() {
       updateStats();
     }
   };
+  $('minimumBootConfig').onclick = openMinimumBootModal;
 }
 
 function initMenuconfigControls() {
@@ -3230,7 +3286,7 @@ function applyToConfig(text, sel) {
     ' (' + state.version.branch + ') variant=' + state.variant.id + '\n' +
     '# firmware-settings: zonename=' + zone.zonename + ' timezone=' + zone.timezone + ' theme=' + resolvedTheme +
     ' ntp=' + state.ntp + ' opkg=' + state.opkg + '\n' +
-    (minimum ? '# minimum-boot: ' + minimum + '\n' : '') +
+    (minimum ? '# recommended: ' + minimum + '\n' : '') +
     '# plugins: ' + (sel.normal.map((p) => p.id).join(' ') || '(none)') + '\n' +
     (sel.forced.length ? '# forced (advanced): ' + sel.forced.map((p) => p.id).join(' ') + '\n' : '') +
     (sel.removed.length ? '# removed builtin (advanced): ' + sel.removed.map((p) => p.id).join(' ') + '\n' : '') + text;

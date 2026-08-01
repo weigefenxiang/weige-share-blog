@@ -41,16 +41,16 @@
    }
   },
   {
-   "id": "luci-app-opkg",
-   "symbol": "PACKAGE_luci-app-opkg",
+   "id": "opkg",
+   "symbol": "PACKAGE_opkg",
    "default": "y",
    "description": {
-    "zh-CN": "LuCI 软件包管理页面",
-    "en": "LuCI package management page"
+    "zh-CN": "OpenWrt 命令行软件包管理器",
+    "en": "OpenWrt command-line package manager"
    },
    "without": {
-    "zh-CN": "仍可使用命令行 opkg。",
-    "en": "Command-line opkg remains available."
+    "zh-CN": "无法使用 opkg 安装、删除或更新软件包。",
+    "en": "Packages cannot be installed, removed or updated with opkg."
    }
   },
   {
