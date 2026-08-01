@@ -3349,6 +3349,15 @@ function selectedTargetProfileName() {
   return String(profile || '').replace(/^DEVICE_/, '') || 'profile';
 }
 
+function selectedTargetProfileLabel() {
+  return String(state.device?.target?.profileLabel || selectedTargetProfileName()).trim() || 'profile';
+}
+
+function requestTargetProfilePart(forFilename = false) {
+  const forbidden = forFilename ? /[\\/:*?"<>|]+/g : /[\\:*?"<>|]+/g;
+  return selectedTargetProfileLabel().replace(/\s+/g, '_').replace(forbidden, '-').replace(/^-+|-+$/g, '') || 'profile';
+}
+
 function downloadBlob(text, type, filename) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type }));
@@ -3893,7 +3902,7 @@ function openSubmitModal() {
   };
   Object.assign(state, firmware);
   const requestStamp = localStamp();
-  const title = '[build] ' + requestStamp + '/' + state.source.id + '/' + state.version.id + '/' + selectedTargetProfileName();
+  const title = '[build] ' + requestStamp + '/' + requestTargetProfilePart() + '/' + state.source.id + '/' + state.version.id + '/' + selectedTargetProfileName();
   const issueUrl = 'https://github.com/' + repo + '/issues/new?template=custom-build.yml&title=' +
     encodeURIComponent(title);
 
@@ -3957,7 +3966,7 @@ function openSubmitModal() {
         if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;
-        const filename = [requestStamp, safeDownloadNamePart(state.source.id, 'source'),
+        const filename = [requestStamp, requestTargetProfilePart(true), safeDownloadNamePart(state.source.id, 'source'),
           safeDownloadNamePart(state.version.id, 'branch'), safeDownloadNamePart(selectedTargetProfileName())].join('-') + '.json';
         downloadBlob(JSON.stringify(payload, null, 2) + '\n', 'application/json;charset=utf-8', filename);
         if (issueWindow) issueWindow.location.href = issueUrl;
