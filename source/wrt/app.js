@@ -3335,6 +3335,11 @@ function safeDownloadNamePart(value, fallback = 'profile') {
   return cleaned || fallback;
 }
 
+function selectedTargetProfileName() {
+  const profile = state.device?.target?.profileSymbol || state.variant?.profile || state.variant?.id;
+  return String(profile || '').replace(/^DEVICE_/, '') || 'profile';
+}
+
 function downloadBlob(text, type, filename) {
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([text], { type }));
@@ -3878,8 +3883,7 @@ function openSubmitModal() {
     opkg: $('opkgBox').value,
   };
   Object.assign(state, firmware);
-  const title = '[build] ' + tag + ' · ' + state.device.id + '/' + state.source.id + '/' +
-    state.version.id + '/' + state.variant.id;
+  const title = '[build] ' + selectedTargetProfileName() + '_' + state.source.id + '/' + state.version.id;
   const issueUrl = 'https://github.com/' + repo + '/issues/new?template=custom-build.yml&title=' +
     encodeURIComponent(title);
 
@@ -3943,9 +3947,8 @@ function openSubmitModal() {
         if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;
-        const targetProfile = state.device?.target?.profileSymbol || state.variant?.profile || state.variant?.id;
         const filename = [localStamp(), safeDownloadNamePart(state.source.id, 'source'),
-          safeDownloadNamePart(state.version.id, 'branch'), safeDownloadNamePart(targetProfile)].join('-') + '.json';
+          safeDownloadNamePart(state.version.id, 'branch'), safeDownloadNamePart(selectedTargetProfileName())].join('-') + '.json';
         downloadBlob(JSON.stringify(payload, null, 2) + '\n', 'application/json;charset=utf-8', filename);
         if (issueWindow) issueWindow.location.href = issueUrl;
         else window.open(issueUrl, '_blank', 'noopener');
