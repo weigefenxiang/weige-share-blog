@@ -141,7 +141,7 @@ const DEFAULT_TARGET_SELECTORS = [
   { id: 'profile', labelEn: 'Target Profile', labelZh: '目标配置' },
 ];
 let targetSelectorValues = {};
-const DATA_CACHE_VERSION = 'v15-catalog-i18n-targets';
+const DATA_CACHE_VERSION = 'v16-recommended-source';
 const NTP_PRESETS = {
   cn: ['ntp.aliyun.com', 'time1.cloud.tencent.com', 'cn.ntp.org.cn', 'cn.pool.ntp.org'],
   global: ['0.openwrt.pool.ntp.org', '1.openwrt.pool.ntp.org', '2.openwrt.pool.ntp.org', '3.openwrt.pool.ntp.org'],
@@ -1282,7 +1282,9 @@ function minimumBootHelp(item) {
     : `Purpose: ${usage}\nWithout it: ${without}`;
 }
 function minimumBootOption(item) {
-  return menuOptionBySymbol.get(item.symbol) || null;
+  const option = menuOptionBySymbol.get(item.symbol);
+  if (!option || (item.catalogPath && !(option.path || []).includes(item.catalogPath))) return null;
+  return option;
 }
 function minimumFirewallItems() {
   return MINIMUM_BOOT?.firewallBackend?.candidates || [];
@@ -3841,7 +3843,7 @@ function closeModal() {
   const cancel = modalCancelHandler;
   modalCancelHandler = null;
   $('modal').hidden = true;
-  $('modal').querySelector('.modal').classList.remove('modal-wide', 'modal-import-source');
+  $('modal').querySelector('.modal').classList.remove('modal-wide', 'modal-import-source', 'recommended-config');
   document.body.classList.remove('modal-open');
   if (lastFocus && lastFocus.focus) lastFocus.focus();
   if (cancel) cancel();
@@ -4116,7 +4118,7 @@ applyFont(fontPx, false);
 /* ============ 使用说明弹窗:序号徽章 + 引号关键词高亮 / Help modal: numbered badges + quoted-keyword highlights ============ */
 $('helpBtn').addEventListener('click', () => {
   openModal(t('help.title'));
-  $('modal').querySelector('.modal').classList.add('modal-wide');
+  $('modal').querySelector('.modal').classList.add('modal-wide', 'recommended-config');
   const mb = $('modalBody');
   mb.textContent = '';
   for (const line of t('help.body').split('\n')) {

@@ -1,5 +1,5 @@
 {
- "version": 1,
+ "version": 2,
  "items": [
   {
    "id": "luci-light",
@@ -43,6 +43,7 @@
   {
    "id": "opkg",
    "symbol": "PACKAGE_opkg",
+   "catalogPath": "Base system",
    "default": "y",
    "description": {
     "zh-CN": "OpenWrt 命令行软件包管理器",

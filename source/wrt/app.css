@@ -389,6 +389,17 @@ input:focus-visible { border-color: var(--accent); }
 .help-body { white-space: pre-line; line-height: 1.8; }
 /* 说明弹窗排版:徽章序号 + 行间空隙 + 关键词高亮 / help modal typography */
 .modal-wide { max-width: 640px; }
+.modal.recommended-config{max-width:780px;max-height:min(78vh,720px);display:flex;flex-direction:column;overflow:hidden}
+.modal.recommended-config .modal-body{min-height:0;max-height:calc(min(78vh,720px) - 58px);overflow-y:auto;overscroll-behavior:contain}
+.modal.recommended-config .menuconfig-option{grid-template-columns:minmax(0,1fr) auto}
+.modal.recommended-config .menuconfig-package{grid-template-columns:minmax(150px,.9fr) minmax(0,1.4fr);gap:10px}
+.modal.recommended-config .menuconfig-package-name,.modal.recommended-config .menuconfig-package-desc{min-width:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.modal.recommended-config .menuconfig-option-actions{flex:none;min-width:max-content}
+@media(max-width:640px){
+  .modal.recommended-config{max-width:calc(100vw - 22px);max-height:84vh}
+  .modal.recommended-config .modal-body{max-height:calc(84vh - 58px);padding:12px}
+  .modal.recommended-config .menuconfig-package{grid-template-columns:minmax(0,1fr);gap:3px}
+}
 .help-item { display: flex; gap: 12px; align-items: flex-start; margin: 0 0 16px; font-size: 16px; line-height: 1.9; }
 .help-item:last-child { margin-bottom: 4px; }
 .help-num {
