@@ -1466,7 +1466,7 @@ function openMinimumBootModal() {
   if (!state.minimumBoot) return;
   minimumBootModalOpen = true;
   openModal(uiText('推荐项配置', '推薦項設定', 'Recommended configuration'));
-  $('modal').querySelector('.modal').classList.add('modal-wide');
+  $('modal').querySelector('.modal').classList.add('modal-wide', 'recommended-config');
   modalCancelHandler = () => { minimumBootModalOpen = false; };
   renderMinimumBootModal();
 }
