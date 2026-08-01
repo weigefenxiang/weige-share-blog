@@ -28,19 +28,6 @@
    }
   },
   {
-   "id": "luci-app-firewall",
-   "symbol": "PACKAGE_luci-app-firewall",
-   "default": "y",
-   "description": {
-    "zh-CN": "LuCI 防火墙网页管理界面",
-    "en": "LuCI firewall web interface"
-   },
-   "without": {
-    "zh-CN": "防火墙后端仍可工作，但只能用命令行或配置文件管理。",
-    "en": "The firewall backend can still work, but must be managed from the command line or config files."
-   }
-  },
-  {
    "id": "opkg",
    "symbol": "PACKAGE_opkg",
    "catalogPath": "Base system",
