@@ -3330,6 +3330,10 @@ function localStamp() {
   return String(now.getFullYear()).slice(-2) + pad(now.getMonth() + 1) + pad(now.getDate()) +
     '_' + pad(now.getHours()) + pad(now.getMinutes());
 }
+function safeDownloadNamePart(value, fallback = 'profile') {
+  const cleaned = String(value || '').trim().replace(/[\\/:*?"<>|\s]+/g, '-').replace(/^-+|-+$/g, '');
+  return cleaned || fallback;
+}
 
 function downloadBlob(text, type, filename) {
   const a = document.createElement('a');
@@ -3939,8 +3943,9 @@ function openSubmitModal() {
         if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;
-        const filename = ['build-request', state.device.id, localStamp(), state.source.id,
-          state.version.id, state.variant.id].join('-') + '.json';
+        const targetProfile = state.device?.target?.profileSymbol || state.variant?.profile || state.variant?.id;
+        const filename = [localStamp(), safeDownloadNamePart(state.source.id, 'source'),
+          safeDownloadNamePart(state.version.id, 'branch'), safeDownloadNamePart(targetProfile)].join('-') + '.json';
         downloadBlob(JSON.stringify(payload, null, 2) + '\n', 'application/json;charset=utf-8', filename);
         if (issueWindow) issueWindow.location.href = issueUrl;
         else window.open(issueUrl, '_blank', 'noopener');
