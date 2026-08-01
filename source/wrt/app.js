@@ -1396,6 +1396,10 @@ function catalogSelectLock(option) {
       rule.split(/\s+if\s+/, 2)[0] === option.symbol);
   }) || null;
 }
+function catalogSelectLockValue(option, lockedBy) {
+  const sourceValue = menuValues.get(lockedBy.symbol) ?? simpleKconfigDefault(lockedBy);
+  return sourceValue === 'm' && option.type === 'tristate' ? 'm' : 'y';
+}
 function renderRecommendedBackend(item, option) {
   const row = document.createElement('div');
   row.className = 'menuconfig-option package-option menuconfig-state-help';
@@ -1449,12 +1453,15 @@ function renderMinimumBootModal() {
       body.appendChild(renderRecommendedBackend(item, option));
       continue;
     }
+    const lockedBy = catalogSelectLock(option);
+    const lockedValue = lockedBy ? catalogSelectLockValue(option, lockedBy) : '';
+    if (lockedValue) setMenuValueQuiet(option, lockedValue);
     const row = renderMenuOption(option);
     row.classList.add('recommended-option');
     row.dataset.help = minimumBootHelp(item);
-    const lockedBy = catalogSelectLock(option);
     if (lockedBy) {
       row.querySelectorAll('.kconfig-tri button').forEach((button) => {
+        button.hidden = button.textContent.toLowerCase() !== lockedValue;
         button.disabled = true;
         button.title = `Selected by ${lockedBy.symbol}`;
       });
@@ -1696,12 +1703,14 @@ function renderMenuOption(option, showPath = false) {
   if (option.type === 'bool' || option.type === 'tristate') {
     const tri = document.createElement('span');
     tri.className = 'kconfig-tri';
-    for (const stateValue of option.type === 'tristate' ? ['n', 'm', 'y'] : ['n', 'y']) {
+    const maxLevel = optionMaxLevel(option);
+    const states = (option.type === 'tristate' ? ['n', 'm', 'y'] : ['n', 'y'])
+      .filter((stateValue) => stateValue === 'n' || kconfigLevel(stateValue) <= maxLevel);
+    for (const stateValue of states) {
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = stateValue.toUpperCase();
       button.className = value === stateValue ? 'active' : '';
-      button.disabled = option.type === 'tristate' && kconfigLevel(stateValue) > optionMaxLevel(option);
       button.onclick = () => setMenuValue(option, stateValue, childCount > 0 && stateValue !== 'n');
       tri.appendChild(button);
     }
@@ -3883,7 +3892,8 @@ function openSubmitModal() {
     opkg: $('opkgBox').value,
   };
   Object.assign(state, firmware);
-  const title = '[build] ' + selectedTargetProfileName() + '_' + state.source.id + '/' + state.version.id;
+  const requestStamp = localStamp();
+  const title = '[build] ' + requestStamp + '/' + state.source.id + '/' + state.version.id + '/' + selectedTargetProfileName();
   const issueUrl = 'https://github.com/' + repo + '/issues/new?template=custom-build.yml&title=' +
     encodeURIComponent(title);
 
@@ -3947,7 +3957,7 @@ function openSubmitModal() {
         if (['custom-target', 'catalog-target'].includes(state.device.id)) payload.customTarget = state.device.target;
         if (state.rootpw) payload.rootpw = state.rootpw;
         if (rawOps.length) payload.packages = rawOps;
-        const filename = [localStamp(), safeDownloadNamePart(state.source.id, 'source'),
+        const filename = [requestStamp, safeDownloadNamePart(state.source.id, 'source'),
           safeDownloadNamePart(state.version.id, 'branch'), safeDownloadNamePart(selectedTargetProfileName())].join('-') + '.json';
         downloadBlob(JSON.stringify(payload, null, 2) + '\n', 'application/json;charset=utf-8', filename);
         if (issueWindow) issueWindow.location.href = issueUrl;
