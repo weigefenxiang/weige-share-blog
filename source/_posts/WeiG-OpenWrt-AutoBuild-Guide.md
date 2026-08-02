@@ -35,6 +35,13 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 - 某些插件一定要编译到固件里才可使用
 - **配置环境** 对于大多数人来说相当复杂及繁琐，配置及网络环境无法满足。
 - **未来:** 每个人都可一键 **folk** ,即可拥有自己的在线编译网站（**Page** + **Github**）
+- 支持电脑、手机端
+
+<div style="display:flex; gap:10px;">
+
+<img src=https://img.weigeshare.cc.cd/img/003.010.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
+
+</div>
 
 ## 适用
 当前仅适用以下机型，其它机型尚未验证，如您没有救砖工具，请勿使用，
@@ -52,6 +59,7 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 ## 1. 选择参数
 
 - **Source → Branch → Target System → Subtarget → Target Profile**。
+  - 例 X86/64：  **ImmortalWrt → openwrt-24.10 → x86 → 64** → Generic x86/64
 
 - **推荐：✔ 推荐项** 新手建议勾选“推荐项”（否则可能无法进入界面）。
 
