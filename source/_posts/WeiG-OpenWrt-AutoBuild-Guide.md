@@ -38,9 +38,11 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 - 支持电脑、手机端
 
 <div style="display:flex; gap:10px;">
+<img src=https://img.weigeshare.cc.cd/img/003.009.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+</div>
 
-<img src=https://img.weigeshare.cc.cd/img/003.010.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
-
+<div style="display:flex; gap:10px;">
+<img src=https://img.weigeshare.cc.cd/img/003.010.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
 ## 适用
@@ -69,9 +71,9 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 然后按需；**时区**、**固件主题**、**NTP 服务器**和**软件源镜像** 一并设置。
 <div style="display:flex; gap:10px;">
 
-<img src=https://img.weigeshare.cc.cd/img/003.002.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
-<img src=https://img.weigeshare.cc.cd/img/003.003.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
-<img src=https://img.weigeshare.cc.cd/img/003.004.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
+<img src=https://img.weigeshare.cc.cd/img/003.002.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigeshare.cc.cd/img/003.003.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigeshare.cc.cd/img/003.004.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 
 </div>
 
@@ -90,8 +92,8 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 机器人会在 Issue 中回复本次构建的 Actions 链接。
 
 <div style="display:flex; gap:10px;">
-<img src=https://img.weigeshare.cc.cd/img/003.005.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
-<img src=https://img.weigeshare.cc.cd/img/003.006.WeiG-OpenWrt-AutoBuild-Guide.png height="200">
+<img src=https://img.weigeshare.cc.cd/img/003.005.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigeshare.cc.cd/img/003.006.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
 
