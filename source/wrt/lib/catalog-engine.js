@@ -127,6 +127,89 @@ export function evaluateExpression(expression, inputValues, options = {}) {
   return 2;
 }
 
+function defaultParts(raw) {
+  const source = String(raw || '').trim();
+  let quoted = false;
+  let escaped = false;
+  let depth = 0;
+  for (let index = 0; index < source.length; index++) {
+    const character = source[index];
+    if (quoted) {
+      if (escaped) escaped = false;
+      else if (character === '\\') escaped = true;
+      else if (character === '"') quoted = false;
+      continue;
+    }
+    if (character === '"') { quoted = true; continue; }
+    if (character === '(') { depth++; continue; }
+    if (character === ')') { depth = Math.max(0, depth - 1); continue; }
+    if (depth > 0 || !/\s/.test(character)) continue;
+    const marker = source.slice(index).match(/^\s+if\s+/);
+    if (!marker) continue;
+    return {
+      valueExpression: source.slice(0, index).trim(),
+      condition: source.slice(index + marker[0].length).trim(),
+    };
+  }
+  return { valueExpression: source, condition: '' };
+}
+
+function referencedExpressionSymbols(expression) {
+  const comparisonOperators = new Set(['=', '!=', '<', '>', '<=', '>=']);
+  const tokens = expressionTokens(expression);
+  return tokens.filter((token, index) =>
+    /^[A-Za-z_][A-Za-z0-9_+@./-]*$/.test(token) &&
+    !Object.hasOwn(LEVEL, token) &&
+    !comparisonOperators.has(tokens[index - 1]));
+}
+
+function nestedExpressionStrings(value) {
+  if (typeof value === 'string') return [value];
+  if (!Array.isArray(value)) return [];
+  return value.flatMap(nestedExpressionStrings);
+}
+
+export function allowedKconfigStates(option = {}) {
+  const type = String(option.type || '').toLowerCase();
+  const typeStates = type === 'bool' ? ['n', 'y'] : type === 'tristate' ? STATE : [];
+  if (!typeStates.length) return [];
+  const declared = Array.isArray(option.states) && option.states.length
+    ? new Set(option.states.map((value) => String(value).toLowerCase())) : new Set(typeStates);
+  return typeStates.filter((value) => declared.has(value));
+}
+
+export function normalizeKconfigStateValue(option, value, fallback = 'n') {
+  const allowed = allowedKconfigStates(option);
+  const normalized = String(value ?? '').toLowerCase();
+  if (allowed.includes(normalized)) return normalized;
+  return allowed.includes(fallback) ? fallback : allowed[0] || 'n';
+}
+
+function scalarDefaultValue(valueExpression) {
+  return String(valueExpression || '').trim().replace(/^"|"$/g, '');
+}
+
+export function resolveKconfigDefault(option = {}, inputValues = new Map(), options = {}) {
+  const type = String(option.type || '').toLowerCase();
+  const fallback = type === 'string' ? '' : 'n';
+  for (const raw of option.defaults || []) {
+    const { valueExpression, condition } = defaultParts(raw);
+    if (!valueExpression) continue;
+    const conditionState = evaluateExpressionRaw(condition, inputValues, options);
+    if (conditionState === UNKNOWN) return { status: 'deferred', value: fallback };
+    if (conditionState === 0) continue;
+    if (type === 'bool' || type === 'tristate') {
+      const level = evaluateExpressionRaw(valueExpression, inputValues, options);
+      if (level === UNKNOWN) return { status: 'deferred', value: fallback };
+      // Kconfig bool has no module state: an m-valued default expression is promoted to y.
+      const resolved = type === 'bool' && level === 1 ? 'y' : STATE[level] || fallback;
+      return { status: 'resolved', value: normalizeKconfigStateValue(option, resolved, fallback) };
+    }
+    return { status: 'resolved', value: scalarDefaultValue(valueExpression) };
+  }
+  return { status: 'fallback', value: fallback };
+}
+
 function compactStates(mask) {
   return ['n', 'm', 'y'].filter((_, index) => Number(mask || 0) & (1 << index));
 }
@@ -207,6 +290,9 @@ export function expandCompactRelations(compact) {
 function normalizeRecord(record) {
   const configSymbol = record.configSymbol || record.symbol ||
     (record.package ? `PACKAGE_${record.package}` : '');
+  const rawStates = Array.isArray(record.states) ? record.states : [];
+  const type = String(record.type || (rawStates.includes('m') ? 'tristate' : rawStates.length ? 'bool' : ''))
+    .toLowerCase();
   const dependsExpressions = record.kconfig?.dependsExpressions ||
     (record.kconfig?.dependsVariants || []).map((row) => row) || [];
   const selectsExpressions = record.kconfig?.selectsExpressions ||
@@ -225,7 +311,8 @@ function normalizeRecord(record) {
     package: record.package || packageNameFromSymbol(configSymbol),
     configSymbol,
     kconfigSymbol: record.kconfigSymbol || record.symbol || '',
-    states: Array.isArray(record.states) ? record.states : [],
+    type,
+    states: allowedKconfigStates({ type, states: rawStates }),
     visible: record.visible !== false,
     hidden: record.hidden === true || record.visible === false,
     userSettable: record.userSettable !== false && record.visible !== false,
@@ -271,6 +358,28 @@ export function createCatalogModel(catalog) {
     if (record.configSymbol) bySymbol.set(record.configSymbol, record);
     if (record.package) byPackage.set(record.package, record);
   }
+  const defaultReferences = new Set();
+  const deferredReferences = new Set();
+  for (const record of records) {
+    for (const raw of record.defaults || []) {
+      const { valueExpression, condition } = defaultParts(raw);
+      if (record.type === 'bool' || record.type === 'tristate') {
+        for (const symbol of referencedExpressionSymbols(valueExpression)) defaultReferences.add(symbol);
+        for (const symbol of referencedExpressionSymbols(condition)) defaultReferences.add(symbol);
+      }
+    }
+    for (const expression of nestedExpressionStrings(record.kconfig?.dependsExpressions || [])) {
+      for (const symbol of referencedExpressionSymbols(expression)) deferredReferences.add(symbol);
+    }
+    for (const rows of [record.kconfig?.selectsExpressions, record.kconfig?.impliesExpressions]) {
+      for (const raw of nestedExpressionStrings(rows || [])) {
+        const { condition } = ruleParts(raw);
+        for (const symbol of referencedExpressionSymbols(condition)) deferredReferences.add(symbol);
+      }
+    }
+  }
+  const closedDefaultSymbols = new Set([...defaultReferences].filter((symbol) =>
+    !bySymbol.has(symbol) && !deferredReferences.has(symbol) && !/^TARGET_/.test(symbol)));
   const providers = new Map();
   for (const [name, rows] of Object.entries(relations.indexes?.providers || {})) {
     providers.set(name, [...rows]);
@@ -315,6 +424,7 @@ export function createCatalogModel(catalog) {
     featureSymbols,
     targetFeatureSymbols,
     archSymbols,
+    closedDefaultSymbols,
   };
 }
 
@@ -499,6 +609,10 @@ export function createCatalogValidationContext(model, target, inputValues = new 
     ].filter(Boolean)) trustedSymbols.add(symbol);
   }
   const contextComplete = options.contextComplete ?? targetContextComplete(resolved);
+  const closedSymbols = new Set([
+    ...(model?.closedDefaultSymbols || []),
+    ...(options.closedSymbols || []),
+  ]);
   return {
     target: resolved,
     values: context.values,
@@ -508,6 +622,7 @@ export function createCatalogValidationContext(model, target, inputValues = new 
       phase,
       contextComplete,
       trustedSymbols,
+      closedSymbols,
       deferred: options.deferred || 'ignore',
     },
   };
@@ -546,6 +661,8 @@ function validationOptions(inputValues, options = {}) {
     phase: String(options.phase || 'interactive'),
     contextComplete,
     trustedSymbols,
+    closedSymbols: options.closedSymbols instanceof Set
+      ? options.closedSymbols : new Set(options.closedSymbols || []),
     deferred: options.deferred || 'ignore',
   };
 }
@@ -570,8 +687,10 @@ function dependencyState(record, values, requestedLevel = null, options = {}) {
   for (const expressions of variants) {
     const result = variantLevel(expressions, values, options);
     if (result.status === 'satisfied') {
-      maximum = Math.max(maximum, result.level);
-      if (result.level >= actual) return { status: 'satisfied', maximum: result.level };
+      // Native Kconfig promotes an m-valued direct dependency to y for bool symbols.
+      const level = record.type === 'bool' && result.level === 1 ? 2 : result.level;
+      maximum = Math.max(maximum, level);
+      if (level >= actual) return { status: 'satisfied', maximum: level };
     } else if (result.status === 'deferred') {
       deferred = true;
     }
@@ -586,8 +705,22 @@ function dependencyLevel(record, values, options = {}) {
   return result.maximum;
 }
 
+export function selectableKconfigStates(record = {}, inputValues = new Map(), options = {}) {
+  const values = valuesMap(inputValues);
+  const normalizedOptions = validationOptions(values, options);
+  return allowedKconfigStates(record).filter((value) => {
+    if (value === 'n') return record.canDisable !== false;
+    if (record.userSettable === false) return false;
+    return dependencyState(record, values, stateLevel(value), normalizedOptions).status !== 'unsatisfied';
+  });
+}
+
 function recordEnabled(record, values) {
   return stateLevel(values.get(record.configSymbol) ?? 'n') > 0;
+}
+
+function recordInstalled(record, values) {
+  return normalizeValue(values.get(record.configSymbol) ?? 'n') === 'y';
 }
 
 function enforceablePackage(model, name) {
@@ -966,6 +1099,186 @@ export function applyUserIntent(model, inputValues, intent) {
     }
   }
   return { values, changes, violations };
+}
+
+const COMPATIBILITY_DOCUMENT_KEYS = new Set(['schema', 'rules']);
+const COMPATIBILITY_RULE_KEYS = new Set(['id', 'kind', 'scope', 'if', 'packages', 'paths', 'refs']);
+const COMPATIBILITY_ID_RE = /^[A-Z][A-Z0-9-]{2,31}$/;
+const COMPATIBILITY_PACKAGE_RE = /^[A-Za-z0-9][A-Za-z0-9+_.@-]{0,95}$/;
+const COMPATIBILITY_SOURCE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
+const COMPATIBILITY_BRANCH_RE = /^[A-Za-z0-9._/-]{1,160}$/;
+
+function compatibilityError(message) {
+  const error = new Error(message);
+  error.name = 'CatalogCompatibilityError';
+  return error;
+}
+
+function compatibilityObject(value) {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value));
+}
+
+function compatibilityKeys(value, allowed, label) {
+  for (const key of Object.keys(value)) {
+    if (!allowed.has(key)) throw compatibilityError(`${label} contains unsupported field: ${key}`);
+  }
+}
+
+function compatibilityStrings(value, label, pattern, min, max) {
+  if (!Array.isArray(value) || value.length < min || value.length > max) {
+    throw compatibilityError(`${label} must contain ${min}-${max} entries`);
+  }
+  const rows = value.map((item) => String(item || '').trim());
+  if (rows.some((item) => !pattern.test(item)) || new Set(rows).size !== rows.length) {
+    throw compatibilityError(`${label} contains invalid or duplicate values`);
+  }
+  return rows;
+}
+
+export function normalizeCompatibilityDocument(raw) {
+  if (!compatibilityObject(raw)) throw compatibilityError('compatibility document must be an object');
+  compatibilityKeys(raw, COMPATIBILITY_DOCUMENT_KEYS, 'compatibility document');
+  if (Number(raw.schema) !== 1 || !Array.isArray(raw.rules)) {
+    throw compatibilityError('compatibility document requires schema 1 and a rules array');
+  }
+  if (new TextEncoder().encode(JSON.stringify(raw)).byteLength > 512 * 1024) {
+    throw compatibilityError('compatibility document is too large');
+  }
+  const ids = new Set();
+  const rules = raw.rules.map((rule, index) => {
+    const label = `compatibility.rules[${index}]`;
+    if (!compatibilityObject(rule)) throw compatibilityError(`${label} must be an object`);
+    compatibilityKeys(rule, COMPATIBILITY_RULE_KEYS, label);
+    const id = String(rule.id || '').trim();
+    if (!COMPATIBILITY_ID_RE.test(id) || ids.has(id)) {
+      throw compatibilityError(`${label}.id is invalid or duplicate`);
+    }
+    ids.add(id);
+    if (rule.kind !== 'ownership') throw compatibilityError(`${id}.kind must be ownership`);
+    if (!compatibilityObject(rule.scope) || !Object.keys(rule.scope).length) {
+      throw compatibilityError(`${id}.scope must be a non-empty object`);
+    }
+    const scope = {};
+    for (const [source, branches] of Object.entries(rule.scope)) {
+      if (!COMPATIBILITY_SOURCE_RE.test(source)) throw compatibilityError(`${id}.scope source is invalid`);
+      scope[source] = compatibilityStrings(branches, `${id}.scope.${source}`,
+        COMPATIBILITY_BRANCH_RE, 1, 32);
+    }
+    const condition = String(rule.if || '').trim();
+    if (!condition || condition.length > 512) throw compatibilityError(`${id}.if is invalid`);
+    return {
+      id,
+      kind: 'ownership',
+      scope,
+      if: condition,
+      packages: compatibilityStrings(rule.packages, `${id}.packages`, COMPATIBILITY_PACKAGE_RE, 2, 16),
+      paths: compatibilityStrings(rule.paths, `${id}.paths`, /^\/(?!.*(?:^|\/)\.\.(?:\/|$))[^\0\r\n]{1,255}$/, 1, 16),
+      refs: compatibilityStrings(rule.refs, `${id}.refs`, /^[A-Za-z0-9][A-Za-z0-9+_.:/@#-]{0,255}$/, 1, 8),
+    };
+  });
+  return { schema: 1, rules };
+}
+
+function materializeCompatibilityDefaults(model, inputValues, options) {
+  const values = new Map(valuesMap(inputValues));
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false;
+    for (const record of model?.records || []) {
+      if (!record.configSymbol || values.has(record.configSymbol)) continue;
+      const resolved = resolveKconfigDefault(record, values, options);
+      if (resolved.status !== 'resolved') continue;
+      values.set(record.configSymbol, resolved.value);
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  return values;
+}
+
+function compatibilityRuleTriggered(rule, records, values, options) {
+  const condition = evaluateExpressionState(rule.if, values, options);
+  if (condition.status === 'deferred') {
+    throw compatibilityError(`${rule.id}.if cannot be resolved from the active Catalog`);
+  }
+  return condition.status === 'satisfied' && records.every((record) => recordInstalled(record, values));
+}
+
+export function evaluateCompatibilityRules(model, document, inputValues, context = {}) {
+  if (!model?.byPackage) throw compatibilityError('Catalog model is unavailable');
+  const normalized = normalizeCompatibilityDocument(document);
+  const sourceId = String(context.sourceId || '');
+  const branchName = String(context.branchName || '');
+  const options = context.validationOptions || {};
+  const values = materializeCompatibilityDefaults(model, inputValues, options);
+  const warnings = [];
+  for (const rule of normalized.rules) {
+    if (!(rule.scope[sourceId] || []).includes(branchName)) continue;
+    const records = rule.packages.map((packageName) => {
+      const record = model.byPackage.get(packageName);
+      if (!record?.configSymbol) {
+        throw compatibilityError(`${rule.id} references a package missing from the active Catalog: ${packageName}`);
+      }
+      return record;
+    });
+    if (compatibilityRuleTriggered(rule, records, values, options)) {
+      warnings.push({ rule, records, values });
+    }
+  }
+  return { document: normalized, values, warnings };
+}
+
+export function deriveCompatibilityPlans(model, inputValues, warning, intent = {}) {
+  const rule = warning?.rule;
+  const records = warning?.records || [];
+  const startingValues = warning?.values || inputValues;
+  if (!rule || records.length < 2) throw compatibilityError('compatibility warning is incomplete');
+  const candidates = [];
+  for (const record of records) {
+    if (!record.canDisable) continue;
+    try {
+      const protectedSymbols = new Set(intent.protectedSymbols || []);
+      protectedSymbols.delete(record.configSymbol);
+      const result = applyUserIntent(model, startingValues, {
+        ...intent,
+        symbol: record.configSymbol,
+        value: 'n',
+        force: true,
+        protectedSymbols,
+      });
+      const resolved = !compatibilityRuleTriggered(rule, records, result.values,
+        intent.validationOptions || {});
+      if (resolved) {
+        candidates.push({
+          package: record.package,
+          symbol: record.configSymbol,
+          changes: result.changes,
+          values: result.values,
+          cost: new Set(result.changes.map((change) => change.symbol)).size,
+        });
+      }
+    } catch {
+      // A participant that cannot produce a valid generic Catalog intent is not a candidate.
+    }
+  }
+  candidates.sort((left, right) => left.cost - right.cost || left.package.localeCompare(right.package));
+  const minimum = candidates[0]?.cost;
+  const cheapest = candidates.filter((candidate) => candidate.cost === minimum);
+  return { candidates, recommended: cheapest.length === 1 ? cheapest[0] : null };
+}
+
+export function compatibilityAcknowledgementKey({
+  sha256, dataRef, sourceId, branchName, revision, ruleIds,
+} = {}) {
+  const ids = Array.isArray(ruleIds) ? [...ruleIds].map(String).sort() : [];
+  if (!/^[a-f0-9]{64}$/.test(String(sha256 || '')) ||
+      !/^catalog-(?:fix|dev|staging|data)$/.test(String(dataRef || '')) ||
+      !COMPATIBILITY_SOURCE_RE.test(String(sourceId || '')) ||
+      !COMPATIBILITY_BRANCH_RE.test(String(branchName || '')) ||
+      !Number.isSafeInteger(revision) || revision < 0 || !ids.length ||
+      ids.some((id) => !COMPATIBILITY_ID_RE.test(id)) || new Set(ids).size !== ids.length) {
+    throw compatibilityError('compatibility acknowledgement context is invalid');
+  }
+  return JSON.stringify([sha256, dataRef, sourceId, branchName, revision, ids]);
 }
 
 export function formatViolations(violations) {

@@ -1,7 +1,8 @@
 {
-  "version": "v2608090825",
-  "commit": "3a8d434f93f7dedc1c6291afaa077c4fa9f6c34d",
+  "version": "v2608092204",
+  "commit": "4404070027359939fee3bf666a5ff7a1fc409de3",
   "branch": "main",
-  "builtAt": "2026-08-09T08:35:36+08:00",
-  "timezone": "Asia/Shanghai"
+  "builtAt": "2026-08-10T03:39:47+08:00",
+  "timezone": "Asia/Shanghai",
+  "siteSha256": "25f6874a55e1b9a9ed0927cbbc38baf1c3ffbdb937a5ca16a1f0c3ef3f67d3df"
 }
