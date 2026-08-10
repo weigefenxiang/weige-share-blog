@@ -95,7 +95,7 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 
 ### 网页版
 
-点击这里 **→ [网页预览](https://www.weigeshare.cc.cd/standard/)**
+点击这里 **→ [网页预览](https://www.weigeshare.com/standard)**
 
 ### 发布版
 
