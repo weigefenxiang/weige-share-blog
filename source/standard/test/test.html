@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>本地测试 · 标准溶液计算审核</title>
+  <link rel="icon" type="image/png" href="../favicon.png">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    html { color-scheme: dark; }
+    body {
+      background: linear-gradient(180deg, #101319, #0b0c0f 40%, #0e0f12);
+      color: #e6e6e6;
+      font-family: "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+      font-size: 14px;
+      padding: 24px 18px 48px;
+    }
+    .wrap { max-width: 880px; margin: 0 auto; }
+    h1 { font-size: 20px; margin-bottom: 4px; }
+    .sub { color: #9aa0a8; font-size: 12.5px; margin-bottom: 18px; }
+    .banner {
+      border-radius: 10px; padding: 14px 18px; font-size: 18px; font-weight: 700;
+      margin-bottom: 20px; border: 1px solid;
+    }
+    .banner.pass { background: #10241a; border-color: #14532d; color: #86efac; }
+    .banner.fail { background: #2a1214; border-color: #7f1d1d; color: #fca5a5; }
+    .banner .count { font-size: 15px; opacity: .9; margin-left: 8px; }
+    .banner-sub { font-size: 12px; font-weight: 400; color: #9aa0a8; margin-top: 6px; }
+    .suite {
+      background: #17181c; border: 1px solid #26282e; border-radius: 10px;
+      padding: 14px 16px; margin-bottom: 14px;
+    }
+    .suite h2 { font-size: 15px; margin-bottom: 10px; color: #d5d8dc; }
+    .scount { font-size: 12.5px; font-weight: 600; padding: 2px 9px; border-radius: 999px; margin-left: 6px; }
+    .scount.ok  { background: #10241a; color: #86efac; }
+    .scount.bad { background: #2a1214; color: #fca5a5; }
+    .trow {
+      display: flex; align-items: baseline; flex-wrap: wrap; gap: 8px;
+      padding: 4px 6px; border-radius: 5px; font-size: 13px;
+    }
+    .trow:hover { background: #1d1f24; }
+    .trow.pass .mark { color: #22c55e; }
+    .trow.fail { background: rgba(127, 29, 29, .12); }
+    .trow.fail .mark { color: #ef4444; }
+    .trow pre {
+      flex-basis: 100%;
+      background: #000; border: 1px solid #33161a; border-radius: 6px;
+      color: #fca5a5; font-size: 12px; padding: 8px 10px; margin: 4px 0 4px 22px;
+      white-space: pre-wrap; word-break: break-all;
+    }
+    a { color: #7db4ff; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>🧪 本地测试 · 标准溶液计算审核 Web</h1>
+    <div class="sub">直接双击本文件即可运行 · 引擎: <a href="../index.html">../index.html</a></div>
+    <div id="banner" class="banner">运行中…</div>
+    <div id="report"></div>
+  </div>
+  <script src="../js/data.js"></script>
+  <script src="../js/calc.js"></script>
+  <script src="vectors.js"></script>
+  <script src="test.js"></script>
+</body>
+</html>

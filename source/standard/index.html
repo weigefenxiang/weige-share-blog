@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>标准溶液计算审核</title>
+  <meta name="description" content="实验室标准溶液标定、计算与审核工具:温度校正、滴定管校正、单人四平行、双人八平行及相对极差自动计算(GB/T 601)">
+  <link rel="icon" type="image/png" href="favicon.png">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="toast-root"></div>
+
+  <header class="app-header">
+    <div class="brand">
+      <img src="favicon.png" alt="logo" class="brand-logo">
+      <div>
+        <h1>标准溶液计算审核</h1>
+        <p class="brand-sub">Standard Solution Review System · Web</p>
+      </div>
+    </div>
+    <div class="header-right">
+      <div class="zoom-ctl" title="界面缩放(自动记忆)">
+        <button id="zoomOut" class="zoom-btn" type="button" aria-label="缩小">−</button>
+        <button id="zoomReset" class="zoom-btn zoom-val" type="button" title="点击恢复 100%">100%</button>
+        <button id="zoomIn" class="zoom-btn" type="button" aria-label="放大">＋</button>
+      </div>
+      <a class="gh-link" href="https://github.com/weigefenxiang" target="_blank" rel="noopener" title="GitHub">
+        <svg viewBox="0 0 16 16" width="18" height="18" aria-hidden="true"><path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82a7.5 7.5 0 0 1 2-.27c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8z"/></svg>
+        <span>GitHub</span>
+      </a>
+    </div>
+  </header>
+
+  <main class="container">
+    <section class="panel params" aria-label="标定参数">
+      <div class="field">
+        <label for="selConc">标液浓度 mol/L</label>
+        <select id="selConc">
+          <option value="">标液浓度</option>
+          <option>0.05 or less</option>
+          <option>0.1 or 0.2</option>
+          <option>0.5</option>
+          <option>1</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="selType">标液种类</label>
+        <select id="selType">
+          <option value="">标液种类</option>
+          <option>水或水溶液</option>
+          <option>盐酸</option>
+          <option>氢氧化钠</option>
+          <option>高锰酸钾</option>
+          <option>硝酸银</option>
+          <option>硫代硫酸钠</option>
+          <option>氯化锌</option>
+          <option>EDTA</option>
+          <option>硫酸</option>
+          <option>碳酸钠</option>
+          <option>氢氧化钾-乙醇</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="inpMass" id="lblMass">称取质量</label>
+        <input id="inpMass" placeholder="称取质量 g" size="9">
+      </div>
+      <div class="field">
+        <label for="inpVol">配制体积</label>
+        <input id="inpVol" placeholder="配制体积 L" size="8">
+      </div>
+      <div class="field">
+        <label for="inpBasis">标定依据</label>
+        <input id="inpBasis" placeholder="GB/T 601" size="8">
+      </div>
+      <div class="field">
+        <label for="inpDry">干燥条件</label>
+        <input id="inpDry" placeholder="干燥条件" size="8">
+      </div>
+      <div class="field">
+        <label for="inpTemp">标定温度 ℃</label>
+        <input id="inpTemp" placeholder="℃" size="4" inputmode="numeric">
+      </div>
+      <div class="field">
+        <label for="inpMolar" id="lblMolar">摩尔质量 g/mol</label>
+        <input id="inpMolar" placeholder="204.22" size="7">
+      </div>
+      <div class="field">
+        <label for="dateMake">配置日期</label>
+        <input id="dateMake" type="date">
+      </div>
+      <div class="field">
+        <label for="dateFrom">有效期</label>
+        <span class="daterange">
+          <input id="dateFrom" type="date">
+          <span class="tilde">至</span>
+          <input id="dateTo" type="date">
+        </span>
+      </div>
+      <div class="field">
+        <label for="dateReg">登记日期</label>
+        <input id="dateReg" type="date">
+      </div>
+    </section>
+
+    <section class="panel sheet" aria-label="标定记录表">
+      <div class="table-wrap">
+        <div class="grid">
+          <!-- 第0行 标定人 -->
+          <div class="cell head">标定人</div>
+          <div class="cell chip s2">主标</div>
+          <div class="cell s2"><input id="inpMain" placeholder="主标人："></div>
+          <div class="cell chip s2">副标</div>
+          <div class="cell s2"><input id="inpSub" placeholder="副标人："></div>
+
+          <!-- 第1行 次数 -->
+          <div class="cell head">项目&nbsp;&nbsp;|&nbsp;&nbsp;次数</div>
+          <div class="cell head">1</div><div class="cell head">2</div>
+          <div class="cell head">3</div><div class="cell head">4</div>
+          <div class="cell head">5</div><div class="cell head">6</div>
+          <div class="cell head">7</div><div class="cell head">8</div>
+
+          <!-- 第2行 基准物质的量 -->
+          <div class="cell head">基准物质的量 g</div>
+          <div class="cell"><input id="m0"></div><div class="cell"><input id="m1"></div>
+          <div class="cell"><input id="m2"></div><div class="cell"><input id="m3"></div>
+          <div class="cell"><input id="m4"></div><div class="cell"><input id="m5"></div>
+          <div class="cell"><input id="m6"></div><div class="cell"><input id="m7"></div>
+
+          <!-- 第3行 滴定液消耗体积 -->
+          <div class="cell head">滴定液消耗体积 mL</div>
+          <div class="cell"><input id="v0"></div><div class="cell"><input id="v1"></div>
+          <div class="cell"><input id="v2"></div><div class="cell"><input id="v3"></div>
+          <div class="cell"><input id="v4"></div><div class="cell"><input id="v5"></div>
+          <div class="cell"><input id="v6"></div><div class="cell"><input id="v7"></div>
+
+          <!-- 第4行 滴定管校正值 -->
+          <div class="cell head">滴定管校正值 mL</div>
+          <div class="cell s4"><input id="bur0"></div>
+          <div class="cell s4"><input id="bur1"></div>
+
+          <!-- 第5行 温度校正值体积(计算时自动生成, 允许手动修改, 与桌面版一致) -->
+          <div class="cell head">温度校正值体积 mL</div>
+          <div class="cell"><input id="tc0" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc1" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc2" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc3" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc4" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc5" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc6" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+          <div class="cell"><input id="tc7" title="计算时按 GB/T 601 校正表自动生成，可手动修改"></div>
+
+          <!-- 第6行 空白 -->
+          <div class="cell head">空白 mL</div>
+          <div class="cell s4"><input id="blk0"></div>
+          <div class="cell s4"><input id="blk1"></div>
+
+          <!-- 第7行 滴定液实际体积(输出) -->
+          <div class="cell head">滴定液实际体积 mL</div>
+          <div class="cell"><input id="av0" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av1" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av2" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av3" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av4" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av5" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av6" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="av7" class="out" readonly tabindex="-1"></div>
+
+          <!-- 第8行 标液浓度(输出) -->
+          <div class="cell head">标液浓度 mol/L</div>
+          <div class="cell"><input id="c0" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c1" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c2" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c3" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c4" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c5" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c6" class="out" readonly tabindex="-1"></div>
+          <div class="cell"><input id="c7" class="out" readonly tabindex="-1"></div>
+
+          <!-- 第9行 单人四平行浓度 -->
+          <div class="cell head">单人四平行浓度<br>mol/L</div>
+          <div class="cell s4"><input id="outS1" class="out" readonly tabindex="-1"></div>
+          <div class="cell s4"><input id="outS2" class="out" readonly tabindex="-1"></div>
+
+          <!-- 第10行 单人相对极差 -->
+          <div class="cell head">单人相对极差 %</div>
+          <div class="cell s4"><input id="outRR1" class="out" readonly tabindex="-1"></div>
+          <div class="cell s4"><input id="outRR2" class="out" readonly tabindex="-1"></div>
+
+          <!-- 第11行 双人相对极差 / 双人八平行浓度 -->
+          <div class="cell head">双人相对极差 %</div>
+          <div class="cell s4"><input id="outRRD" class="out" readonly tabindex="-1"></div>
+          <div class="cell head s2">双人八平行浓度</div>
+          <div class="cell s2"><input id="outDP" class="out" readonly tabindex="-1"></div>
+
+          <!-- 第12行 计算公式 / 标液报出浓度 -->
+          <div class="cell head">计算公式</div>
+          <div class="cell head s4">默认</div>
+          <div class="cell head s2">标液报出浓度</div>
+          <div class="cell s2"><input id="outReport" class="out out-strong" readonly tabindex="-1"></div>
+
+          <!-- 第13行 说明 -->
+          <div class="cell note s9">注：单人四平行标定结果相对极差≤0.15%，双人八平行标定结果相对极差≤0.18%</div>
+        </div>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button id="btnCalc" class="btn primary" type="button">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M7 2h10a2 2 0 0 1 2 2v16a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v4h10V4H7zm0 6v2h2v-2H7zm4 0v2h2v-2h-2zm4 0v2h2v-2h-2zM7 14v2h2v-2H7zm4 0v2h2v-2h-2zm4 0v6h2v-6h-2zM7 18v2h2v-2H7zm4 0v2h2v-2h-2z"/></svg>
+        计算
+      </button>
+      <button id="btnDefault" class="btn" type="button">默认</button>
+      <button id="btnClear" class="btn danger-ghost" type="button">清空</button>
+    </section>
+
+    <footer class="app-footer">
+      <span>© 2025-2026 Wei.G · GPL-3.0</span>
+      <span class="dot">·</span>
+      <span>依据 GB/T 601 · 数据仅供审核参考</span>
+    </footer>
+  </main>
+
+  <script src="js/data.js"></script>
+  <script src="js/calc.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

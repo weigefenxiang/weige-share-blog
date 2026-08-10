@@ -93,6 +93,10 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 
 ## 运行方式
 
+### 网页版
+
+点击这里 **→ [网页预览](https://www.weigeshare.com/standard)**
+
 ### 发布版
 
 下载 并 运行 [exe](https://github.com/weigefenxiang/StandardSolutionReviewSystem/releases)：
