@@ -11,6 +11,12 @@ function normalizeValue(value) {
   return Object.hasOwn(LEVEL, text) ? text : text;
 }
 
+export function resolveCatalogUserOverride(inheritedValue, requestedValue) {
+  const inherited = normalizeValue(inheritedValue);
+  const requested = normalizeValue(requestedValue);
+  return requested === inherited ? null : requested;
+}
+
 function stateLevel(value) {
   return LEVEL[normalizeValue(value)] ?? (value ? 2 : 0);
 }
@@ -18,6 +24,108 @@ function stateLevel(value) {
 function valuesMap(values) {
   if (values instanceof Map) return values;
   return new Map(Object.entries(values || {}));
+}
+
+function policyRank(value, rows = []) {
+  const index = rows.indexOf(String(value || ''));
+  return index < 0 ? rows.length : index;
+}
+
+export function orderCatalogIndex(index, policy = {}) {
+  const sourcePriority = (policy.sourcePriority || []).map(String);
+  const developmentBranches = (policy.developmentBranches || []).map(String);
+  const branchCompare = (left, right) => {
+    const leftName = String(left?.branch || left?.id || '');
+    const rightName = String(right?.branch || right?.id || '');
+    const development = policyRank(leftName, developmentBranches) -
+      policyRank(rightName, developmentBranches);
+    if (development) return development;
+    const leftVersion = leftName.match(/^openwrt-(\d+(?:\.\d+)*)$/i)?.[1] || '';
+    const rightVersion = rightName.match(/^openwrt-(\d+(?:\.\d+)*)$/i)?.[1] || '';
+    if (leftVersion && rightVersion) {
+      const a = leftVersion.split('.').map(Number);
+      const b = rightVersion.split('.').map(Number);
+      for (let index = 0; index < Math.max(a.length, b.length); index++) {
+        const difference = (b[index] || 0) - (a[index] || 0);
+        if (difference) return difference;
+      }
+    }
+    if (leftVersion !== rightVersion) return leftVersion ? -1 : 1;
+    return leftName.localeCompare(rightName, undefined, { numeric: true });
+  };
+  const sources = (index?.sources || []).map((source) => ({
+    ...source,
+    branches: [...(source.branches || [])].sort(branchCompare),
+  })).filter((source) => source.branches.length).sort((left, right) =>
+    policyRank(left.id, sourcePriority) - policyRank(right.id, sourcePriority) ||
+    String(left.id || '').localeCompare(String(right.id || '')));
+  return { ...index, sources };
+}
+
+export function preferredCatalogTarget(catalog, preference = {}) {
+  const selectors = catalog?.targetSelectors || [];
+  const desired = preference.selectors || {};
+  const find = (nodes, depth, values) => {
+    const selector = selectors[depth];
+    if (!selector) return values;
+    const preferred = String(desired[selector.id] || '');
+    const ordered = preferred
+      ? [...(nodes || [])].sort((left, right) =>
+        Number(String(right.value || '') === preferred) - Number(String(left.value || '') === preferred))
+      : [...(nodes || [])];
+    for (const node of ordered) {
+      const result = find(node.children || [], depth + 1, { ...values, [selector.id]: node.value });
+      if (result) return result;
+    }
+    return null;
+  };
+  return find(catalog?.targetTree || [], 0, {}) || {};
+}
+
+export function preferredCatalogSource(sources = [], candidates = []) {
+  const available = new Set((sources || []).map((source) => String(source?.id || '')));
+  return (candidates || []).map((value) => String(value || ''))
+    .find((value) => available.has(value)) || '';
+}
+
+export function catalogTargetPreference({
+  requestedTarget = null,
+  currentTarget = null,
+  stateTarget = null,
+  policyTarget = {},
+  newCatalogRequested = false,
+  preferState = false,
+} = {}) {
+  if (preferState && stateTarget) return stateTarget;
+  if (requestedTarget) return requestedTarget;
+  if (newCatalogRequested) return policyTarget;
+  if (currentTarget) return {};
+  return stateTarget || policyTarget;
+}
+
+export function catalogFileNameTokenMatch(value, fileName, aliases = []) {
+  const name = String(fileName || '').toLowerCase();
+  return [value, ...(aliases || [])].filter(Boolean).some((candidate) => {
+    const escaped = String(candidate).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    return new RegExp(`(?:^|[^a-z0-9])${escaped}(?=$|[^a-z0-9])`, 'i').test(name);
+  });
+}
+
+export function resolvePackageMirrorSelection({
+  timezone = '',
+  availableIds = [],
+  currentId = '',
+  explicit = false,
+  localTimezone = 'Asia/Shanghai',
+  automaticId = 'auto',
+  sourceDefaultId = 'source-default',
+} = {}) {
+  const available = unique((availableIds || []).map((value) => String(value || '')));
+  const current = String(currentId || '');
+  if (explicit && available.includes(current)) return current;
+  const preferred = timezone === localTimezone ? automaticId : sourceDefaultId;
+  return [preferred, sourceDefaultId, current, ...available]
+    .find((value) => value && available.includes(value)) || current || sourceDefaultId;
 }
 
 function packageNameFromSymbol(symbol) {
@@ -1101,17 +1209,113 @@ export function applyUserIntent(model, inputValues, intent) {
   return { values, changes, violations };
 }
 
+export function resolveEffectiveTheme(model, target, inputValues = new Map(), options = {}) {
+  if (!model) return { package: '', symbol: '', value: 'n', values: new Map() };
+  const context = createCatalogValidationContext(model, target, inputValues, {
+    phase: options.phase || 'generation',
+    deferred: 'ignore',
+  });
+  const values = new Map(context.values);
+  const changes = [];
+  const explicitSymbols = new Set(options.explicitSymbols || []);
+  const operations = catalogPackageOperations(context.target || target,
+    context.target?.rawProfile || null);
+  for (const name of operations.remove) {
+    const record = model.byPackage.get(name);
+    if (record?.configSymbol && !explicitSymbols.has(record.configSymbol)) values.set(record.configSymbol, 'n');
+  }
+  for (const name of operations.add) {
+    const record = model.byPackage.get(name);
+    if (!record?.configSymbol || explicitSymbols.has(record.configSymbol)) continue;
+    values.set(record.configSymbol, record.states?.includes('y') ? 'y' :
+      (record.states?.includes('m') ? 'm' : 'n'));
+  }
+  for (let pass = 0; pass < 8; pass++) {
+    let changed = false;
+    for (const record of model.records || []) {
+      if (!record.configSymbol || values.has(record.configSymbol)) continue;
+      const resolved = resolveKconfigDefault(record, values, context.validationOptions);
+      if (resolved.status !== 'resolved') continue;
+      values.set(record.configSymbol, resolved.value);
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  cascadeEnabled(model, values, changes, (model.records || [])
+    .filter((record) => record.configSymbol && recordEnabled(record, values))
+    .map((record) => record.configSymbol), context.validationOptions);
+  for (const symbols of model.choices.values()) {
+    const enabled = symbols.filter((symbol) => stateLevel(values.get(symbol) ?? 'n') > 0);
+    if (enabled.length < 2) continue;
+    const keep = enabled.find((symbol) => explicitSymbols.has(symbol)) || enabled[0];
+    for (const symbol of enabled) if (symbol !== keep) values.set(symbol, 'n');
+  }
+  const themeRecords = (model.records || []).filter((record) =>
+    record.package?.startsWith('luci-theme-') && record.configSymbol);
+  let candidates = themeRecords.filter((record) =>
+    record.package?.startsWith('luci-theme-') && record.configSymbol &&
+    stateLevel(values.get(record.configSymbol) ?? 'n') > 0);
+  const preferredSymbol = String(options.preferredSymbol || '');
+  let selected = candidates.find((record) => record.configSymbol === preferredSymbol) ||
+    candidates.find((record) => explicitSymbols.has(record.configSymbol)) || candidates[0];
+  let fallbackChanges = [];
+  if (!selected) {
+    for (const record of themeRecords) {
+      if (explicitSymbols.has(record.configSymbol) &&
+          normalizeValue(values.get(record.configSymbol) ?? 'n') === 'n') continue;
+      const selectable = record.userSettable === false ? [] :
+        allowedKconfigStates(record).filter((value) => value !== 'n');
+      const requested = selectable.includes('y') ? 'y' : selectable[0];
+      if (!requested) continue;
+      try {
+        const result = applyUserIntent(model, values, {
+          symbol: record.configSymbol,
+          value: requested,
+          dependencySymbols: new Set(),
+          protectedSymbols: new Set([...explicitSymbols].filter((symbol) =>
+            stateLevel(values.get(symbol) ?? 'n') > 0)),
+          validationOptions: context.validationOptions,
+        });
+        if (stateLevel(result.values.get(record.configSymbol) ?? 'n') === 0) continue;
+        values.clear();
+        for (const [symbol, value] of result.values) values.set(symbol, value);
+        fallbackChanges = result.changes;
+        candidates = themeRecords.filter((candidate) =>
+          stateLevel(values.get(candidate.configSymbol) ?? 'n') > 0);
+        selected = candidates.find((candidate) => candidate.configSymbol === record.configSymbol) ||
+          candidates[0];
+        if (selected) break;
+      } catch (error) { /* try the next stable Catalog candidate */ }
+    }
+  }
+  return {
+    package: selected?.package || '',
+    symbol: selected?.configSymbol || '',
+    value: selected ? values.get(selected.configSymbol) : 'n',
+    values,
+    changes: fallbackChanges,
+    candidates: candidates.map((record) => record.configSymbol),
+    symbols: themeRecords.map((record) => record.configSymbol),
+  };
+}
+
 const COMPATIBILITY_DOCUMENT_KEYS = new Set(['schema', 'rules']);
-const COMPATIBILITY_RULE_KEYS = new Set(['id', 'kind', 'scope', 'if', 'packages', 'paths', 'refs']);
+const COMPATIBILITY_RULE_KEYS = new Set(['id', 'issue', 'match', 'scope', 'if', 'packages', 'paths', 'refs']);
 const COMPATIBILITY_ID_RE = /^[A-Z][A-Z0-9-]{2,31}$/;
 const COMPATIBILITY_PACKAGE_RE = /^[A-Za-z0-9][A-Za-z0-9+_.@-]{0,95}$/;
-const COMPATIBILITY_SOURCE_RE = /^[A-Za-z0-9_.-]{1,64}$/;
-const COMPATIBILITY_BRANCH_RE = /^[A-Za-z0-9._/-]{1,160}$/;
+const COMPATIBILITY_SOURCE_RE = /^(?:\*|[A-Za-z0-9_.-]{1,64})$/;
+const COMPATIBILITY_BRANCH_RE = /^(?:[A-Za-z0-9._/-]{1,160}|[A-Za-z0-9._/-]*\*[A-Za-z0-9._/-]*)$/;
 
 function compatibilityError(message) {
   const error = new Error(message);
   error.name = 'CatalogCompatibilityError';
   return error;
+}
+
+function compatibilityPatternMatches(value, pattern) {
+  if (!pattern.includes('*')) return value === pattern;
+  const escaped = pattern.replace(/[.+?^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '.*');
+  return new RegExp(`^${escaped}$`).test(value);
 }
 
 function compatibilityObject(value) {
@@ -1138,8 +1342,9 @@ function compatibilityStrings(value, label, pattern, min, max) {
 export function normalizeCompatibilityDocument(raw) {
   if (!compatibilityObject(raw)) throw compatibilityError('compatibility document must be an object');
   compatibilityKeys(raw, COMPATIBILITY_DOCUMENT_KEYS, 'compatibility document');
-  if (Number(raw.schema) !== 1 || !Array.isArray(raw.rules)) {
-    throw compatibilityError('compatibility document requires schema 1 and a rules array');
+  const schema = Number(raw.schema);
+  if (schema !== 2 || !Array.isArray(raw.rules)) {
+    throw compatibilityError('compatibility document requires schema 2 and a rules array');
   }
   if (new TextEncoder().encode(JSON.stringify(raw)).byteLength > 512 * 1024) {
     throw compatibilityError('compatibility document is too large');
@@ -1154,7 +1359,14 @@ export function normalizeCompatibilityDocument(raw) {
       throw compatibilityError(`${label}.id is invalid or duplicate`);
     }
     ids.add(id);
-    if (rule.kind !== 'ownership') throw compatibilityError(`${id}.kind must be ownership`);
+    const issue = rule.issue;
+    const match = rule.match;
+    if (!['file-ownership', 'build-failure'].includes(issue)) {
+      throw compatibilityError(`${id}.issue is invalid`);
+    }
+    if (!['all-installed', 'all-selected'].includes(match)) {
+      throw compatibilityError(`${id}.match is invalid`);
+    }
     if (!compatibilityObject(rule.scope) || !Object.keys(rule.scope).length) {
       throw compatibilityError(`${id}.scope must be a non-empty object`);
     }
@@ -1164,19 +1376,31 @@ export function normalizeCompatibilityDocument(raw) {
       scope[source] = compatibilityStrings(branches, `${id}.scope.${source}`,
         COMPATIBILITY_BRANCH_RE, 1, 32);
     }
+    if (Object.hasOwn(scope, '*') && Object.keys(scope).length !== 1) {
+      throw compatibilityError(`${id}.scope wildcard source cannot be mixed with named sources`);
+    }
     const condition = String(rule.if || '').trim();
-    if (!condition || condition.length > 512) throw compatibilityError(`${id}.if is invalid`);
-    return {
+    if (condition.length > 512) {
+      throw compatibilityError(`${id}.if is invalid`);
+    }
+    const normalized = {
       id,
-      kind: 'ownership',
+      issue,
+      match,
       scope,
-      if: condition,
-      packages: compatibilityStrings(rule.packages, `${id}.packages`, COMPATIBILITY_PACKAGE_RE, 2, 16),
-      paths: compatibilityStrings(rule.paths, `${id}.paths`, /^\/(?!.*(?:^|\/)\.\.(?:\/|$))[^\0\r\n]{1,255}$/, 1, 16),
+      ...(condition ? { if: condition } : {}),
+      packages: compatibilityStrings(rule.packages, `${id}.packages`, COMPATIBILITY_PACKAGE_RE, 1, 16),
       refs: compatibilityStrings(rule.refs, `${id}.refs`, /^[A-Za-z0-9][A-Za-z0-9+_.:/@#-]{0,255}$/, 1, 8),
     };
+    if (issue === 'file-ownership') {
+      normalized.paths = compatibilityStrings(rule.paths, `${id}.paths`,
+        /^\/(?!.*(?:^|\/)\.\.(?:\/|$))[^\0\r\n]{1,255}$/, 1, 16);
+    } else if (rule.paths !== undefined) {
+      throw compatibilityError(`${id}.paths is only valid for file-ownership`);
+    }
+    return normalized;
   });
-  return { schema: 1, rules };
+  return { schema: 2, rules };
 }
 
 function materializeCompatibilityDefaults(model, inputValues, options) {
@@ -1196,11 +1420,18 @@ function materializeCompatibilityDefaults(model, inputValues, options) {
 }
 
 function compatibilityRuleTriggered(rule, records, values, options) {
-  const condition = evaluateExpressionState(rule.if, values, options);
-  if (condition.status === 'deferred') {
-    throw compatibilityError(`${rule.id}.if cannot be resolved from the active Catalog`);
+  if (rule.if) {
+    const condition = evaluateExpressionState(rule.if, values, options);
+    if (condition.status === 'deferred') {
+      throw compatibilityError(`${rule.id}.if cannot be resolved from the active Catalog`);
+    }
+    if (condition.status !== 'satisfied') return false;
   }
-  return condition.status === 'satisfied' && records.every((record) => recordInstalled(record, values));
+  if (rule.match === 'all-installed') {
+    return records.every((record) => recordInstalled(record, values));
+  }
+  return records.every((record) => ['m', 'y'].includes(
+    normalizeValue(values.get(record.configSymbol) ?? 'n')));
 }
 
 export function evaluateCompatibilityRules(model, document, inputValues, context = {}) {
@@ -1212,7 +1443,8 @@ export function evaluateCompatibilityRules(model, document, inputValues, context
   const values = materializeCompatibilityDefaults(model, inputValues, options);
   const warnings = [];
   for (const rule of normalized.rules) {
-    if (!(rule.scope[sourceId] || []).includes(branchName)) continue;
+    const branchPatterns = rule.scope[sourceId] || rule.scope['*'] || [];
+    if (!branchPatterns.some((pattern) => compatibilityPatternMatches(branchName, pattern))) continue;
     const records = rule.packages.map((packageName) => {
       const record = model.byPackage.get(packageName);
       if (!record?.configSymbol) {
@@ -1231,7 +1463,7 @@ export function deriveCompatibilityPlans(model, inputValues, warning, intent = {
   const rule = warning?.rule;
   const records = warning?.records || [];
   const startingValues = warning?.values || inputValues;
-  if (!rule || records.length < 2) throw compatibilityError('compatibility warning is incomplete');
+  if (!rule || records.length < 1) throw compatibilityError('compatibility warning is incomplete');
   const candidates = [];
   for (const record of records) {
     if (!record.canDisable) continue;
