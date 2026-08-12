@@ -27,6 +27,36 @@ export function safeCatalogDataRef(value) {
   return ref;
 }
 
+export function validateCatalogProvenance(index, dataRef, repository) {
+  const provenance = index?.provenance;
+  if (provenance == null) return null;
+  if (!provenance || typeof provenance !== 'object' || Array.isArray(provenance)) {
+    throw new Error('Catalog index provenance must be an object');
+  }
+  const expectedRepository = safeRepository(repository);
+  const actualRepository = safeRepository(provenance.repository);
+  if (actualRepository !== expectedRepository) {
+    throw new Error(`Catalog provenance repository mismatch: ${actualRepository} != ${expectedRepository}`);
+  }
+  const codeRef = String(provenance.codeRef || '').trim();
+  const codeSha = String(provenance.codeSha || '').trim().toLowerCase();
+  if (!/^[0-9a-f]{40}$/.test(codeSha)) throw new Error('Catalog provenance lacks a full codeSha');
+  if (typeof provenance.complete !== 'boolean') throw new Error('Catalog provenance complete must be boolean');
+
+  const branch = safeCatalogDataRef(dataRef);
+  const validCodeRef = branch === 'catalog-fix' ? /^fix\/[A-Za-z0-9._/-]+$/.test(codeRef)
+    : branch === 'catalog-dev' ? codeRef === 'dev'
+      : branch === 'catalog-staging' ? codeRef === 'staging'
+        : codeRef === 'main';
+  if (!validCodeRef) {
+    throw new Error(`Catalog provenance codeRef ${codeRef || '(missing)'} does not match ${branch}`);
+  }
+  if (branch === 'catalog-data' && provenance.complete !== true) {
+    throw new Error('Production Catalog provenance must be complete');
+  }
+  return { repository: actualRepository, codeRef, codeSha, complete: provenance.complete };
+}
+
 export function safeCatalogAsset(asset) {
   const value = String(asset || '').replace(/^\/+/, '');
   if (!value || value.includes('..') || !/^[\w./-]+$/.test(value)) {
@@ -218,12 +248,13 @@ function stableIndex(index) {
   return { ...index, sources };
 }
 
-function validateIndex(index) {
+function validateIndex(index, dataRef, repository) {
   const normalized = stableIndex(index);
   if (Number(normalized.schema || 0) < MIN_INDEX_SCHEMA || !normalized.sources.length) {
     throw new Error(`Catalog index schema ${normalized.schema || 0}; required ${MIN_INDEX_SCHEMA}`);
   }
   exactAssetRef(normalized);
+  validateCatalogProvenance(normalized, dataRef, repository);
   return normalized;
 }
 
@@ -274,9 +305,25 @@ function validateCompatibilityDocument(data, expected) {
   return data;
 }
 
+const PROBE_UI_KEYS = [
+  'title', 'intro', 'howTo', 'search', 'selected', 'depth', 'scope', 'targets',
+  'allSources', 'currentSource', 'customScope', 'autoTarget', 'currentTarget', 'allTargets',
+  'packageCompile', 'packageCompileHelp', 'rootfsIntegration', 'rootfsIntegrationHelp',
+  'firmwareIntegration', 'firmwareIntegrationHelp', 'bootSmoke', 'bootSmokeHelp',
+  'preview', 'submit', 'submittedState', 'stateInstruction', 'cancelInstruction',
+  'permission', 'retention', 'issueTitle', 'loading', 'empty', 'invalid',
+];
+
 function validateApplicationsDocument(data, expected) {
   const actualJsonBytes = new TextEncoder().encode(JSON.stringify(data)).byteLength;
+  const probeStrings = data?.probeUi?.strings;
   if (!data || Number(data.schema) !== 1 || !Array.isArray(data.groups) || !Array.isArray(data.items) ||
+      Number(data.probeUi?.schema) !== 1 || !Array.isArray(data.probeUi?.languages) ||
+      !probeStrings || typeof probeStrings !== 'object' || Array.isArray(probeStrings) ||
+      Object.keys(probeStrings).length < 10 || Object.keys(probeStrings).length > 128 ||
+      PROBE_UI_KEYS.some((key) => !Object.hasOwn(probeStrings, key)) ||
+      Object.values(probeStrings).some((row) => !row || typeof row !== 'object' ||
+        typeof row.en !== 'string' || typeof row['zh-CN'] !== 'string') ||
       data.items.length !== expected.items || actualJsonBytes !== expected.jsonBytes ||
       data.items.some((item) => !/^[A-Za-z0-9][A-Za-z0-9_.-]{0,95}$/.test(String(item.id || '')) ||
         !/^luci-app-[A-Za-z0-9_.+@-]+$/.test(String(item.package || '')))) {
@@ -333,7 +380,7 @@ export function createCatalogLoader({
         try {
           const response = await fetchImpl(url, { cache: 'no-store', signal });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const index = validateIndex(await response.json());
+          const index = validateIndex(await response.json(), exactDataRef, repository);
           const result = { index, provider: id, url };
           lastIndexResult = result;
           diagnostic(diagnostics, 'index', id, true,

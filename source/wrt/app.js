@@ -1,4 +1,7 @@
 /*
+ * SPDX-FileCopyrightText: 2026 weigefenxiang <weigefenxiang@gmail.com>
+ * SPDX-License-Identifier: GPL-3.0-or-later
+ *
  * OpenWrt 固件在线定制器前端脚本,由 site/wrt/index.html 直接加载 / Front-end script of the online firmware customizer, loaded directly by site/wrt/index.html.
  * Catalog/插件/文案数据来自 data/ 下的 JSON,带多级 CDN 回退与 localStorage 缓存 / Catalog/plugin/i18n data comes from JSON under data/, with tiered CDN fallback and localStorage caching.
  * 无构建步骤、无第三方依赖,以原生 ES 语法直接在浏览器运行 / No build step, no third-party deps; runs as plain native ES in the browser.
@@ -131,6 +134,7 @@ let catalogStateRevision = 0, catalogContextCache = new Map(), catalogContextCac
 let compatibilityPrefetchTimer = null, compatibilityAcknowledgement = null;
 let catalogApplicationsPromise = null, catalogApplicationsDocument = null;
 let catalogApplicationsLoadState = 'loading', catalogApplicationsError = '';
+let selfTestViewToken = 0;
 let catalogStartupPromise = null, catalogApplicationsDemanded = false, catalogApplicationsObserver = null;
 let menuVisibilityRevision = -1, menuVisibilityCache = new Map(), menuSelectableStatesCache = new Map();
 let MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
@@ -163,6 +167,24 @@ const MENU_UI_I18N = {
     ru: 'Введите не менее 2 символов', es: 'Escribe al menos 2 caracteres', pt: 'Digite pelo menos 2 caracteres',
     ja: '2文字以上入力してください', ko: '2자 이상 입력하세요', de: 'Mindestens 2 Zeichen eingeben',
     fr: 'Saisissez au moins 2 caractères', vi: 'Nhập ít nhất 2 ký tự',
+  },
+  rootOptions: {
+    'zh-CN': '根级 Kconfig 选项', 'zh-TW': '根級 Kconfig 選項', en: 'Root Kconfig options',
+    ru: 'Корневые параметры Kconfig', es: 'Opciones Kconfig raíz', pt: 'Opções Kconfig raiz',
+    ja: 'ルート Kconfig オプション', ko: '루트 Kconfig 옵션', de: 'Kconfig-Wurzeloptionen',
+    fr: 'Options Kconfig racine', vi: 'Tùy chọn Kconfig gốc',
+  },
+  rootOptionsHelp: {
+    'zh-CN': 'Catalog 中没有父菜单的顶层配置项', 'zh-TW': 'Catalog 中沒有父選單的頂層設定項',
+    en: 'Top-level Catalog options without a parent menu',
+    ru: 'Параметры верхнего уровня Catalog без родительского меню',
+    es: 'Opciones superiores de Catalog sin menú principal',
+    pt: 'Opções de nível superior do Catalog sem menu pai',
+    ja: '親メニューを持たない Catalog のトップレベル設定',
+    ko: '상위 메뉴가 없는 Catalog 최상위 설정',
+    de: 'Catalog-Optionen der obersten Ebene ohne übergeordnetes Menü',
+    fr: 'Options Catalog de premier niveau sans menu parent',
+    vi: 'Tùy chọn Catalog cấp cao nhất không có menu cha',
   },
 };
 const menuUi = (key) => MENU_UI_I18N[key]?.[state.lang] || MENU_UI_I18N[key]?.en || key;
@@ -1325,15 +1347,53 @@ function requestCatalogSearch(query) {
     requestId: ++catalogSearchRequestId, query: normalized,
   });
 }
+function normalizeMenuSearchQuery(value) {
+  return String(value || '').trim().toLowerCase().replace(/^config_/, '');
+}
+function normalizeMenuSearchIdentity(value) {
+  return normalizeMenuSearchQuery(value)
+    .replace(/^config_/, '')
+    .replace(/^package_/, '');
+}
+function menuSearchRank(option, query) {
+  const normalized = normalizeMenuSearchIdentity(query);
+  const symbol = String(option?.symbol || '').toLowerCase();
+  const packageName = symbol.startsWith('package_') ? symbol.slice('package_'.length) : '';
+  const shortPackage = packageName.startsWith('luci-app-')
+    ? packageName.slice('luci-app-'.length)
+    : packageName;
+  const identities = [symbol, packageName, shortPackage].filter(Boolean);
+  const exact = Boolean(normalized) && identities.some((value) => value === normalized);
+  const prefix = Boolean(normalized) && identities.some((value) => value.startsWith(normalized));
+  let group = 3;
+  if (packageName.startsWith('luci-app-')) group = 0;
+  else if (packageName && exact) group = 1;
+  else if (packageName) group = 2;
+  const match = exact ? 0 : prefix ? 1 : 2;
+  return group * 10 + match;
+}
+function rankMenuSearchOptions(options, query) {
+  return [...options].sort((left, right) => menuSearchRank(left, query) - menuSearchRank(right, query));
+}
+function searchMenuOptionsSync(query) {
+  const normalized = normalizeMenuSearchQuery(query);
+  if (normalized.length < 2) return [];
+  return rankMenuSearchOptions(
+    menuSearchOptions.filter((option) => menuSearchText.get(option.symbol)?.includes(normalized)),
+    normalized,
+  );
+}
 function searchMenuOptions(query) {
-  const normalized = String(query || '').trim().toLowerCase();
+  const normalized = normalizeMenuSearchQuery(query);
   if (normalized.length < 2) return [];
   if (catalogSearchWorker) {
     requestCatalogSearch(normalized);
     const symbols = catalogSearchResults.get(normalized);
-    return symbols ? symbols.map((symbol) => menuOptionBySymbol.get(symbol)).filter(Boolean) : null;
+    return symbols
+      ? rankMenuSearchOptions(symbols.map((symbol) => menuOptionBySymbol.get(symbol)).filter(Boolean), normalized)
+      : null;
   }
-  return menuSearchOptions.filter((option) => menuSearchText.get(option.symbol)?.includes(normalized));
+  return searchMenuOptionsSync(normalized);
 }
 async function ensureCatalogMenuLoaded(includeHidden = false) {
   if (!MENU_CATALOG?.splitAssets) return true;
@@ -1383,6 +1443,9 @@ async function ensureCatalogHiddenLoaded() {
       if (!shard || MENU_CATALOG !== catalog || CATALOG_MODEL !== model || menuCatalogKey !== catalogKey) return false;
       CATALOG_SCHEMA6_MODULE.mergeHiddenShard(catalog, model, shard);
       buildMenuIndexes(catalog);
+      // Hidden PACKAGE_* records can arrive after the visible-menu baseline snapshot.
+      // Backfill their upstream baseline from the baseline context, never from current user state.
+      backfillCatalogBaselineForLoadedOptions();
       catalogLocatorEntryCache = null;
       return true;
     })();
@@ -2142,6 +2205,51 @@ function snapshotCatalogBaseline() {
     const value = menuValues.get(option.symbol) ?? (option.type === 'string' ? '' : 'n');
     catalogBaselineValues.set(option.symbol, value);
     if (value !== 'n' && value !== '' && !catalogDependencySymbols.has(option.symbol)) {
+      catalogBaselineOrigins.set(option.symbol, {
+        kind: 'kconfig-default', detail: 'Kconfig default',
+      });
+    }
+  }
+}
+function normalizeCatalogBaselineValue(option, rawValue) {
+  const fallback = option?.type === 'string' ? '' : 'n';
+  const raw = rawValue ?? fallback;
+  return option?.type === 'bool' || option?.type === 'tristate'
+    ? CATALOG_ENGINE.normalizeKconfigStateValue(option, raw)
+    : String(raw);
+}
+function backfillCatalogBaselineForLoadedOptions() {
+  const missing = menuSearchOptions.filter((option) =>
+    option?.symbol && !catalogBaselineValues.has(option.symbol));
+  if (!missing.length) return;
+  const baselineValues = new Map(catalogBaselineValues);
+  // Resolve only from the upstream Target/Profile baseline. Current menuValues/user overrides
+  // are intentionally excluded so late hidden defaults never appear as user Probe changes.
+  for (let pass = 0; pass < 8; pass++) {
+    const context = catalogValidationContext(baselineValues, 'interactive');
+    let changed = false;
+    for (const option of missing) {
+      const contextual = context.values.get(option.symbol);
+      const resolved = contextual !== undefined
+        ? contextual
+        : CATALOG_ENGINE.resolveKconfigDefault(
+          option, context.values, context.validationOptions,
+        ).value;
+      const value = normalizeCatalogBaselineValue(option, resolved);
+      if (baselineValues.get(option.symbol) === value) continue;
+      baselineValues.set(option.symbol, value);
+      changed = true;
+    }
+    if (!changed) break;
+  }
+  const resolvedContext = catalogValidationContext(baselineValues, 'interactive');
+  for (const option of missing) {
+    const value = normalizeCatalogBaselineValue(
+      option,
+      resolvedContext.values.get(option.symbol) ?? baselineValues.get(option.symbol),
+    );
+    catalogBaselineValues.set(option.symbol, value);
+    if (value !== 'n' && value !== '') {
       catalogBaselineOrigins.set(option.symbol, {
         kind: 'kconfig-default', detail: 'Kconfig default',
       });
@@ -3151,12 +3259,13 @@ function setMenuValue(option, value, openChildren = false) {
   } catch (error) {
     const violations = Array.isArray(error?.violations) ? error.violations : [];
     if (violations.some((item) => item.code === 'package-conflict' || item.code === 'choice-conflict') &&
-        openCatalogConflictModal(option, value, violations, openChildren)) return false;
+        openCatalogConflictModal(option, value, violations, false)) return false;
     const first = String(error?.message || error).split(';')[0];
     showToast(first.length > 240 ? `${first.slice(0, 237)}…` : first);
     return false;
   }
-  renderCatalogUiAfterIntent(openChildren, option, value);
+  const renderedValue = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+  renderCatalogUiAfterIntent(openChildren && renderedValue !== 'n', option, renderedValue);
   return true;
 }
 function initDefconfig() {
@@ -3650,8 +3759,8 @@ function renderMenuconfig() {
     if (menuPath === null) {
       const rootOptions = exact.filter((option) => eligible(option) && (option.parent || '') === menuParent);
       if (rootOptions.length) nodes.push({
-        label: 'General settings', usage: 'Root configuration options',
-        translation: '常规设置', usageZh: '根级配置选项', path: [], count: rootOptions.length,
+        label: 'Root Kconfig options', uiKey: 'rootOptions', usageUiKey: 'rootOptionsHelp',
+        path: [], count: rootOptions.length,
       });
     } else {
       options = exact.filter((option) => eligible(option) && (option.parent || '') === menuParent);
@@ -3687,11 +3796,11 @@ function renderMenuconfig() {
     count.className = 'menuconfig-category-count';
     count.textContent = `${node.count} ›`;
     button.append(text, count);
-    const localized = meta.i18n?.[state.lang] ||
+    const localized = (node.uiKey ? menuUi(node.uiKey) : '') || meta.i18n?.[state.lang] ||
       (state.lang === 'zh-CN' ? (node.translation || meta.zhCN) : '');
     applyMenuTranslation(button,
       localized,
-      meta.usageI18n?.[state.lang] ||
+      (node.usageUiKey ? menuUi(node.usageUiKey) : '') || meta.usageI18n?.[state.lang] ||
         (state.lang === 'zh-CN' ? (node.usageZh || meta.usageZh) : ''),
       true);
     button.onclick = () => {
@@ -5976,6 +6085,7 @@ async function mobileIssuePayload(payload) {
 }
 function openModal(title) {
   $('modalTitle').textContent = title;
+  $('modalProbe').hidden = true;
   lastFocus = document.activeElement;
   $('modal').hidden = false;
   document.body.classList.add('modal-open');
@@ -5983,10 +6093,12 @@ function openModal(title) {
 }
 function closeModal() {
   if ($('modal').hidden) return;
+  selfTestViewToken += 1;
   const cancel = modalCancelHandler;
   modalCancelHandler = null;
   $('modal').hidden = true;
-  $('modal').querySelector('.modal').classList.remove('modal-wide', 'modal-import-source', 'recommended-config', 'profile-package-config', 'generation-error', 'catalog-conflict', 'compatibility-warning', 'rootfs-guidance');
+  $('modalProbe').hidden = true;
+  $('modal').querySelector('.modal').classList.remove('modal-wide', 'modal-import-source', 'recommended-config', 'profile-package-config', 'generation-error', 'catalog-conflict', 'compatibility-warning', 'rootfs-guidance', 'package-probe');
   document.body.classList.remove('modal-open');
   if (lastFocus && lastFocus.focus) lastFocus.focus();
   if (cancel) cancel();
@@ -6152,16 +6264,515 @@ async function timedFetch(url, timeout) {
     return { ok: false, ms: Math.round(performance.now() - start), msg: e.name === 'AbortError' ? t('st.timeout') : t('st.connFail') };
   } finally { clearTimeout(timer); }
 }
-async function runSelfTest() {
-  try {
-    await ensurePackageMirrors();
-    await ensureCompatibilityRules();
-  } catch (error) {
-    if (error?.name === 'CompatibilityCancelledError') return;
-    showGenerationError(error);
-    return;
+
+const PROBE_UI_TEXT = Object.freeze({
+  title: ['插件兼容探针', '套件相容性探針', 'Package Compatibility Probe'],
+  intro: ['复用当前 Source/Branch 的 Advanced menuconfig 搜索结果，选择软件包并检查其在 Catalog 各源码分支中的编译、RootFS 安装、固件集成和可选启动行为。', '複用目前 Source/Branch 的 Advanced menuconfig 搜尋結果，選擇套件並檢查其在 Catalog 各原始碼分支中的編譯、RootFS 安裝、韌體整合及可選啟動行為。', 'Reuse the current Source/Branch Advanced menuconfig search results, select packages, and check compilation, RootFS installation, firmware integration, and optional boot behavior across Catalog Source/Branch environments.'],
+  howTo: ['Probe 与 Advanced menuconfig 直接共用同一份 Kconfig 状态。修改 `PACKAGE_*` 会立即走相同的 setMenuValue/Kconfig 依赖计算；所有被启用的依赖软件包都会成为同一份真实状态，普通 Kconfig 选项仅供参考。', 'Probe 與 Advanced menuconfig 直接共用同一份 Kconfig 狀態。修改 `PACKAGE_*` 會立即走相同的 setMenuValue/Kconfig 相依計算；所有被啟用的相依套件都會成為同一份真實狀態，一般 Kconfig 選項僅供參考。', 'Probe and Advanced menuconfig share one Kconfig state. Changing a `PACKAGE_*` row immediately uses the same setMenuValue/Kconfig dependency calculation; every enabled dependency package is part of that same state, while ordinary Kconfig options remain reference-only.'],
+  search: ['搜索软件包 / Kconfig ID', '搜尋套件 / Kconfig ID', 'Search package / Kconfig IDs'],
+  selected: ['已选择', '已選擇', 'Selected'],
+  depth: ['探测深度', '探測深度', 'Probe depth'],
+  scope: ['源码分支范围', '原始碼分支範圍', 'Source/Branch scope'],
+  targets: ['Target 覆盖', 'Target 覆蓋', 'Target coverage'],
+  allSources: ['全部可用 Source/Branch', '全部可用 Source/Branch', 'All available Source/Branch entries'],
+  currentSource: ['当前 Source/Branch', '目前 Source/Branch', 'Current Source/Branch'],
+  customScope: ['自定义选择', '自訂選擇', 'Custom selection'],
+  autoTarget: ['自动目标', '自動目標', 'Auto target'],
+  currentTarget: ['当前目标', '目前目標', 'Current target'],
+  allTargets: ['全部代表目标', '全部代表目標', 'All representative targets'],
+  packageCompile: ['软件包编译', '套件編譯', 'Package compile'],
+  packageCompileShort: ['编译', '編譯', 'Compile'],
+  packageCompileHelp: ['使用目标工具链编译所选软件包及其依赖闭包。', '使用目標工具鏈編譯所選套件及其相依閉包。', 'Build the selected package and dependency closure with the target toolchain.'],
+  rootfsIntegration: ['根文件系统集成', '根檔案系統整合', 'RootFS integration'],
+  rootfsIntegrationShort: ['RootFS', 'RootFS', 'RootFS'],
+  rootfsIntegrationHelp: ['把所选软件包安装进 RootFS，用于发现 APK/OPKG 文件归属和共同安装冲突。', '把所選套件安裝進 RootFS，用於發現 APK/OPKG 檔案歸屬及共同安裝衝突。', 'Install selected packages into RootFS to expose APK/OPKG ownership and co-install conflicts.'],
+  firmwareIntegration: ['固件集成', '韌體整合', 'Firmware integration'],
+  firmwareIntegrationShort: ['固件', '韌體', 'Firmware'],
+  firmwareIntegrationHelp: ['在相同 Source/Branch/Target 环境中分别构建基础固件和加入所选软件包的固件。', '在相同 Source/Branch/Target 環境中分別建置基礎韌體及加入所選套件的韌體。', 'Build a baseline image and an image with the selected packages in the same Source/Branch/Target environment.'],
+  bootSmoke: ['启动自检', '啟動自檢', 'Boot smoke'],
+  bootSmokeShort: ['启动', '啟動', 'Boot'],
+  bootSmokeHelp: ['对 Catalog 认可的可启动目标执行实验性通用启动验证，不包含插件专属运行检查。', '對 Catalog 認可的可啟動目標執行實驗性通用啟動驗證，不包含套件專屬執行檢查。', 'Experimental generic boot validation for Catalog-approved bootable targets; no package-specific runtime checks.'],
+  help: ['说明', '說明', 'Info'],
+  preview: ['预览计划', '預覽計畫', 'Preview plan'],
+  submit: ['提交探针', '提交探針', 'Submit probe'],
+  submittedState: ['当前 Advanced menuconfig 软件包状态已带入 GitHub Issue。', '目前 Advanced menuconfig 套件狀態已帶入 GitHub Issue。', 'The current Advanced menuconfig package state was carried into the GitHub Issue.'],
+  stateInstruction: ['Probe 只传递当前 Advanced menuconfig 已解析的 PACKAGE_* 状态和探测参数，不维护第二套软件包选择，也不上传配置文件。', 'Probe 只傳遞目前 Advanced menuconfig 已解析的 PACKAGE_* 狀態與探測參數，不維護第二套套件選擇，也不上傳設定檔。', 'Probe transports only the PACKAGE_* state already resolved by Advanced menuconfig plus probe controls; it maintains no second package selection and uploads no config file.'],
+  cancelInstruction: ['提交后如需取消，请在同一个 Issue 中准确回复 /cancel。', '提交後如需取消，請在同一個 Issue 中準確回覆 /cancel。', 'To cancel after submission, reply with exactly /cancel in the same Issue.'],
+  permission: ['仓库所有者可以运行完整计划；有写权限的协作者最多并发 3；普通访客不能启动探针 Matrix。', '儲存庫擁有者可以執行完整計畫；具寫入權限的協作者最多同時執行 3 個工作；一般訪客不能啟動探針 Matrix。', 'Repository owners may run the full plan; write collaborators are capped at three concurrent jobs; visitors cannot start the probe Matrix.'],
+  retention: ['规范化证据保留 60 天，完整探针日志保留 30 天。', '正規化證據保留 60 天，完整探針日誌保留 30 天。', 'Normalized evidence is retained for 60 days; complete probe logs are retained for 30 days.'],
+  empty: ['没有找到匹配的 Advanced menuconfig 项。', '找不到相符的 Advanced menuconfig 項目。', 'No matching Advanced menuconfig option was found.'],
+  invalid: ['当前 Advanced menuconfig 至少需要一个启用的软件包和一个 Source/Branch。', '目前 Advanced menuconfig 至少需要一個啟用的套件與一個 Source/Branch。', 'The current Advanced menuconfig state needs at least one enabled package and one Source/Branch entry.'],
+});
+function probeUiText(key) {
+  const row = PROBE_UI_TEXT[key];
+  return row ? uiText(row[0], row[1], row[2]) : key;
+}
+function probeCodeChannel() {
+  const branch = String(state.buildMeta?.branch || 'main');
+  if (branch.startsWith('fix/')) return branch;
+  return ['dev', 'staging', 'main'].includes(branch) ? branch : 'main';
+}
+function meaningfulProbeText(value) {
+  const text = String(value || '').trim();
+  return /[\p{L}\p{N}]/u.test(text) ? text : '';
+}
+function firstMeaningfulProbeText(...values) {
+  for (const value of values) {
+    const text = meaningfulProbeText(value);
+    if (text) return text;
   }
+  return '';
+}
+function probeChoiceFromMenuOption(option) {
+  const symbol = String(option?.symbol || '');
+  const packageName = symbol.startsWith('PACKAGE_') ? symbol.slice('PACKAGE_'.length) : '';
+  const translation = menuOptionTranslation(option);
+  return {
+    symbol,
+    package: packageName,
+    displayId: packageName || symbol,
+    isPackage: Boolean(packageName),
+    userSettable: option?.userSettable !== false,
+    title: firstMeaningfulProbeText(translation.title, option.promptZh, option.promptEn),
+    usage: firstMeaningfulProbeText(translation.usage, option.usageZh, option.usageEn),
+  };
+}
+function probePackageChoices(query = '') {
+  const normalized = normalizeMenuSearchQuery(query);
+  const options = normalized.length >= 2
+    ? searchMenuOptionsSync(normalized)
+    : rankMenuSearchOptions(
+      menuSearchOptions.filter((option) => String(option?.symbol || '').startsWith('PACKAGE_')),
+      normalized,
+    );
+  return options
+    .filter((option) => optionVisible(option) && catalogOriginMatches(option))
+    .map(probeChoiceFromMenuOption);
+}
+function probeCurrentTarget() {
+  const target = (MENU_CATALOG?.targets || []).find((item) =>
+    item.board === targetSelectorValues.system && item.subtarget === targetSelectorValues.subtarget);
+  const profile = target?.profiles?.find((item) => item.id === targetSelectorValues.profile);
+  return target ? { target: String(target.id || ''), profile: String(profile?.id || '') } : null;
+}
+function probeMenuOptionState(option) {
+  if (!option) return 'n';
+  const raw = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
+  return option.type === 'bool' || option.type === 'tristate'
+    ? CATALOG_ENGINE.normalizeKconfigStateValue(option, raw) : raw;
+}
+function probePackageBaselineState(option) {
+  if (!option) return 'n';
+  let raw;
+  if (catalogBaselineValues.has(option.symbol)) raw = catalogBaselineValues.get(option.symbol);
+  else {
+    const changedAfterBaseline = menuTouched.has(option.symbol) || catalogUserOverrides.has(option.symbol) ||
+      catalogDependencySymbols.has(option.symbol) || catalogImportedSymbols.has(option.symbol);
+    raw = changedAfterBaseline ? 'n' : probeMenuOptionState(option);
+  }
+  return option.type === 'bool' || option.type === 'tristate'
+    ? CATALOG_ENGINE.normalizeKconfigStateValue(option, raw) : raw;
+}
+function changedProbePackageOptions() {
+  return menuSearchOptions
+    .filter((option) => String(option?.symbol || '').startsWith('PACKAGE_') &&
+      probeMenuOptionState(option) !== probePackageBaselineState(option))
+    .sort((left, right) => Number(catalogUserOverrides.has(right.symbol)) -
+      Number(catalogUserOverrides.has(left.symbol)));
+}
+function probePackageConfigFromText(text) {
+  const rows = new Map();
+  for (const line of String(text || '').replace(/\r\n/g, '\n').split('\n')) {
+    const match = line.match(/^CONFIG_PACKAGE_([A-Za-z0-9][A-Za-z0-9+_.@-]{0,95})=([my])$/);
+    if (match) rows.set(match[1], `CONFIG_PACKAGE_${match[1]}=${match[2]}`);
+  }
+  return [...rows.values()].join('\n') + (rows.size ? '\n' : '');
+}
+async function gzipBase64Url(text) {
+  if (!('CompressionStream' in window)) {
+    throw new Error(uiText('当前浏览器不支持探针状态压缩，请更新浏览器后重试。',
+      '目前瀏覽器不支援探針狀態壓縮，請更新瀏覽器後重試。',
+      'This browser cannot compress probe state. Update the browser and try again.'));
+  }
+  const compressed = new Uint8Array(await new Response(
+    new Blob([text]).stream().pipeThrough(new CompressionStream('gzip'))).arrayBuffer());
+  let binary = '';
+  for (let i = 0; i < compressed.length; i += 0x4000) {
+    binary += String.fromCharCode(...compressed.subarray(i, i + 0x4000));
+  }
+  return btoa(binary).replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
+}
+async function probeStateToken(request) {
+  return `WEIG_PACKAGE_PROBE_STATE_V2:${await gzipBase64Url(JSON.stringify(request))}`;
+}
+function probeIssueTitle(request) {
+  const packages = request.packageConfig.trim().split('\n').filter(Boolean)
+    .map((line) => line.slice('CONFIG_PACKAGE_'.length, line.lastIndexOf('=')));
+  const channel = String(request.channel || 'main');
+  const prefix = channel === 'main' ? '' : `${channel}-`;
+  const titlePackages = packages.length
+    ? [`${prefix}${packages[0]}`, ...packages.slice(1, 3)].join(', ') +
+      (packages.length > 3 ? ` +${packages.length - 3}` : '')
+    : `${prefix}menuconfig`;
+  return `[probe] ${titlePackages} · ${request.mode}`.slice(0, 200);
+}
+function probeIssueUrl(request, token) {
+  const params = new URLSearchParams({
+    template: 'package-probe.yml', title: probeIssueTitle(request), state: token,
+  });
+  return `https://github.com/${PROJECT.catalogRepository}/issues/new?${params}`;
+}
+async function openPackageProbeModal() {
+  selfTestViewToken += 1;
+  openModal(uiText('插件兼容探针', '套件相容性探針', 'Package Compatibility Probe'));
+  const modal = $('modal').querySelector('.modal');
+  modal.classList.add('package-probe');
+  const body = $('modalBody');
+  body.textContent = '';
+  const loading = document.createElement('p');
+  loading.className = 'probe-loading'; loading.textContent = uiText('正在加载 Catalog 探针数据…', '正在載入 Catalog 探針資料…', 'Loading Catalog probe data…');
+  body.appendChild(loading);
+  try {
+    await ensureCatalogMenuLoaded(true);
+    if ($('modal').hidden || !modal.classList.contains('package-probe')) return;
+    modalCancelHandler = null;
+    body.textContent = '';
+
+    const intro = document.createElement('section');
+    intro.className = 'probe-intro';
+    const introTitle = document.createElement('h4'); introTitle.textContent = probeUiText('title');
+    const introText = document.createElement('p'); introText.textContent = probeUiText('intro'); introText.title = introText.textContent;
+    const guide = document.createElement('details'); guide.className = 'probe-guide';
+    const guideButton = document.createElement('summary'); guideButton.textContent = 'ⓘ';
+    guideButton.setAttribute('aria-label', probeUiText('howTo'));
+    const guideCopy = document.createElement('span'); guideCopy.className = 'probe-guide-copy';
+    const guideIntro = document.createElement('span'); guideIntro.textContent = probeUiText('intro');
+    const howTo = document.createElement('span'); howTo.textContent = probeUiText('howTo');
+    guideCopy.append(guideIntro, howTo); guide.append(guideButton, guideCopy);
+    intro.append(introTitle, introText, guide); body.appendChild(intro);
+
+    const layout = document.createElement('div'); layout.className = 'probe-layout'; body.appendChild(layout);
+    const settings = document.createElement('section'); settings.className = 'probe-panel probe-settings';
+    const picker = document.createElement('section'); picker.className = 'probe-panel probe-picker';
+    layout.append(settings, picker);
+
+    const search = document.createElement('input'); search.className = 'probe-search'; search.type = 'search';
+    search.placeholder = probeUiText('search'); search.setAttribute('aria-label', probeUiText('search'));
+    const selectedBox = document.createElement('div'); selectedBox.className = 'probe-selected';
+    const results = document.createElement('div'); results.className = 'probe-results';
+    picker.append(search, selectedBox, results);
+
+    const overlay = document.createElement('div'); overlay.className = 'probe-overlay'; overlay.hidden = true;
+    const overlayCard = document.createElement('section'); overlayCard.className = 'probe-overlay-card';
+    const overlayHead = document.createElement('div'); overlayHead.className = 'probe-overlay-head';
+    const overlayTitle = document.createElement('strong');
+    const overlayClose = document.createElement('button'); overlayClose.type = 'button'; overlayClose.className = 'probe-overlay-close'; overlayClose.textContent = '×';
+    const overlayBody = document.createElement('div'); overlayBody.className = 'probe-overlay-body';
+    overlayHead.append(overlayTitle, overlayClose); overlayCard.append(overlayHead, overlayBody); overlay.appendChild(overlayCard);
+    layout.appendChild(overlay);
+    const closeProbeOverlay = () => { overlay.hidden = true; overlayBody.textContent = ''; };
+    const showProbeOverlay = (title, lines) => {
+      overlayTitle.textContent = title;
+      overlayBody.textContent = '';
+      for (const line of lines) {
+        const paragraph = document.createElement('p'); paragraph.textContent = line; overlayBody.appendChild(paragraph);
+      }
+      overlay.hidden = false; overlayClose.focus();
+    };
+    overlayClose.addEventListener('click', closeProbeOverlay);
+    overlay.addEventListener('click', (event) => { if (event.target === overlay) closeProbeOverlay(); });
+
+    const probeTextIsTruncated = (element) => element.scrollWidth > element.clientWidth + 1;
+    const bindProbeTextTooltip = (element, text) => {
+      if (!text) return;
+      element.addEventListener('mouseenter', () => {
+        if (probeTextIsTruncated(element)) showMenuPopup(element, text);
+      });
+      element.addEventListener('mouseleave', hideMenuTooltip);
+    };
+
+    const renderSelected = () => {
+      selectedBox.textContent = '';
+      const changed = changedProbePackageOptions();
+      selectedBox.hidden = changed.length === 0;
+      if (!changed.length) return;
+      const label = document.createElement('strong');
+      label.textContent = `${probeUiText('selected')} ${changed.length}`;
+      const chips = document.createElement('div'); chips.className = 'probe-selected-chips';
+      const visibleLimit = 3;
+      for (const option of changed.slice(0, visibleLimit)) {
+        const chip = document.createElement('button');
+        chip.type = 'button'; chip.className = 'probe-chip';
+        const packageName = option.symbol.slice('PACKAGE_'.length);
+        const value = probeMenuOptionState(option);
+        chip.textContent = `${packageName}=${String(value).toUpperCase()} ×`;
+        chip.title = `CONFIG_${option.symbol}`;
+        chip.addEventListener('click', () => {
+          const baselineValue = probePackageBaselineState(option);
+          if (setMenuValue(option, baselineValue)) {
+            renderSelected(); renderResults(); void renderPreview();
+          }
+        });
+        chips.appendChild(chip);
+      }
+      selectedBox.append(label, chips);
+      if (changed.length > visibleLimit) {
+        const more = document.createElement('button');
+        more.type = 'button'; more.className = 'probe-selected-more';
+        more.textContent = `+${changed.length - visibleLimit}`;
+        more.addEventListener('click', () => showProbeOverlay(
+          `${probeUiText('selected')} ${changed.length}`,
+          changed.map((option) => {
+            const packageName = option.symbol.slice('PACKAGE_'.length);
+            return `${packageName}: ${String(probePackageBaselineState(option)).toUpperCase()} → ${String(probeMenuOptionState(option)).toUpperCase()}`;
+          }),
+        ));
+        selectedBox.appendChild(more);
+      }
+    };
+    const renderResults = () => {
+      const matches = probePackageChoices(search.value).slice(0, 80);
+      results.textContent = '';
+      if (!matches.length) {
+        const empty = document.createElement('p'); empty.className = 'probe-empty'; empty.textContent = probeUiText('empty'); results.appendChild(empty); return;
+      }
+      for (const choice of matches) {
+        const option = menuOptionBySymbol.get(choice.symbol);
+        const selectable = choice.isPackage && choice.userSettable;
+        const currentValue = choice.isPackage ? probeMenuOptionState(option) : 'n';
+        const activeSelected = choice.isPackage && currentValue !== 'n';
+        const row = document.createElement('button'); row.type = 'button'; row.className = 'probe-package';
+        row.classList.toggle('is-selected', activeSelected);
+        row.classList.toggle('is-reference', !selectable);
+        if (!selectable) row.setAttribute('aria-disabled', 'true');
+        const mark = document.createElement('span'); mark.className = 'probe-package-mark';
+        mark.textContent = choice.isPackage ? (activeSelected ? String(currentValue).toUpperCase() : '+') : '·';
+        const code = document.createElement('code'); code.className = 'probe-package-id'; code.textContent = choice.displayId;
+        const title = document.createElement('span'); title.className = 'probe-package-title'; title.textContent = choice.title || '—';
+        const usage = document.createElement('span'); usage.className = 'probe-package-usage'; usage.textContent = choice.usage || '—';
+        bindProbeTextTooltip(title, choice.title);
+        bindProbeTextTooltip(usage, choice.usage);
+        const rowDetails = [choice.displayId, `CONFIG_${choice.symbol}`, choice.title, choice.usage].filter(Boolean).join('\n');
+        const info = document.createElement('span'); info.className = 'probe-package-info'; info.textContent = '!';
+        info.setAttribute('aria-hidden', 'true');
+        info.addEventListener('click', (event) => {
+          event.preventDefault(); event.stopPropagation(); showMenuPopup(row, rowDetails);
+        });
+        row.append(mark, code, title, usage, info);
+        row.setAttribute('aria-label', rowDetails);
+        row.addEventListener('focus', () => {
+          if (probeTextIsTruncated(title) || probeTextIsTruncated(usage)) showMenuPopup(row, rowDetails);
+        });
+        row.addEventListener('blur', hideMenuTooltip);
+        if (selectable) row.addEventListener('click', () => {
+          const states = optionSelectableStates(option);
+          const enableValue = states.includes('y') ? 'y' : states.find((value) => value !== 'n') || 'y';
+          const nextValue = activeSelected ? 'n' : enableValue;
+          if (setMenuValue(option, nextValue)) {
+            renderSelected(); renderResults(); void renderPreview();
+          }
+        });
+        results.appendChild(row);
+      }
+    };
+
+    const fieldset = (legendText, className = '') => {
+      const field = document.createElement('fieldset'); field.className = `probe-field ${className}`.trim();
+      const legend = document.createElement('legend'); legend.textContent = legendText; field.appendChild(legend); settings.appendChild(field); return field;
+    };
+    const depth = fieldset(probeUiText('depth'), 'probe-depth');
+    const depthOptions = [
+      ['package-compile', 'packageCompile', 'packageCompileShort', 'packageCompileHelp'],
+      ['rootfs-integration', 'rootfsIntegration', 'rootfsIntegrationShort', 'rootfsIntegrationHelp'],
+      ['firmware-integration', 'firmwareIntegration', 'firmwareIntegrationShort', 'firmwareIntegrationHelp'],
+      ['boot-smoke', 'bootSmoke', 'bootSmokeShort', 'bootSmokeHelp'],
+    ];
+    const closeDepthHelp = (except = null) => {
+      for (const info of depth.querySelectorAll('.probe-info.is-open')) {
+        if (info === except) continue;
+        info.classList.remove('is-open');
+        info.querySelector('button')?.setAttribute('aria-expanded', 'false');
+      }
+    };
+    for (const [index, [value, labelKey, shortKey, helpKey]] of depthOptions.entries()) {
+      const option = document.createElement('div'); option.className = 'probe-depth-option';
+      const label = document.createElement('label'); label.className = 'probe-depth-choice';
+      const input = document.createElement('input'); input.type = 'radio'; input.name = 'probeDepth'; input.value = value; input.checked = index === 0;
+      const level = document.createElement('span'); level.className = 'probe-level'; level.textContent = `L${index + 1}`;
+      const title = document.createElement('strong'); title.className = 'probe-depth-title';
+      title.textContent = probeUiText(labelKey); title.dataset.short = probeUiText(shortKey);
+      label.append(input, level, title);
+      const info = document.createElement('span'); info.className = 'probe-info';
+      const infoButton = document.createElement('button'); infoButton.type = 'button'; infoButton.className = 'probe-info-button';
+      infoButton.textContent = 'ⓘ'; infoButton.setAttribute('aria-expanded', 'false');
+      infoButton.setAttribute('aria-label', `${probeUiText(labelKey)}: ${probeUiText(helpKey)}`);
+      const popup = document.createElement('span'); popup.className = 'probe-info-popup'; popup.setAttribute('role', 'tooltip'); popup.textContent = probeUiText(helpKey);
+      info.append(infoButton, popup); option.append(label, info); depth.appendChild(option);
+      input.addEventListener('change', () => { closeDepthHelp(); renderPreview(); });
+      infoButton.addEventListener('click', (event) => {
+        event.preventDefault(); event.stopPropagation();
+        const opening = !info.classList.contains('is-open'); closeDepthHelp(info);
+        info.classList.toggle('is-open', opening); infoButton.setAttribute('aria-expanded', String(opening));
+      });
+    }
+
+    const filterRow = document.createElement('div'); filterRow.className = 'probe-filter-row'; settings.appendChild(filterRow);
+    const selectField = (labelText, className) => {
+      const label = document.createElement('label'); label.className = `probe-select-field ${className}`;
+      const title = document.createElement('strong'); title.textContent = labelText;
+      const select = document.createElement('select'); select.className = 'probe-select';
+      label.append(title, select); filterRow.appendChild(label); return select;
+    };
+    const addSelectOption = (select, value, text, disabled = false) => {
+      const option = document.createElement('option'); option.value = value; option.textContent = text; option.disabled = disabled; select.appendChild(option);
+    };
+    const scopeSelect = selectField(probeUiText('scope'), 'probe-scope-field');
+    addSelectOption(scopeSelect, 'all', probeUiText('allSources'));
+    addSelectOption(scopeSelect, 'current', probeUiText('currentSource'));
+    addSelectOption(scopeSelect, 'custom', probeUiText('customScope'));
+    const currentTarget = probeCurrentTarget();
+    const targetSelect = selectField(probeUiText('targets'), 'probe-target-field');
+    addSelectOption(targetSelect, 'auto', probeUiText('autoTarget'));
+    addSelectOption(targetSelect, 'current', currentTarget
+      ? `${probeUiText('currentTarget')} · ${currentTarget.target} / ${currentTarget.profile || '-'}`
+      : probeUiText('currentTarget'), !currentTarget);
+    addSelectOption(targetSelect, 'all', probeUiText('allTargets'));
+
+    const customScope = document.createElement('details'); customScope.className = 'probe-custom-scope'; customScope.hidden = true; customScope.open = true; settings.appendChild(customScope);
+    const customScopeSummary = document.createElement('summary'); customScopeSummary.className = 'probe-custom-scope-summary';
+    const customScopeTitle = document.createElement('strong');
+    const customScopeToggle = document.createElement('span'); customScopeToggle.className = 'probe-custom-scope-toggle';
+    customScopeSummary.append(customScopeTitle, customScopeToggle); customScope.appendChild(customScopeSummary);
+    const customScopeBody = document.createElement('div'); customScopeBody.className = 'probe-custom-scope-body'; customScope.appendChild(customScopeBody);
+    const branchSearch = document.createElement('input'); branchSearch.type = 'search'; branchSearch.className = 'probe-branch-search';
+    branchSearch.placeholder = `${probeUiText('customScope')} · Source/Branch`;
+    branchSearch.setAttribute('aria-label', branchSearch.placeholder);
+    const branchList = document.createElement('div'); branchList.className = 'probe-branches'; customScopeBody.append(branchSearch, branchList);
+    const updateCustomScopeSummary = () => {
+      const count = branchList.querySelectorAll('input:checked').length;
+      customScopeTitle.textContent = `${probeUiText('customScope')} · ${uiText('已选', '已選', 'Selected')} ${count}`;
+      customScopeToggle.textContent = customScope.open ? uiText('收起', '收起', 'Collapse') : uiText('展开', '展開', 'Expand');
+    };
+    for (const source of MENU_INDEX?.sources || []) for (const branch of source.branches || []) {
+      if (branch.state === 'unavailable') continue;
+      const label = document.createElement('label');
+      const input = document.createElement('input'); input.type = 'checkbox'; input.value = `${source.id}\0${branch.branch}`;
+      const text = `${source.label || source.id} / ${branch.branch}`;
+      label.dataset.search = text.toLocaleLowerCase();
+      input.addEventListener('change', () => { updateCustomScopeSummary(); renderPreview(); }); label.append(input, document.createTextNode(text)); branchList.appendChild(label);
+    }
+    updateCustomScopeSummary();
+    customScope.addEventListener('toggle', updateCustomScopeSummary);
+    scopeSelect.addEventListener('change', () => {
+      customScope.hidden = scopeSelect.value !== 'custom';
+      if (!customScope.hidden) customScope.open = true;
+      updateCustomScopeSummary();
+      renderPreview();
+    });
+    targetSelect.addEventListener('change', renderPreview);
+    branchSearch.addEventListener('input', () => {
+      const query = branchSearch.value.trim().toLocaleLowerCase();
+      for (const label of branchList.querySelectorAll('label')) label.hidden = !!query && !label.dataset.search.includes(query);
+    });
+    layout.addEventListener('click', (event) => { if (!event.target.closest('.probe-info')) closeDepthHelp(); });
+    layout.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeDepthHelp(); closeProbeOverlay(); } });
+
+    const preview = document.createElement('pre'); preview.className = 'probe-preview'; preview.hidden = true; layout.appendChild(preview);
+    const actions = document.createElement('div'); actions.className = 'modal-actions probe-actions';
+    const helpButton = document.createElement('button'); helpButton.type = 'button'; helpButton.className = 'btn probe-help-button'; helpButton.textContent = probeUiText('help');
+    helpButton.addEventListener('click', () => showProbeOverlay(probeUiText('help'), [
+      probeUiText('stateInstruction'), probeUiText('howTo'), probeUiText('cancelInstruction'),
+      probeUiText('permission'), probeUiText('retention'),
+    ]));
+    const actionsSpacer = document.createElement('span'); actionsSpacer.className = 'probe-actions-spacer'; actionsSpacer.setAttribute('aria-hidden', 'true');
+    const previewButton = document.createElement('button'); previewButton.type = 'button'; previewButton.className = 'btn'; previewButton.textContent = probeUiText('preview');
+    previewButton.setAttribute('aria-expanded', 'false');
+    const submitButton = document.createElement('button'); submitButton.type = 'button'; submitButton.className = 'btn btn-primary'; submitButton.textContent = probeUiText('submit');
+    actions.append(helpButton, actionsSpacer, previewButton, submitButton); layout.appendChild(actions);
+
+    const requestValue = async () => {
+      const scopeMode = scopeSelect.value || 'all';
+      let requestScope = { mode: 'all' };
+      if (scopeMode === 'current') {
+        const source = selectedCatalogSource(), branch = selectedCatalogBranch(source);
+        requestScope = { mode: 'pairs', pairs: [[String(source?.id || ''), String(branch?.branch || '')]] };
+      } else if (scopeMode === 'custom') {
+        requestScope = { mode: 'pairs', pairs: [...branchList.querySelectorAll('input:checked')].map((input) => input.value.split('\0')) };
+      }
+      const targetMode = targetSelect.value || 'auto';
+      const targetPolicy = targetMode === 'current'
+        ? { mode: 'selected', selections: [currentTarget] }
+        : { mode: targetMode };
+      const resolvedConfig = await generateResolvedConfigText();
+      return {
+        schema: 2, channel: probeCodeChannel(),
+        mode: depth.querySelector('input[name=probeDepth]:checked')?.value || 'package-compile',
+        packageConfig: probePackageConfigFromText(resolvedConfig),
+        scope: requestScope, targetPolicy, maxParallel: 0, execute: true,
+      };
+    };
+    let previewRequest = 0;
+    async function renderPreview() {
+      const sequence = ++previewRequest;
+      submitButton.disabled = true;
+      try {
+        const request = await requestValue();
+        if (sequence !== previewRequest) return null;
+        const valid = Boolean(request.packageConfig.trim()) &&
+          (request.scope.mode !== 'pairs' || request.scope.pairs.every((row) => row[0] && row[1]) && request.scope.pairs.length > 0);
+        preview.textContent = valid ? JSON.stringify(request, null, 2) : probeUiText('invalid');
+        submitButton.disabled = !valid;
+        return valid ? request : null;
+      } catch (error) {
+        if (sequence === previewRequest) {
+          preview.textContent = String(error?.message || error);
+          submitButton.disabled = true;
+        }
+        return null;
+      }
+    }
+    previewButton.addEventListener('click', () => {
+      const opening = preview.hidden;
+      preview.hidden = !opening; previewButton.setAttribute('aria-expanded', String(opening));
+      if (opening) void renderPreview();
+    });
+    submitButton.addEventListener('click', async () => {
+      submitButton.disabled = true;
+      try {
+        const request = await requestValue();
+        const valid = Boolean(request.packageConfig.trim()) &&
+          (request.scope.mode !== 'pairs' || request.scope.pairs.every((row) => row[0] && row[1]) && request.scope.pairs.length > 0);
+        if (!valid) { await renderPreview(); return; }
+        const token = await probeStateToken(request);
+        const issueUrl = probeIssueUrl(request, token);
+        showToast(probeUiText('submittedState'));
+        const issueWindow = window.open(issueUrl, '_blank');
+        if (issueWindow) issueWindow.opener = null; else window.location.assign(issueUrl);
+      } catch (error) {
+        showToast(String(error?.message || error).split(';')[0]);
+      } finally {
+        await renderPreview();
+      }
+    });
+    search.addEventListener('input', renderResults);
+    renderSelected(); renderResults(); void renderPreview(); search.focus();
+  } catch (error) {
+    body.textContent = '';
+    const failure = document.createElement('p'); failure.className = 'import-error'; failure.textContent = String(error?.message || error); body.appendChild(failure);
+  }
+}
+$('modalProbe').addEventListener('click', openPackageProbeModal);
+
+async function runSelfTest() {
+  const viewToken = ++selfTestViewToken;
   openModal(t('st.title'));
+  const probe = $('modalProbe');
+  probe.textContent = uiText('插件兼容探针', '外掛相容性探針', 'Package compatibility probe');
+  probe.title = uiText(
+    '按 Catalog Source/Branch 探测软件包编译与同装兼容性',
+    '依 Catalog Source/Branch 探測套件編譯與共裝相容性',
+    'Probe package compilation and co-install compatibility across Catalog Source/Branch entries');
+  probe.hidden = false;
   const mb = $('modalBody');
   mb.textContent = '';
   const intro = document.createElement('p');
@@ -6197,9 +6808,14 @@ async function runSelfTest() {
 
   const d2 = addRow(t('st.data'));
   try {
-    const applications = await ensureCatalogApplications();
+    const [applications, compatibility] = await Promise.all([
+      ensureCatalogApplications(),
+      CATALOG_LOADER.fetchCompatibility(),
+      ensurePackageMirrors(),
+    ]);
+    if (viewToken !== selfTestViewToken) return;
     d2(applications.items.length ? 'ok' : 'fail',
-      `${MENU_CATALOG_DATA_REF} · ${applications.items.length} curated applications`);
+      `${MENU_CATALOG_DATA_REF} · ${applications.items.length} curated applications · ${compatibility.compatibility.rules.length} compatibility rules`);
   } catch (error) {
     d2('fail', error.message);
   }
@@ -6249,6 +6865,7 @@ async function runSelfTest() {
 
   const d5 = addRow(t('st.github'));
   const gh = await timedFetch('https://api.github.com/', 6000);
+  if (viewToken !== selfTestViewToken) return;
   d5(gh.ok ? 'ok' : 'warn', gh.ok ? t('st.github.ok', { ms: gh.ms }) : t('st.github.fail', { msg: gh.msg }));
 }
 $('selfTestBtn').addEventListener('click', () => { runSelfTest().catch((e) => showToast(t('toast.selfTestError', { msg: e.message }))); });
