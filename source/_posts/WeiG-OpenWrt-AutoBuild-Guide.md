@@ -55,16 +55,17 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 
 - **[Github](https://github.com/)** 账号 (如果没有无法构建)
 - 登录 **[WeiG_OpenWrt_在线定制](https://www.weigefenxiang.cc.cd/wrt)**
-  - **[Page 页](https://weige-share-blog.pages.dev/wrt/)** (更新快)
+  - **[Page 页](https://dev.weig-wrt.pages.dev/)** (实验功能，体验最新功能)
 
 <!-- 截图 1：网页首页，展示 Source、Branch、Target 与插件区域 -->
 
 ## 1. 选择参数
 
+- 选择源后，在搜索框搜索相应机型或环境。也可加载config
 - **Source → Branch → Target System → Subtarget → Target Profile**。
   - 例 X86/64：  **ImmortalWrt → openwrt-24.10 → x86 → 64** → Generic x86/64
 
-- **推荐：☑ 推荐项 | ☑ Defconfig** 新手建议勾选（提高编译成功率）。
+
 
 - **Advanced menuconfig** → 勾选插件
 
