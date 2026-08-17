@@ -122,11 +122,13 @@ const catalogBaselineValues = new Map();
 const catalogBaselineOrigins = new Map();
 const catalogRecommendedValues = new Map();
 const catalogDependencySymbols = new Set();
+const catalogConditionalDefaultSymbols = new Set();
 const catalogImportedSymbols = new Set();
 const catalogUserOverrides = new Map();
 const profilePackageOverrides = new Map();
 let profilePackageModalOpen = false;
 let menuOriginFilter = 'all';
+let menuUserSettableOnly = false;
 const menuImportedOriginal = new Map();
 const menuImportedNonDefault = new Set();
 const importedConfigValues = new Map();
@@ -140,6 +142,7 @@ let menuSearchText = new Map(), menuSearchOptions = [];
 const ROOTFS_PARTSIZE_SYMBOL = 'TARGET_ROOTFS_PARTSIZE';
 let catalogSearchWorker = null, catalogSearchGeneration = 0, catalogSearchRequestId = 0;
 let catalogSearchWorkerReady = false, catalogSearchPending = new Set(), catalogSearchResults = new Map();
+let catalogSearchRequests = new Map();
 let catalogLocatorEntryCache = null;
 let catalogStateRevision = 0, catalogContextCache = new Map(), catalogContextCacheBypass = false;
 let compatibilityPrefetchTimer = null;
@@ -148,8 +151,10 @@ let catalogApplicationsLoadState = 'loading', catalogApplicationsError = '';
 let selfTestViewToken = 0;
 let catalogStartupPromise = null, catalogApplicationsDemanded = false, catalogApplicationsObserver = null;
 let menuVisibilityRevision = -1, menuVisibilityCache = new Map(), menuSelectableStatesCache = new Map();
+let menuStateConstraintsCache = new Map();
 let MENU_CATALOG_REPO = 'weigefenxiang/WeiG-OpenWrt-Menuconfig-Catalog';
 const MENU_PAGE_SIZE = 80;
+const MENU_SEARCH_PAGE_SIZE = 60;
 const LANG_SHORT = {
   'zh-CN': '简', 'zh-TW': '繁', en: 'EN', ru: 'RU', es: 'ES', pt: 'PT',
   ja: '日', ko: '한', de: 'DE', fr: 'FR', vi: 'VI',
@@ -199,6 +204,21 @@ const MENU_UI_I18N = {
   },
 };
 const menuUi = (key) => MENU_UI_I18N[key]?.[state.lang] || MENU_UI_I18N[key]?.en || key;
+const MENU_FILTER_I18N = {
+  'zh-CN': { origin: '来源', display: '显示', filter: '筛选', all: '全部来源', user: '用户选择', excluded: '明确排除', default: '上游默认', recommended: '网页推荐', dependency: '自动依赖', imported: '导入配置', selectedOnly: '仅看已选', userSettable: 'userSettable' },
+  'zh-TW': { origin: '來源', display: '顯示', filter: '篩選', all: '全部來源', user: '使用者選擇', excluded: '明確排除', default: '上游預設', recommended: '網頁推薦', dependency: '自動相依', imported: '匯入設定', selectedOnly: '僅看已選', userSettable: 'userSettable' },
+  en: { origin: 'Origin', display: 'Display', filter: 'Filter', all: 'All origins', user: 'User selected', excluded: 'Explicitly excluded', default: 'Upstream defaults', recommended: 'Recommended', dependency: 'Dependencies', imported: 'Imported', selectedOnly: 'Selected only', userSettable: 'userSettable' },
+  ru: { origin: 'Источник', display: 'Отображение', filter: 'Фильтр', all: 'Все источники', user: 'Выбрано пользователем', excluded: 'Явно исключено', default: 'По умолчанию upstream', recommended: 'Рекомендуемое', dependency: 'Зависимости', imported: 'Импортировано', selectedOnly: 'Только выбранные', userSettable: 'userSettable' },
+  es: { origin: 'Origen', display: 'Mostrar', filter: 'Filtro', all: 'Todos los orígenes', user: 'Selección del usuario', excluded: 'Excluido explícitamente', default: 'Valores upstream', recommended: 'Recomendado', dependency: 'Dependencias', imported: 'Importado', selectedOnly: 'Solo seleccionados', userSettable: 'userSettable' },
+  pt: { origin: 'Origem', display: 'Exibição', filter: 'Filtro', all: 'Todas as origens', user: 'Selecionado pelo usuário', excluded: 'Excluído explicitamente', default: 'Padrões upstream', recommended: 'Recomendado', dependency: 'Dependências', imported: 'Importado', selectedOnly: 'Somente selecionados', userSettable: 'userSettable' },
+  ja: { origin: '由来', display: '表示', filter: '絞り込み', all: 'すべての由来', user: 'ユーザー選択', excluded: '明示的に除外', default: '上流の既定値', recommended: '推奨', dependency: '依存関係', imported: 'インポート', selectedOnly: '選択済みのみ', userSettable: 'userSettable' },
+  ko: { origin: '출처', display: '표시', filter: '필터', all: '모든 출처', user: '사용자 선택', excluded: '명시적 제외', default: '업스트림 기본값', recommended: '권장', dependency: '종속성', imported: '가져옴', selectedOnly: '선택 항목만', userSettable: 'userSettable' },
+  de: { origin: 'Ursprung', display: 'Anzeige', filter: 'Filter', all: 'Alle Ursprünge', user: 'Benutzerauswahl', excluded: 'Explizit ausgeschlossen', default: 'Upstream-Standardwerte', recommended: 'Empfohlen', dependency: 'Abhängigkeiten', imported: 'Importiert', selectedOnly: 'Nur ausgewählte', userSettable: 'userSettable' },
+  fr: { origin: 'Origine', display: 'Affichage', filter: 'Filtrer', all: 'Toutes les origines', user: 'Choix utilisateur', excluded: 'Exclu explicitement', default: 'Valeurs upstream', recommended: 'Recommandé', dependency: 'Dépendances', imported: 'Importé', selectedOnly: 'Sélection uniquement', userSettable: 'userSettable' },
+  vi: { origin: 'Nguồn', display: 'Hiển thị', filter: 'Bộ lọc', all: 'Tất cả nguồn', user: 'Người dùng chọn', excluded: 'Loại trừ rõ ràng', default: 'Mặc định upstream', recommended: 'Đề xuất', dependency: 'Phụ thuộc', imported: 'Đã nhập', selectedOnly: 'Chỉ mục đã chọn', userSettable: 'userSettable' },
+};
+const menuFilterText = (key) => MENU_FILTER_I18N[state.lang]?.[key] || MENU_FILTER_I18N.en[key] || key;
+const MENU_ORIGIN_FILTER_VALUES = ['all', 'user', 'excluded', 'default', 'recommended', 'dependency', 'imported'];
 const TARGET_FIELD_I18N = {
   source: {
     'zh-CN': '源码', 'zh-TW': '原始碼', ru: 'Источник', es: 'Fuente', pt: 'Fonte',
@@ -325,7 +345,10 @@ function applyI18n() {
     // 缺词条时保留 HTML 中的人类可读兜底,绝不把 adv.grey.toggle 之类内部键名显示给用户 / Keep the human-readable HTML fallback when a key is missing; never expose internal keys such as adv.grey.toggle
     if (value !== el.dataset.i18n) el.textContent = value;
   });
-  document.querySelectorAll('[data-i18n-title]').forEach((el) => { el.title = t(el.dataset.i18nTitle); });
+  document.querySelectorAll('[data-i18n-title]').forEach((el) => {
+    el.removeAttribute('title');
+    bindUiTooltipContent(el, { body: t(el.dataset.i18nTitle) });
+  });
   document.querySelectorAll('[data-i18n-aria]').forEach((el) => { el.setAttribute('aria-label', t(el.dataset.i18nAria)); });
   document.querySelectorAll('[data-i18n-ph]').forEach((el) => { el.placeholder = t(el.dataset.i18nPh); });
   const meta = document.querySelector('meta[name="description"]');
@@ -347,29 +370,13 @@ function applyI18n() {
     uiText('显示已关闭项', '顯示已關閉項目', 'Show disabled');
   if ($('importUnknownMore')) $('importUnknownMore').textContent =
     uiText('再显示 50 项', '再顯示 50 項', 'Show 50 more');
-  if ($('menuconfigOriginFilter')) {
-    const labels = [
-      ['all', uiText('全部来源', '全部來源', 'All origins')],
-      ['user', uiText('用户选择', '使用者選擇', 'User selected')],
-      ['excluded', uiText('明确排除', '明確排除', 'Explicitly excluded')],
-      ['default', uiText('上游默认', '上游預設', 'Upstream defaults')],
-      ['recommended', uiText('网页推荐', '網頁推薦', 'Recommended')],
-      ['dependency', uiText('自动依赖', '自動相依', 'Dependencies')],
-      ['imported', uiText('导入配置', '匯入設定', 'Imported')],
-    ];
-    for (const [value, label] of labels) {
-      const option = [...$('menuconfigOriginFilter').options].find((item) => item.value === value);
-      if (option) option.textContent = label;
-    }
-    const label = $('menuconfigOriginFilter').closest('label')?.querySelector('span');
-    if (label) label.textContent = uiText('来源', '來源', 'Origin');
-  }
+  refreshMenuconfigFilterText();
   if ($('menuconfigStateHelp')) {
     const help = uiText(
       'N：禁用，不编译。\nM：模块化或编译为可安装软件包，默认不写入固件。\nY：启用并编译进固件。',
       'N：停用，不編譯。\nM：模組化或編譯為可安裝軟體套件，預設不寫入韌體。\nY：啟用並編譯進韌體。',
       'N: Disabled; not built.\nM: Modular or built as an installable package; not included in the firmware by default.\nY: Enabled and built into the firmware.');
-    $('menuconfigStateHelp').dataset.help = help;
+    bindUiTooltipContent($('menuconfigStateHelp'), { body: help });
     $('menuconfigStateHelp').setAttribute('aria-label',
       uiText('N、M、Y 状态说明', 'N、M、Y 狀態說明', 'N, M, and Y state help'));
   }
@@ -391,7 +398,7 @@ function applyI18n() {
     $('defconfigSwitch').setAttribute('aria-label', `${defconfigEmphasis} ${defconfigHelp}`);
   }
   renderCatalogLoadState();
-  $('advLabel').title = t('adv.title');
+  bindUiTooltipContent($('advLabel'), { body: t('adv.title') });
   // Fork 提示内嵌两个链接,不能整段 textContent,需拆分文案后用 DOM 节点拼装 / The fork hint embeds two links, so the text is split and assembled from DOM nodes instead of one textContent
   const hint = $('selfHint');
   hint.textContent = '';
@@ -493,6 +500,47 @@ const uiTooltip = $('uiTooltip');
 const UI_TOOLTIP_SELECTOR = '[data-ui-tooltip-title],[data-ui-tooltip-emphasis],[data-ui-tooltip-body]';
 let uiTooltipTarget = null;
 let uiTooltipPinned = false;
+let uiTooltipTouchTarget = null;
+let uiTooltipTouchAt = 0;
+let uiTooltipClickTarget = null;
+let uiTooltipClickAt = 0;
+
+function bindUiTooltipContent(target, { title = '', emphasis = '', body = '', key = '' } = {}) {
+  if (!target) return target;
+  const rows = [
+    ['uiTooltipTitle', title],
+    ['uiTooltipEmphasis', emphasis],
+    ['uiTooltipBody', body],
+  ];
+  for (const [key, value] of rows) {
+    const text = String(value || '').trim();
+    if (text) target.dataset[key] = text;
+    else delete target.dataset[key];
+  }
+  const described = rows.some(([key]) => target.dataset[key]);
+  const identity = String(key || '').trim();
+  if (identity) target.dataset.uiTooltipKey = identity;
+  else delete target.dataset.uiTooltipKey;
+  if (described) target.setAttribute('aria-describedby', 'uiTooltip');
+  else target.removeAttribute('aria-describedby');
+  return target;
+}
+
+function uiTooltipIdentity(target) {
+  return target?.dataset?.uiTooltipKey || target || null;
+}
+function connectedUiTooltipTarget(target) {
+  if (target?.isConnected) return target;
+  const key = target?.dataset?.uiTooltipKey;
+  if (!key) return null;
+  return [...document.querySelectorAll(UI_TOOLTIP_SELECTOR)]
+    .find((candidate) => candidate.dataset.uiTooltipKey === key) || null;
+}
+function uiTooltipAvoidanceTarget(target) {
+  return target?.closest?.(
+    '.menuconfig-option,.menuconfig-choice,.menuconfig-category,.probe-package-row,.plugin,.build-contract-row,.group-head',
+  ) || target;
+}
 
 function uiTooltipBoundary(target) {
   const margin = 8;
@@ -523,9 +571,7 @@ function positionUiTooltip(target, event = null) {
   const boundary = uiTooltipBoundary(target);
   const gap = 9;
   const margin = 8;
-  const anchor = target.getBoundingClientRect();
-  const pointerX = Number.isFinite(event?.clientX) ? event.clientX : anchor.right;
-  const pointerY = Number.isFinite(event?.clientY) ? event.clientY : anchor.bottom;
+  const anchor = uiTooltipAvoidanceTarget(target).getBoundingClientRect();
 
   const actionbar = $('actionbar');
   const actionbarRect = actionbar && !actionbar.hidden ? actionbar.getBoundingClientRect() : null;
@@ -536,51 +582,48 @@ function positionUiTooltip(target, event = null) {
   const safeBoundary = { ...boundary, bottom: safeBottom };
   const availableWidth = Math.max(1, safeBoundary.right - safeBoundary.left);
   const availableHeight = Math.max(1, safeBoundary.bottom - safeBoundary.top);
+  const aboveSpace = Math.max(0, anchor.top - safeBoundary.top - gap);
+  const belowSpace = Math.max(0, safeBoundary.bottom - anchor.bottom - gap);
+  const rightSpace = Math.max(0, safeBoundary.right - anchor.right - gap);
+  const leftSpace = Math.max(0, anchor.left - safeBoundary.left - gap);
+  const verticalSpace = Math.max(aboveSpace, belowSpace);
   uiTooltip.style.maxWidth = `${Math.min(400, availableWidth)}px`;
-  uiTooltip.style.maxHeight = `${Math.min(360, availableHeight)}px`;
+  uiTooltip.style.maxHeight = `${Math.max(72, Math.min(360,
+    verticalSpace >= 72 ? verticalSpace : availableHeight))}px`;
   const rect = uiTooltip.getBoundingClientRect();
 
   const candidates = [
-    { left: pointerX + gap, top: pointerY + gap },
-    { left: pointerX - rect.width - gap, top: pointerY + gap },
-    { left: pointerX + gap, top: pointerY - rect.height - gap },
-    { left: pointerX - rect.width - gap, top: pointerY - rect.height - gap },
+    { left: anchor.left, top: anchor.bottom + gap, room: belowSpace },
+    { left: anchor.right - rect.width, top: anchor.bottom + gap, room: belowSpace },
+    { left: anchor.left, top: anchor.top - rect.height - gap, room: aboveSpace },
+    { left: anchor.right - rect.width, top: anchor.top - rect.height - gap, room: aboveSpace },
+    { left: anchor.right + gap, top: anchor.top, room: rightSpace },
+    { left: anchor.left - rect.width - gap, top: anchor.top, room: leftSpace },
   ];
-  const fits = (candidate) => candidate.left >= safeBoundary.left &&
-    candidate.top >= safeBoundary.top &&
-    candidate.left + rect.width <= safeBoundary.right &&
-    candidate.top + rect.height <= safeBoundary.bottom;
-  const visibleArea = (candidate) => {
-    const left = Math.max(candidate.left, safeBoundary.left);
-    const right = Math.min(candidate.left + rect.width, safeBoundary.right);
-    const top = Math.max(candidate.top, safeBoundary.top);
-    const bottom = Math.min(candidate.top + rect.height, safeBoundary.bottom);
+  const clamp = (candidate) => ({
+    left: Math.min(Math.max(safeBoundary.left, candidate.left),
+      Math.max(safeBoundary.left, safeBoundary.right - rect.width)),
+    top: Math.min(Math.max(safeBoundary.top, candidate.top),
+      Math.max(safeBoundary.top, safeBoundary.bottom - rect.height)),
+    room: candidate.room,
+  });
+  const overlapArea = (candidate) => {
+    const left = Math.max(candidate.left, anchor.left);
+    const right = Math.min(candidate.left + rect.width, anchor.right);
+    const top = Math.max(candidate.top, anchor.top);
+    const bottom = Math.min(candidate.top + rect.height, anchor.bottom);
     return Math.max(0, right - left) * Math.max(0, bottom - top);
   };
-
-  let chosen = candidates.find(fits);
-  if (!chosen) {
-    chosen = candidates.reduce((best, candidate) => {
-      const area = visibleArea(candidate);
-      const distance = Math.hypot(candidate.left - (pointerX + gap), candidate.top - (pointerY + gap));
-      if (!best || area > best.area || (area === best.area && distance < best.distance)) {
-        return { candidate, area, distance };
-      }
-      return best;
-    }, null).candidate;
-  }
-
-  const maxLeft = Math.max(safeBoundary.left, safeBoundary.right - rect.width);
-  const maxTop = Math.max(safeBoundary.top, safeBoundary.bottom - rect.height);
-  const left = Math.min(Math.max(safeBoundary.left, chosen.left), maxLeft);
-  const top = Math.min(Math.max(safeBoundary.top, chosen.top), maxTop);
-  uiTooltip.style.left = `${left}px`;
-  uiTooltip.style.top = `${top}px`;
+  const chosen = candidates.map(clamp).sort((left, right) =>
+    overlapArea(left) - overlapArea(right) || right.room - left.room)[0];
+  uiTooltip.style.left = `${chosen.left}px`;
+  uiTooltip.style.top = `${chosen.top}px`;
 }
 function showUiTooltip(target, { title = '', emphasis = '', body = '', event = null, pinned = false } = {}) {
   if (!uiTooltip || !target || (!title && !emphasis && !body)) return;
   uiTooltipTarget = target;
   uiTooltipPinned = Boolean(pinned);
+  uiTooltip.classList.toggle('is-pinned', uiTooltipPinned);
   renderUiTooltip({ title, emphasis, body });
   uiTooltip.hidden = false;
   positionUiTooltip(target, event);
@@ -600,20 +643,16 @@ function hideUiTooltip(force = false) {
   uiTooltip.hidden = true;
   uiTooltipTarget = null;
   uiTooltipPinned = false;
+  uiTooltip.classList.remove('is-pinned');
   renderUiTooltip();
   uiTooltip.style.removeProperty('left');
   uiTooltip.style.removeProperty('top');
   uiTooltip.style.removeProperty('max-width');
   uiTooltip.style.removeProperty('max-height');
 }
-function showPopover(anchor, title, body) {
-  showUiTooltip(anchor, { title, body, pinned: true });
-}
-function hidePopover() { hideUiTooltip(true); }
-
 document.addEventListener('pointerover', (event) => {
   const target = event.target.closest?.(UI_TOOLTIP_SELECTOR);
-  if (!target || matchMedia('(hover: none)').matches) return;
+  if (!target || uiTooltipPinned || matchMedia('(hover: none)').matches) return;
   showDatasetTooltip(target, event);
 });
 document.addEventListener('pointermove', (event) => {
@@ -630,19 +669,67 @@ document.addEventListener('pointerout', (event) => {
 });
 document.addEventListener('focusin', (event) => {
   const target = event.target.closest?.(UI_TOOLTIP_SELECTOR);
-  if (target) showDatasetTooltip(target);
+  if (target && !uiTooltipPinned) showDatasetTooltip(target);
 });
 document.addEventListener('focusout', (event) => {
   const target = event.target.closest?.(UI_TOOLTIP_SELECTOR);
   if (target && !event.relatedTarget?.closest?.(UI_TOOLTIP_SELECTOR)) hideUiTooltip();
 });
 document.addEventListener('click', (event) => {
-  if (uiTooltipPinned && uiTooltipTarget && !uiTooltipTarget.contains(event.target)) hideUiTooltip(true);
+  if (uiTooltipPinned && uiTooltipTarget &&
+      !uiTooltipTarget.contains(event.target) && !uiTooltip.contains(event.target)) {
+    hideUiTooltip(true);
+    return;
+  }
+  const target = event.target.closest?.(UI_TOOLTIP_SELECTOR);
+  if (target) {
+    const identity = uiTooltipIdentity(target);
+    const now = performance.now();
+    const repeated = uiTooltipClickTarget === identity && now - uiTooltipClickAt <= 500;
+    uiTooltipClickTarget = identity;
+    uiTooltipClickAt = now;
+    if (repeated) {
+      const connected = connectedUiTooltipTarget(target);
+      if (connected) showDatasetTooltip(connected, event, true);
+      uiTooltipClickTarget = null;
+      uiTooltipClickAt = 0;
+      return;
+    }
+  }
+  if (target && !uiTooltipPinned && matchMedia('(hover: none)').matches) {
+    showDatasetTooltip(target, event);
+  }
+});
+document.addEventListener('dblclick', (event) => {
+  const target = event.target.closest?.(UI_TOOLTIP_SELECTOR);
+  if (!target) return;
+  event.preventDefault();
+  event.stopPropagation();
+  showDatasetTooltip(target, event, true);
+}, true);
+document.addEventListener('pointerup', (event) => {
+  if (event.pointerType !== 'touch') return;
+  const target = event.target.closest?.(UI_TOOLTIP_SELECTOR);
+  if (!target) return;
+  const now = performance.now();
+  const identity = uiTooltipIdentity(target);
+  const repeated = uiTooltipTouchTarget === identity && now - uiTooltipTouchAt <= 500;
+  uiTooltipTouchTarget = identity;
+  uiTooltipTouchAt = now;
+  if (repeated) {
+    const connected = connectedUiTooltipTarget(target);
+    if (connected) showDatasetTooltip(connected, event, true);
+    uiTooltipTouchTarget = null;
+    uiTooltipTouchAt = 0;
+  }
 });
 document.addEventListener('keydown', (event) => {
   if (event.key === 'Escape') { hideUiTooltip(true); closeModal(); }
 });
-window.addEventListener('scroll', () => hideUiTooltip(true), { passive: true });
+window.addEventListener('scroll', () => {
+  if (uiTooltipPinned && uiTooltipTarget?.isConnected) positionUiTooltip(uiTooltipTarget);
+  else hideUiTooltip();
+}, { passive: true, capture: true });
 
 function makePill(label, infoTitle, infoBody, onSelect) {
   const pill = document.createElement('button');
@@ -657,11 +744,11 @@ function makePill(label, infoTitle, infoBody, onSelect) {
     info.setAttribute('role', 'button');
     info.setAttribute('tabindex', '0');
     info.setAttribute('aria-label', label);
-    const show = (e) => { e.preventDefault(); e.stopPropagation(); showPopover(pill, infoTitle, infoBody); };
+    bindUiTooltipContent(info, { title: infoTitle, body: infoBody });
+    const show = (e) => { e.preventDefault(); e.stopPropagation(); showDatasetTooltip(info, e); };
     info.addEventListener('click', show);
     info.addEventListener('keydown', (e) => { if (e.key === 'Enter' || e.key === ' ') show(e); });
     pill.appendChild(info);
-    pill.addEventListener('dblclick', () => showPopover(pill, infoTitle, infoBody));
   }
   pill.addEventListener('click', onSelect);
   return pill;
@@ -689,7 +776,7 @@ function renderBuildInfoSha(id, value) {
   const sha = String(value || '').trim().toLowerCase();
   if (/^[a-f0-9]{40}$/.test(sha)) {
     button.textContent = sha;
-    button.title = sha;
+    bindUiTooltipContent(button, { body: sha });
     button.disabled = false;
     button.onclick = async () => {
       try { await navigator.clipboard.writeText(sha); }
@@ -697,7 +784,7 @@ function renderBuildInfoSha(id, value) {
     };
   } else {
     button.textContent = '—';
-    button.title = '';
+    bindUiTooltipContent(button);
     button.disabled = true;
     button.onclick = null;
   }
@@ -1220,7 +1307,11 @@ async function refreshMenuIndex() {
         renderCatalogLocatorResults();
       }
     }
-  } catch (e) { /* 远程 Catalog 暂不可用时继续使用仓库内回退清单 / keep the bundled locator while remote providers are unavailable */ }
+  } catch (error) {
+    if (error?.name !== 'AbortError' && !MENU_INDEX?.sources?.length) {
+      setCatalogLoadState('error', error, error?.diagnostics);
+    }
+  }
   finally {
     if (menuIndexAbortController === abortController) menuIndexAbortController = null;
   }
@@ -1269,7 +1360,7 @@ function showCatalogStatus(branch, catalog = MENU_CATALOG) {
   const status = $('menuconfigStatus');
   const stateName = branch?.state || (catalog?.source?.commit === 'local-demo' ? 'fallback' : 'fresh');
   status.className = `hint catalog-${stateName}`;
-  status.title = branch?.runUrl || '';
+  bindUiTooltipContent(status, { body: branch?.runUrl || '' });
   if (stateName === 'unavailable') {
     status.textContent = `Unavailable · failed at ${branch.errorStage || 'unknown'}`;
   } else if (stateName === 'stale') {
@@ -1312,9 +1403,15 @@ function menuOptionTranslation(option) {
 }
 function applyMenuTranslation(element, chinese, usageChinese = '', mobileChip = false) {
   const lines = [String(chinese || '').trim(), String(usageChinese || '').trim()].filter(Boolean);
+  if (element?.dataset.uiTooltipSource === 'translation') {
+    bindUiTooltipContent(element);
+    delete element.dataset.uiTooltipSource;
+  }
   if (state.lang === 'en' || !lines.length) return element;
   element.classList.add('menu-translation');
   element.dataset.translation = lines.join('\n');
+  bindUiTooltipContent(element, { body: element.dataset.translation });
+  element.dataset.uiTooltipSource = 'translation';
   if (!element.hasAttribute('tabindex')) element.tabIndex = 0;
   if (mobileChip) {
     const chip = document.createElement('span');
@@ -1324,10 +1421,6 @@ function applyMenuTranslation(element, chinese, usageChinese = '', mobileChip = 
     element.appendChild(chip);
   }
   return element;
-}
-function showMenuTooltip(element, event = null) {
-  if (state.lang === 'en' || !element?.dataset.translation) return;
-  showMenuPopup(element, element.dataset.translation, event);
 }
 function menuOptionPopupText(element) {
   if (!element?.dataset.symbol) return '';
@@ -1341,25 +1434,89 @@ function menuOptionPopupText(element) {
     element.dataset.path || '',
   ].filter(Boolean).join('\n\n');
 }
-function showMenuOptionTooltip(element, event = null) {
+function bindMenuOptionTooltip(element) {
   const text = menuOptionPopupText(element);
-  if (text) showMenuPopup(element, text, event);
+  if (!text) return element;
+  bindUiTooltipContent(element, { body: text });
+  element.dataset.uiTooltipSource = 'menu-option';
+  return element;
 }
-function showMenuHelp(element, event = null) {
-  if (!element?.dataset.help) return;
-  showMenuPopup(element, element.dataset.help, event);
+function hideMenuTooltip(force = false) {
+  hideUiTooltip(force);
 }
-function showMenuPopup(element, text, event = null) {
-  if (!element || !text) return;
-  showUiTooltip(element, { body: text, event });
+function classifyCatalogLoadFailure(errorText = '', diagnostics = [], online = true) {
+  const failedRows = (Array.isArray(diagnostics) ? diagnostics : []).filter((row) => row?.ok === false);
+  const combined = [
+    String(errorText || ''),
+    ...failedRows.map((row) => `${row.stage || ''} ${row.provider || ''} ${row.detail || ''}`),
+  ].join('\n');
+  if (!online) return { kind: 'offline', showGithubStatus: false };
+  if (/SHA-256|byte length mismatch|schema|does not match|commit mismatch|provenance|decompress|gzip|JSON/i.test(combined)) {
+    return { kind: 'validation', showGithubStatus: false };
+  }
+  if (/\bHTTP 429\b/i.test(combined)) return { kind: 'rate-limit', showGithubStatus: true };
+  if (/\bHTTP 5\d\d\b/i.test(combined)) return { kind: 'remote-service', showGithubStatus: true };
+  const remoteProviders = new Set(['jsdelivr', 'github-raw', 'github-api', 'github-release']);
+  const remoteFailures = failedRows.filter((row) => remoteProviders.has(String(row.provider || '')));
+  if ((remoteFailures.length && remoteFailures.every((row) => /Failed to fetch|NetworkError|Load failed/i.test(String(row.detail || '')))) ||
+      (!remoteFailures.length && /Failed to fetch|NetworkError|Load failed/i.test(combined))) {
+    return { kind: 'unreachable', showGithubStatus: true };
+  }
+  if (/\bHTTP 404\b/i.test(combined)) return { kind: 'snapshot-missing', showGithubStatus: false };
+  return { kind: 'unknown', showGithubStatus: true };
 }
-function hideMenuTooltip() {
-  hideUiTooltip(true);
+function catalogLoadFailureCopy(kind) {
+  const messages = {
+    offline: {
+      title: uiText('浏览器当前离线', '瀏覽器目前離線', 'Your browser is offline'),
+      body: uiText('请检查本机网络连接，联网后点击上方按钮重试。', '請檢查本機網路連線，連線後點擊上方按鈕重試。',
+        'Check your network connection, then use the button above to retry.'),
+    },
+    validation: {
+      title: uiText('Catalog 数据校验失败', 'Catalog 資料驗證失敗', 'Catalog data validation failed'),
+      body: uiText('下载已响应，但数据完整性、格式或浏览器解压校验未通过；请复制诊断信息后反馈。',
+        '下載已有回應，但資料完整性、格式或瀏覽器解壓驗證未通過；請複製診斷資訊後回報。',
+        'The download responded, but integrity, format, or browser decompression validation failed. Copy the diagnostics when reporting it.'),
+    },
+    'rate-limit': {
+      title: uiText('远端请求受到限流', '遠端請求受到限流', 'Remote requests are rate-limited'),
+      body: uiText('GitHub 或 CDN 暂时拒绝了过多请求；请稍后重试，也可查看 GitHub 服务状态。',
+        'GitHub 或 CDN 暫時拒絕了過多請求；請稍後重試，也可查看 GitHub 服務狀態。',
+        'GitHub or the CDN temporarily rejected too many requests. Retry later or check GitHub service status.'),
+    },
+    'remote-service': {
+      title: uiText('远端服务暂时异常', '遠端服務暫時異常', 'A remote service is temporarily unavailable'),
+      body: uiText('Catalog 数据源返回服务器错误，可能是 GitHub 或 CDN 故障；请稍后重试并查看服务状态。',
+        'Catalog 資料來源回傳伺服器錯誤，可能是 GitHub 或 CDN 故障；請稍後重試並查看服務狀態。',
+        'A Catalog source returned a server error. GitHub or the CDN may be disrupted; retry later and check service status.'),
+    },
+    unreachable: {
+      title: uiText('远端数据源暂时不可达', '遠端資料來源暫時無法連線', 'Remote Catalog sources are unreachable'),
+      body: uiText('浏览器在线，但 jsDelivr 与 GitHub 数据源均无法连接；可能是网络限制或 GitHub 全球服务故障。',
+        '瀏覽器在線，但 jsDelivr 與 GitHub 資料來源均無法連線；可能是網路限制或 GitHub 全球服務故障。',
+        'The browser is online, but jsDelivr and GitHub sources are unreachable. Network filtering or a GitHub service incident may be involved.'),
+    },
+    'snapshot-missing': {
+      title: uiText('Catalog 分支或快照不存在', 'Catalog 分支或快照不存在', 'The Catalog branch or snapshot is unavailable'),
+      body: uiText('远端服务可以访问，但当前数据分支或固定快照尚未发布；请复制诊断信息后反馈。',
+        '遠端服務可以存取，但目前資料分支或固定快照尚未發布；請複製診斷資訊後回報。',
+        'The remote service is reachable, but this data branch or pinned snapshot is not published. Copy the diagnostics when reporting it.'),
+    },
+    unknown: {
+      title: uiText('Catalog 加载失败', 'Catalog 載入失敗', 'Catalog failed to load'),
+      body: uiText('所有可用数据源均未成功；请重试、查看 GitHub 服务状态，或复制诊断信息后反馈。',
+        '所有可用資料來源均未成功；請重試、查看 GitHub 服務狀態，或複製診斷資訊後回報。',
+        'No Catalog source succeeded. Retry, check GitHub service status, or copy the diagnostics when reporting it.'),
+    },
+  };
+  return messages[kind] || messages.unknown;
 }
 function catalogDiagnosticsText() {
   const source = selectedCatalogSource();
   const branch = selectedCatalogBranch(source);
   const detail = CATALOG_LOADER_MODULE?.formatCatalogDiagnostics(catalogLoadDiagnostics) || '';
+  const failure = classifyCatalogLoadFailure(catalogLoadError, catalogLoadDiagnostics, navigator.onLine);
+  const summary = catalogLoadFailureCopy(failure.kind);
   return [
     `Catalog repository: ${MENU_CATALOG_REPO}`,
     `Selection: ${source?.id || '(unknown)'}/${branch?.branch || branch?.id || '(unknown)'}`,
@@ -1367,6 +1524,7 @@ function catalogDiagnosticsText() {
     `Online: ${navigator.onLine}`,
     `Browser gzip: ${typeof DecompressionStream === 'function'}`,
     `Cache API: ${Boolean(globalThis.caches?.open)}`,
+    `Reason: ${failure.kind} - ${summary.title}`,
     `Error: ${catalogLoadError || '(unknown)'}`,
     detail,
   ].filter(Boolean).join('\n');
@@ -1375,20 +1533,28 @@ function renderCatalogLoadState() {
   const box = $('catalogLoadState');
   if (!box) return;
   const failed = catalogLoadMode === 'error';
+  const failure = classifyCatalogLoadFailure(catalogLoadError, catalogLoadDiagnostics, navigator.onLine);
+  const summary = catalogLoadFailureCopy(failure.kind);
   box.hidden = catalogLoadMode === 'idle';
   box.disabled = !failed;
   box.dataset.state = catalogLoadMode;
-  box.title = failed ? catalogLoadError : '';
+  bindUiTooltipContent(box, { body: failed ? catalogLoadError : '' });
   $('targetPicker')?.setAttribute('aria-busy', String(catalogLoadMode === 'loading'));
   if ($('catalogLoadText')) {
     $('catalogLoadText').textContent = failed
-      ? uiText('Catalog 加载失败，点击重试', 'Catalog 載入失敗，點擊重試',
-        'Catalog failed to load. Click to retry')
+      ? `${summary.title}${uiText('，点击重试', '，點擊重試', '. Click to retry')}`
       : uiText('正在加载 Target 与 menuconfig…', '正在載入 Target 與 menuconfig…',
         'Loading Target and menuconfig…');
   }
   const details = $('catalogLoadDetails');
   if (details) details.hidden = !failed;
+  if ($('catalogLoadReasonTitle')) $('catalogLoadReasonTitle').textContent = failed ? summary.title : '';
+  if ($('catalogLoadReasonText')) $('catalogLoadReasonText').textContent = failed ? summary.body : '';
+  if ($('catalogStatusLink')) {
+    $('catalogStatusLink').hidden = !failed || !failure.showGithubStatus;
+    $('catalogStatusLink').textContent = uiText('查看 GitHub 服务状态', '查看 GitHub 服務狀態',
+      'View GitHub service status');
+  }
   if ($('catalogLoadDiagnostics')) $('catalogLoadDiagnostics').textContent = failed ? catalogDiagnosticsText() : '';
   if ($('catalogCopyDiagnostics')) {
     $('catalogCopyDiagnostics').textContent = uiText('复制诊断', '複製診斷', 'Copy diagnostics');
@@ -1459,6 +1625,7 @@ function clearCatalogDerivedCaches() {
   menuVisibilityRevision = -1;
   menuVisibilityCache.clear();
   menuSelectableStatesCache.clear();
+  menuStateConstraintsCache.clear();
 }
 function indexSearchText(option, text) {
   menuSearchText.set(option.symbol, String(text || '').toLowerCase());
@@ -1473,6 +1640,7 @@ function catalogSearchText(option) {
     packageName, splitName(packageName),
     option?.prompt || '', option?.promptEn || '', option?.promptZh || '',
     ...Object.values(option?.promptI18n || {}),
+    ...(option?.path || []),
   ];
   return [...new Set(names.map((value) => String(value || '').trim()).filter(Boolean))].join(' ').toLowerCase();
 }
@@ -1486,6 +1654,7 @@ function stopCatalogSearchWorker() {
   catalogSearchWorkerReady = false;
   catalogSearchPending.clear();
   catalogSearchResults.clear();
+  catalogSearchRequests.clear();
 }
 function startCatalogSearchWorker() {
   stopCatalogSearchWorker();
@@ -1503,15 +1672,18 @@ function startCatalogSearchWorker() {
     if (message.generation !== generation || generation !== catalogSearchGeneration) return;
     if (message.type === 'ready') {
       catalogSearchWorkerReady = true;
-      const query = $('menuconfigSearch')?.value?.trim().toLowerCase() || '';
+      const query = normalizeMenuSearchQuery($('menuconfigSearch')?.value);
       if (query.length >= 2) requestCatalogSearch(query);
       return;
     }
     if (message.type !== 'result') return;
-    catalogSearchPending.delete(message.query);
-    catalogSearchResults.set(message.query, message.symbols || []);
+    const query = normalizeMenuSearchQuery(message.query);
+    if (catalogSearchRequests.get(query) !== message.requestId) return;
+    catalogSearchPending.delete(query);
+    catalogSearchRequests.delete(query);
+    catalogSearchResults.set(query, message.symbols || []);
     while (catalogSearchResults.size > 24) catalogSearchResults.delete(catalogSearchResults.keys().next().value);
-    if (($('menuconfigSearch')?.value?.trim().toLowerCase() || '') === message.query) renderMenuconfig();
+    if (normalizeMenuSearchQuery($('menuconfigSearch')?.value) === query) renderMenuconfig();
   };
   catalogSearchWorker.onerror = (error) => {
     console.warn('[Catalog search worker failed]', error.message || error);
@@ -1524,13 +1696,15 @@ function startCatalogSearchWorker() {
   });
 }
 function requestCatalogSearch(query) {
-  const normalized = String(query || '').trim().toLowerCase();
+  const normalized = normalizeMenuSearchQuery(query);
   if (!catalogSearchWorkerReady || normalized.length < 2 || catalogSearchPending.has(normalized) ||
       catalogSearchResults.has(normalized)) return;
+  const requestId = ++catalogSearchRequestId;
   catalogSearchPending.add(normalized);
+  catalogSearchRequests.set(normalized, requestId);
   catalogSearchWorker.postMessage({
     type: 'query', generation: catalogSearchGeneration,
-    requestId: ++catalogSearchRequestId, query: normalized,
+    requestId, query: normalized,
   });
 }
 function normalizeMenuSearchQuery(value) {
@@ -1541,6 +1715,16 @@ function normalizeMenuSearchIdentity(value) {
     .replace(/^config_/, '')
     .replace(/^package_/, '');
 }
+function menuSearchPathRank(option) {
+  const path = Array.isArray(option?.path) ? option.path.map((item) => String(item || '').trim()) : [];
+  const luciIndex = path.findIndex((item) => /^luci$/i.test(item));
+  if (luciIndex < 0) return { luci: false, numbered: false, number: Number.POSITIVE_INFINITY };
+  for (const item of path.slice(luciIndex + 1)) {
+    const match = item.match(/^\s*(\d+)\s*[.)-]?\s*/);
+    if (match) return { luci: true, numbered: true, number: Number(match[1]) };
+  }
+  return { luci: true, numbered: false, number: Number.POSITIVE_INFINITY };
+}
 function menuSearchRank(option, query) {
   const normalized = normalizeMenuSearchIdentity(query);
   const symbol = String(option?.symbol || '').toLowerCase();
@@ -1548,18 +1732,33 @@ function menuSearchRank(option, query) {
   const shortPackage = packageName.startsWith('luci-app-')
     ? packageName.slice('luci-app-'.length)
     : packageName;
-  const identities = [symbol, packageName, shortPackage].filter(Boolean);
-  const exact = Boolean(normalized) && identities.some((value) => value === normalized);
-  const prefix = Boolean(normalized) && identities.some((value) => value.startsWith(normalized));
-  let group = 3;
-  if (packageName.startsWith('luci-app-')) group = 0;
-  else if (packageName && exact) group = 1;
-  else if (packageName) group = 2;
-  const match = exact ? 0 : prefix ? 1 : 2;
+  const fullIdentities = [symbol, packageName].filter(Boolean);
+  const aliases = [shortPackage].filter((value) => value && !fullIdentities.includes(value));
+  const exact = Boolean(normalized) && fullIdentities.some((value) => value === normalized);
+  const prefix = Boolean(normalized) && fullIdentities.some((value) => value.startsWith(normalized));
+  const aliasExact = Boolean(normalized) && aliases.some((value) => value === normalized);
+  const match = exact ? 0 : prefix ? 1 : aliasExact ? 2 : 3;
+  const pathRank = menuSearchPathRank(option);
+  let group;
+  if (normalized === 'luci') {
+    if (packageName === 'luci') group = 0;
+    else if (packageName.startsWith('luci-') && !packageName.startsWith('luci-app-') && !pathRank.numbered) group = 1;
+    else if (pathRank.numbered) group = 10 + Math.min(pathRank.number, 80);
+    else if (pathRank.luci) group = 100;
+    else group = 200;
+  } else {
+    group = packageName.startsWith('luci-app-') ? 0 : packageName && exact ? 1 : packageName ? 2 : 3;
+  }
   return group * 10 + match;
 }
 function rankMenuSearchOptions(options, query) {
-  return [...options].sort((left, right) => menuSearchRank(left, query) - menuSearchRank(right, query));
+  return [...options].sort((left, right) => {
+    const rank = menuSearchRank(left, query) - menuSearchRank(right, query);
+    if (rank) return rank;
+    return String(left?.symbol || '').localeCompare(String(right?.symbol || ''), 'en', {
+      numeric: true, sensitivity: 'base',
+    });
+  });
 }
 function searchMenuOptionsSync(query) {
   const normalized = normalizeMenuSearchQuery(query);
@@ -1580,6 +1779,17 @@ function searchMenuOptions(query) {
       : null;
   }
   return searchMenuOptionsSync(normalized);
+}
+function setMenuconfigSearchBusy(busy) {
+  const input = $('menuconfigSearch');
+  const group = input?.closest('.menuconfig-search-group');
+  const active = Boolean(busy);
+  input?.setAttribute('aria-busy', String(active));
+  group?.classList.toggle('is-searching', active);
+}
+function currentMenuPageSize() {
+  return normalizeMenuSearchQuery($('menuconfigSearch')?.value).length >= 2
+    ? MENU_SEARCH_PAGE_SIZE : MENU_PAGE_SIZE;
 }
 async function ensureCatalogMenuLoaded(includeHidden = false) {
   if (!MENU_CATALOG?.splitAssets) return true;
@@ -2157,7 +2367,7 @@ function renderContractList(element, title, items, empty) {
       const chip = document.createElement('code');
       chip.className = 'build-contract-chip';
       chip.textContent = item;
-      chip.title = item;
+      bindUiTooltipContent(chip, { body: item });
       content.appendChild(chip);
     }
   }
@@ -2213,8 +2423,8 @@ function renderProfilePackageContract(element, target) {
       const upstream = row.upstream === 'exclude' ? '−' : '+';
       const explicit = mode === 'follow' ? '' : mode === 'include' ? ' → +' : ' → −';
       chip.textContent = `${upstream}${row.name}${explicit}`;
-      chip.title = `${row.name}
-${contractText('默认跟随上游；可在管理中显式加入或排除', 'Follows upstream by default; Manage can explicitly include or exclude it')}`;
+      bindUiTooltipContent(chip, { body: `${row.name}
+${contractText('默认跟随上游；可在管理中显式加入或排除', 'Follows upstream by default; Manage can explicitly include or exclude it')}` });
       content.appendChild(chip);
     }
   }
@@ -2340,7 +2550,7 @@ function renderBuildContract() {
   $('buildContractTitle').textContent = contractTitle;
   const toggle = $('buildContractToggle');
   const commitHint = `${contractText('Catalog 提交', 'Catalog commit')} ${commit}`;
-  toggle.title = commitHint;
+  bindUiTooltipContent(toggle, { body: commitHint });
   toggle.setAttribute('aria-label', `${contractTitle}; ${commitHint}`);
   const grid = $('buildContractGrid');
   grid.textContent = '';
@@ -2364,7 +2574,7 @@ function renderBuildContract() {
     key.textContent = label;
     const val = document.createElement('code');
     val.textContent = value;
-    val.title = value;
+    bindUiTooltipContent(val, { body: value });
     row.append(key, val);
     grid.appendChild(row);
   }
@@ -2386,6 +2596,7 @@ function resetCatalogSelectionLayers() {
   catalogBaselineOrigins.clear();
   catalogRecommendedValues.clear();
   catalogDependencySymbols.clear();
+  catalogConditionalDefaultSymbols.clear();
   catalogImportedSymbols.clear();
   catalogUserOverrides.clear();
   profilePackageOverrides.clear();
@@ -2393,7 +2604,9 @@ function resetCatalogSelectionLayers() {
   state.sel.clear();
   state.removed.clear();
   menuOriginFilter = 'all';
-  if ($('menuconfigOriginFilter')) $('menuconfigOriginFilter').value = 'all';
+  menuUserSettableOnly = false;
+  if ($('menuconfigUserSettable')) $('menuconfigUserSettable').checked = false;
+  refreshMenuconfigFilterText();
   markCatalogStateChanged();
 }
 function initializeCatalogBaseline() {
@@ -2403,6 +2616,7 @@ function initializeCatalogBaseline() {
   catalogBaselineOrigins.clear();
   catalogRecommendedValues.clear();
   catalogDependencySymbols.clear();
+  catalogConditionalDefaultSymbols.clear();
   catalogImportedSymbols.clear();
   catalogUserOverrides.clear();
   state.sel.clear();
@@ -2474,22 +2688,70 @@ function catalogOriginMeta(option) {
   const symbol = option?.symbol || '';
   const value = menuValues.get(symbol) ?? simpleKconfigDefault(option || {});
   if (catalogUserOverrides.has(symbol)) {
-    return catalogUserOverrides.get(symbol) === 'n'
-      ? { kind: 'user-exclude', label: uiText('用户排除', '使用者排除', 'User excluded') }
-      : { kind: 'user', label: uiText('用户选择', '使用者選擇', 'User selected') };
+    const desired = catalogUserOverrides.get(symbol);
+    const forced = ['bool', 'tristate'].includes(option?.type) && desired !== value;
+    const constraints = forced ? optionStateConstraints(option) : null;
+    const selectors = constraints?.selectors?.map((item) =>
+      `${item.sourceSymbol}=${String(item.sourceValue || 'n').toUpperCase()}`).join('\n') || '';
+    const forcedDetail = forced ? uiText(
+      `你的原始选择是 ${String(desired).toUpperCase()}；活动 select 暂时把实际值提升为 ${String(value).toUpperCase()}。关闭以下 selector 后会自动恢复原始选择：\n${selectors}`,
+      `你的原始選擇是 ${String(desired).toUpperCase()}；作用中的 select 暫時把實際值提高為 ${String(value).toUpperCase()}。關閉以下 selector 後會自動恢復原始選擇：\n${selectors}`,
+      `Your saved choice is ${String(desired).toUpperCase()}; active select rules temporarily raise the effective value to ${String(value).toUpperCase()}. It will restore automatically after these selectors are disabled:\n${selectors}`) : '';
+    return desired === 'n'
+      ? {
+        kind: 'user-exclude', label: uiText('排除', '排除', 'Excluded'), restorable: true,
+        detail: forcedDetail || uiText('由你主动设为 N。单击可删除此覆盖并恢复继承值。',
+          '由你主動設為 N。按一下可刪除此覆寫並還原繼承值。',
+          'You explicitly selected N. Click to remove this override and restore the inherited value.'),
+      }
+      : {
+        kind: 'user', label: uiText('自选', '自選', 'Selected'), restorable: true,
+        detail: forcedDetail || uiText('由你主动选择。单击可删除此覆盖并恢复继承值。',
+          '由你主動選擇。按一下可刪除此覆寫並還原繼承值。',
+          'You selected this value. Click to remove the override and restore the inherited value.'),
+      };
   }
   if (catalogImportedSymbols.has(symbol)) {
-    return { kind: 'imported', label: uiText('导入配置', '匯入設定', 'Imported') };
+    return {
+      kind: 'imported', label: uiText('导入', '匯入', 'Imported'),
+      detail: uiText('当前值来自已导入的配置。', '目前值來自已匯入的設定。',
+        'The current value comes from the imported configuration.'),
+    };
   }
   if (catalogRecommendedValues.has(symbol)) {
-    return { kind: 'recommended', label: uiText('网页推荐', '網頁推薦', 'Recommended') };
+    return {
+      kind: 'recommended', label: uiText('推荐', '推薦', 'Recommended'),
+      detail: uiText('当前值来自网页推荐项。', '目前值來自網頁推薦項目。',
+        'The current value comes from the web recommendations.'),
+    };
+  }
+  if (catalogConditionalDefaultSymbols.has(symbol)) {
+    return {
+      kind: 'kconfig-default', displayKind: 'default', label: uiText('默认', '預設', 'Default'),
+      detail: uiText(
+        '当前值由 Catalog Kconfig 的条件默认值自动计算；修改父选项、固件语言或其他条件后会自动更新。',
+        '目前值由 Catalog Kconfig 的條件預設值自動計算；修改父選項、韌體語言或其他條件後會自動更新。',
+        'Catalog Kconfig computed this conditional default. It updates automatically when its parent option, firmware language, or another condition changes.'),
+    };
   }
   if (catalogDependencySymbols.has(symbol)) {
-    return { kind: 'dependency', label: uiText('自动依赖', '自動相依', 'Dependency') };
+    return {
+      kind: 'dependency', label: uiText('自动依赖', '自動相依', 'Dependency'),
+      detail: uiText('当前值由已选择项目的 Kconfig 依赖关系自动带入。',
+        '目前值由已選項目的 Kconfig 相依關係自動帶入。',
+        'Kconfig dependency resolution selected the current value automatically.'),
+    };
   }
   if (value !== 'n' && value !== '') {
     const baseline = catalogBaselineOrigins.get(symbol);
-    if (baseline) return { kind: baseline.kind, label: uiText('上游默认', '上游預設', 'Upstream default') };
+    if (baseline) {
+      return {
+        kind: baseline.kind, displayKind: 'default', label: uiText('默认', '預設', 'Default'),
+        detail: uiText('当前值来自所选 Target / Profile 的上游基准配置。',
+          '目前值來自所選 Target / Profile 的上游基準設定。',
+          'The current value comes from the selected Target / Profile upstream baseline.'),
+      };
+    }
   }
   return { kind: 'inactive', label: uiText('未启用', '未啟用', 'Disabled') };
 }
@@ -2500,8 +2762,41 @@ function catalogOriginMatches(option) {
   if (menuOriginFilter === 'excluded') return origin === 'user-exclude';
   return origin === menuOriginFilter;
 }
+function selectedOriginFilterLabel() {
+  return menuFilterText(MENU_ORIGIN_FILTER_VALUES.includes(menuOriginFilter) ? menuOriginFilter : 'all');
+}
+function refreshMenuconfigFilterText() {
+  const group = $('menuconfigOriginFilter');
+  if (!group) return;
+  if ($('menuconfigOriginTitle')) $('menuconfigOriginTitle').textContent = menuFilterText('origin');
+  if ($('menuconfigDisplayTitle')) $('menuconfigDisplayTitle').textContent = menuFilterText('display');
+  for (const input of group.querySelectorAll('input[name="menuconfigOrigin"]')) {
+    const text = input.closest('label')?.querySelector('span');
+    if (text) text.textContent = menuFilterText(input.value);
+    input.checked = input.value === menuOriginFilter;
+  }
+  const selectedLabel = $('menuconfigSelectedOnly')?.closest('label')?.querySelector('span');
+  if (selectedLabel) selectedLabel.textContent = menuFilterText('selectedOnly');
+  const settableLabel = $('menuconfigUserSettable')?.closest('label')?.querySelector('span');
+  if (settableLabel) settableLabel.textContent = menuFilterText('userSettable');
+  refreshMenuconfigFilterSummary();
+}
+function refreshMenuconfigFilterSummary() {
+  const summary = $('menuconfigFilterSummary');
+  if (!summary) return;
+  const selectedOnly = Boolean($('menuconfigSelectedOnly')?.checked);
+  const userSettableOnly = Boolean($('menuconfigUserSettable')?.checked);
+  summary.textContent = selectedOnly
+    ? menuFilterText('selectedOnly')
+    : userSettableOnly ? menuFilterText('userSettable') : menuFilterText('filter');
+  const accessibility = [selectedOriginFilterLabel()];
+  if (selectedOnly) accessibility.push(menuFilterText('selectedOnly'));
+  if (userSettableOnly) accessibility.push(menuFilterText('userSettable'));
+  $('menuconfigFilterTrigger')?.setAttribute('aria-label', accessibility.join(', '));
+}
 function restoreCatalogDefault(option) {
   if (!option) return;
+  hideUiTooltip(true);
   catalogUserOverrides.delete(option.symbol);
   const plugin = option.symbol.startsWith('PACKAGE_') ? PLUGINS?.plugins?.find((item) =>
     curatedPackageCandidates(item).includes(option.symbol.slice(8))) : null;
@@ -2565,9 +2860,17 @@ function refreshMenuEvaluationCaches() {
   menuVisibilityRevision = catalogStateRevision;
   menuVisibilityCache.clear();
   menuSelectableStatesCache.clear();
+  menuStateConstraintsCache.clear();
+}
+function hiddenDerivedOptionActive(option) {
+  if (!option?.hidden || option.userSettable !== false || option.origin === 'packageinfo-only') return true;
+  const value = menuValues.get(option.symbol) ?? (option.type === 'string' ? '' : 'n');
+  return option.type === 'bool' || option.type === 'tristate'
+    ? kconfigLevel(value) > 0
+    : String(value ?? '').trim() !== '';
 }
 function optionVisible(option) {
-  if (option?.hidden) return true;
+  if (option?.hidden) return hiddenDerivedOptionActive(option);
   refreshMenuEvaluationCaches();
   if (menuVisibilityCache.has(option.symbol)) return menuVisibilityCache.get(option.symbol);
   const visible = optionDependencyVariants(option).some((group) =>
@@ -2578,12 +2881,26 @@ function optionVisible(option) {
 function optionSelectableStates(option) {
   refreshMenuEvaluationCaches();
   if (menuSelectableStatesCache.has(option.symbol)) return menuSelectableStatesCache.get(option.symbol);
-  const context = catalogValidationContext(menuValues, 'interactive');
-  const states = CATALOG_ENGINE.selectableKconfigStates(
-    option, context.values, context.validationOptions,
-  );
+  const states = optionStateConstraints(option).selectableStates;
   menuSelectableStatesCache.set(option.symbol, states);
   return states;
+}
+function optionStateConstraints(option) {
+  refreshMenuEvaluationCaches();
+  if (menuStateConstraintsCache.has(option.symbol)) return menuStateConstraintsCache.get(option.symbol);
+  const context = catalogValidationContext(menuValues, 'interactive');
+  const constraints = CATALOG_ENGINE?.kconfigStateConstraints
+    ? CATALOG_ENGINE.kconfigStateConstraints(CATALOG_MODEL, option, context.values, context.validationOptions)
+    : {
+      current: menuValues.get(option.symbol) ?? 'n',
+      minimum: 'n', maximum: 'y', minimumLevel: 0, maximumLevel: 2,
+      readOnly: option.userSettable === false, selectors: [],
+      selectableStates: CATALOG_ENGINE.selectableKconfigStates(
+        option, context.values, { ...context.validationOptions, model: CATALOG_MODEL }),
+      states: CATALOG_ENGINE.allowedKconfigStates(option).map((value) => ({ value, selectable: true })),
+    };
+  menuStateConstraintsCache.set(option.symbol, constraints);
+  return constraints;
 }
 function optionMaxLevel(option) {
   return Math.max(0, ...optionSelectableStates(option).map(kconfigLevel));
@@ -2719,6 +3036,12 @@ function catalogProtectedSymbols(activeSymbol = '') {
   if (activeSymbol) protectedSymbols.delete(activeSymbol);
   return protectedSymbols;
 }
+function catalogPreferredValues() {
+  const values = new Map();
+  for (const symbol of catalogDependencySymbols) values.set(symbol, catalogInheritedValue(symbol));
+  for (const [symbol, value] of catalogUserOverrides) values.set(symbol, value);
+  return values;
+}
 function applyCatalogIntent(option, value, force = false, source = 'user') {
   if (!option) return { changes: [], violations: [] };
   const snapshot = snapshotCatalogUiState();
@@ -2733,12 +3056,22 @@ function applyCatalogIntent(option, value, force = false, source = 'user') {
         force,
         dependencySymbols: catalogDependencySymbols,
         protectedSymbols: catalogProtectedSymbols(value === 'n' ? option.symbol : ''),
+        preferredValues: catalogPreferredValues(),
+        explicitSymbols: catalogUserOverrides.keys(),
         validationOptions: context.validationOptions,
       });
     for (const change of result.changes) {
       menuValues.set(change.symbol, change.to);
       const explicit = change.symbol === option.symbol;
-      if (source === 'restore' && explicit) {
+      const conditionalDefault = change.reason === 'conditional-default';
+      const changedOption = menuOptionBySymbol.get(change.symbol);
+      if (conditionalDefault) {
+        menuTouched.delete(change.symbol);
+        catalogImportedSymbols.delete(change.symbol);
+        catalogDependencySymbols.delete(change.symbol);
+        if (change.to === 'n') catalogConditionalDefaultSymbols.delete(change.symbol);
+        else catalogConditionalDefaultSymbols.add(change.symbol);
+      } else if (source === 'restore' && explicit) {
         if (!catalogRecommendedValues.has(change.symbol) && !catalogImportedSymbols.has(change.symbol)) {
           menuTouched.delete(change.symbol);
         }
@@ -2760,11 +3093,15 @@ function applyCatalogIntent(option, value, force = false, source = 'user') {
           catalogUserOverrides.set(change.symbol, override);
         }
       } else if (source === 'recommended' && explicit) catalogRecommendedValues.set(change.symbol, change.to);
-      else if (source === 'imported') catalogImportedSymbols.add(change.symbol);
-      if (explicit) catalogDependencySymbols.delete(change.symbol);
-      else if (change.to === 'n') catalogDependencySymbols.delete(change.symbol);
-      else catalogDependencySymbols.add(change.symbol);
-      const changedOption = menuOptionBySymbol.get(change.symbol);
+      else if (source === 'imported' && changedOption?.userSettable !== false) {
+        catalogImportedSymbols.add(change.symbol);
+      }
+      if (!conditionalDefault) {
+        catalogConditionalDefaultSymbols.delete(change.symbol);
+        if (explicit) catalogDependencySymbols.delete(change.symbol);
+        else if (change.to === 'n') catalogDependencySymbols.delete(change.symbol);
+        else catalogDependencySymbols.add(change.symbol);
+      }
       if (!changedOption) continue;
       syncMenuToCurated(changedOption, change.to, curatedSource);
       if (source === 'user' && explicit) syncFirmwareThemeFromMenu(changedOption, change.to);
@@ -2774,6 +3111,39 @@ function applyCatalogIntent(option, value, force = false, source = 'user') {
   } catch (error) {
     restoreCatalogUiState(snapshot);
     throw error;
+  }
+}
+function reconcileImportedConditionalDefaults() {
+  if (!CATALOG_MODEL || !CATALOG_ENGINE?.reconcileKconfigDerivedValues) return;
+  const context = catalogValidationContext(menuValues, 'interactive');
+  const result = CATALOG_ENGINE.reconcileKconfigDerivedValues(
+    CATALOG_MODEL, context.values, context.validationOptions);
+  const derivedSymbols = result.derivedSymbols || new Set();
+  const derivedReasons = result.derivedReasons || new Map();
+  for (const change of result.changes) {
+    if (!menuOptionBySymbol.has(change.symbol)) continue;
+    menuValues.set(change.symbol, change.to);
+    if (derivedSymbols.has(change.symbol)) continue;
+    if (change.to === 'n') catalogDependencySymbols.delete(change.symbol);
+    else catalogDependencySymbols.add(change.symbol);
+  }
+  for (const symbol of derivedSymbols) {
+    if (!menuOptionBySymbol.has(symbol)) continue;
+    const value = result.values.get(symbol) ?? 'n';
+    menuValues.set(symbol, value);
+    catalogImportedSymbols.delete(symbol);
+    menuImportedOriginal.delete(symbol);
+    menuImportedNonDefault.delete(symbol);
+    catalogDependencySymbols.delete(symbol);
+    const baseline = catalogBaselineValues.get(symbol) ?? 'n';
+    if (value !== 'n' && value !== baseline && derivedReasons.get(symbol) === 'conditional-default') {
+      catalogConditionalDefaultSymbols.add(symbol);
+    } else {
+      catalogConditionalDefaultSymbols.delete(symbol);
+      if (value !== 'n' && value !== baseline && ['select', 'imply'].includes(derivedReasons.get(symbol))) {
+        catalogDependencySymbols.add(symbol);
+      }
+    }
   }
 }
 function normalizeKconfigValueByType(rawValue, type = 'bool', symbol = 'Kconfig option') {
@@ -2834,6 +3204,11 @@ function applyScalarMenuValue(option, rawValue, source = 'user') {
   };
 }
 function applyMenuValue(option, value, force = false, source = 'user') {
+  if (scalarKconfigOption(option) && option.userSettable === false && force !== true) {
+    const error = new Error(`${option.symbol} is read-only because userSettable=false`);
+    error.name = 'CatalogIntentError';
+    throw error;
+  }
   return scalarKconfigOption(option)
     ? applyScalarMenuValue(option, value, source)
     : applyCatalogIntent(option, value, force, source);
@@ -2884,6 +3259,7 @@ function snapshotCatalogUiState() {
   return {
     values: new Map(menuValues), touched: new Set(menuTouched), selected: new Set(state.sel),
     removed: new Set(state.removed), dependencies: new Set(catalogDependencySymbols),
+    conditionalDefaults: new Set(catalogConditionalDefaultSymbols),
     userOverrides: new Map(catalogUserOverrides), recommended: new Map(catalogRecommendedValues),
     imported: new Set(catalogImportedSymbols), theme: state.theme,
     revision: catalogStateRevision,
@@ -2904,6 +3280,7 @@ function restoreCatalogUiState(snapshot) {
   restoreSet(state.sel, snapshot.selected);
   restoreSet(state.removed, snapshot.removed);
   restoreSet(catalogDependencySymbols, snapshot.dependencies);
+  restoreSet(catalogConditionalDefaultSymbols, snapshot.conditionalDefaults);
   restoreMap(catalogUserOverrides, snapshot.userOverrides);
   restoreMap(catalogRecommendedValues, snapshot.recommended);
   restoreSet(catalogImportedSymbols, snapshot.imported);
@@ -2964,10 +3341,13 @@ function openCatalogConflictModal(option, value, violations, openChildren = fals
     const context = catalogValidationContext(menuValues, 'interactive');
     const values = new Map(context.values);
     for (const [symbol, stateValue] of plan) values.set(symbol, stateValue);
-    const selectableBySymbol = new Map(rows.map((row) => [row.symbol, new Set(
-      CATALOG_ENGINE.selectableKconfigStates(row.record, values, context.validationOptions),
-    )]));
-    const stateInvalid = rows.some((row) => !selectableBySymbol.get(row.symbol).has(plan.get(row.symbol)));
+    const constraintsBySymbol = new Map(rows.map((row) => [row.symbol,
+      CATALOG_ENGINE.kconfigStateConstraints(CATALOG_MODEL, row.record, values, context.validationOptions)]));
+    const stateInvalid = rows.some((row) => {
+      const constraints = constraintsBySymbol.get(row.symbol);
+      const stateRow = constraints.states.find((item) => item.value === plan.get(row.symbol));
+      return !stateRow?.selectable && !(stateRow?.current && stateRow?.locked);
+    });
     const conflictInvalid = catalogConflictPlanInvalid(plan, violations);
     const invalid = stateInvalid || conflictInvalid;
     warning.textContent = stateInvalid ? uiText(
@@ -2981,9 +3361,15 @@ function openCatalogConflictModal(option, value, violations, openChildren = fals
       line.classList.toggle('is-invalid', invalid && activeValue !== 'n');
       line.querySelectorAll('button[data-value]').forEach((button) => {
         const active = activeValue === button.dataset.value;
-        button.classList.toggle('active', active);
-        button.disabled = !selectableBySymbol.get(line.dataset.symbol).has(button.dataset.value);
-        button.hidden = button.disabled && !active;
+        const row = rows.find((item) => item.symbol === line.dataset.symbol);
+        const constraints = constraintsBySymbol.get(line.dataset.symbol);
+        const stateRow = constraints.states.find((item) => item.value === button.dataset.value);
+        button.classList.toggle('is-current', active);
+        button.classList.toggle('is-editable', Boolean(stateRow?.selectable));
+        button.classList.toggle('is-disabled', !stateRow?.selectable);
+        button.classList.toggle('is-locked', Boolean(active && stateRow?.locked));
+        button.setAttribute('aria-disabled', String(!stateRow?.selectable));
+        bindKconfigConstraintTooltip(button, row.option, button.dataset.value, constraints);
       });
     });
   };
@@ -2994,15 +3380,32 @@ function openCatalogConflictModal(option, value, violations, openChildren = fals
     line.dataset.symbol = row.symbol;
     const name = document.createElement('code');
     name.textContent = row.label;
-    name.title = row.symbol.startsWith('PACKAGE_') ? `CONFIG_${row.symbol}` : row.symbol;
+    bindUiTooltipContent(name, {
+      body: row.symbol.startsWith('PACKAGE_') ? `CONFIG_${row.symbol}` : row.symbol,
+    });
     const stateBox = document.createElement('span');
     stateBox.className = 'catalog-conflict-state';
-    for (const stateValue of CATALOG_ENGINE.allowedKconfigStates(row.record)) {
+    for (const stateValue of ['n', 'm', 'y']) {
+      if (row.record.type === 'bool' && stateValue === 'm') {
+        const spacer = document.createElement('span');
+        spacer.className = 'kconfig-state-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        stateBox.appendChild(spacer);
+        continue;
+      }
       const button = document.createElement('button');
       button.type = 'button';
       button.dataset.value = stateValue;
       button.textContent = stateValue.toUpperCase();
-      button.onclick = () => { plan.set(row.symbol, stateValue); refresh(); };
+      button.className = 'kconfig-state';
+      button.onclick = (event) => {
+        if (button.getAttribute('aria-disabled') === 'true') {
+          showDatasetTooltip(button, event);
+          return;
+        }
+        plan.set(row.symbol, stateValue);
+        refresh();
+      };
       stateBox.appendChild(button);
     }
     line.append(name, stateBox);
@@ -3016,11 +3419,11 @@ function openCatalogConflictModal(option, value, violations, openChildren = fals
     const snapshot = snapshotCatalogUiState();
     try {
       for (const row of rows) {
-        if ((plan.get(row.symbol) || 'n') === 'n') applyCatalogIntent(row.option, 'n', true, 'user');
+        if ((plan.get(row.symbol) || 'n') === 'n') applyCatalogIntent(row.option, 'n', false, 'user');
       }
       for (const row of rows) {
         const next = plan.get(row.symbol) || 'n';
-        if (next !== 'n') applyCatalogIntent(row.option, next, true, 'user');
+        if (next !== 'n') applyCatalogIntent(row.option, next, false, 'user');
       }
       modalCancelHandler = null;
       closeModal();
@@ -3345,11 +3748,24 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
       const refresh = () => {
         const values = new Map(customBaseValues);
         for (const [symbol, value] of custom) values.set(symbol, value);
+        const constraintsBySymbol = new Map(rows.map((row) => [row.record.configSymbol,
+          CATALOG_ENGINE.kconfigStateConstraints(CATALOG_MODEL, row.record, values,
+            evaluation.context.validationOptions)]));
         try {
-          customInvalid = CATALOG_ENGINE.evaluateCompatibilityRules(CATALOG_MODEL, {
+          const compatibilityInvalid = CATALOG_ENGINE.evaluateCompatibilityRules(CATALOG_MODEL, {
             schema: 2, rules: [warning.rule],
           }, values, evaluation.context).warnings.length > 0;
-          warningText.textContent = customInvalid ? uiText(
+          const stateInvalid = rows.some((row) => {
+            const constraints = constraintsBySymbol.get(row.record.configSymbol);
+            const stateRow = constraints.states.find((item) =>
+              item.value === custom.get(row.record.configSymbol));
+            return !stateRow?.selectable && !(stateRow?.current && stateRow?.locked);
+          });
+          customInvalid = compatibilityInvalid || stateInvalid;
+          warningText.textContent = stateInvalid ? uiText(
+            '自定义状态不符合当前 Kconfig 约束；请先按悬浮提示解除 select 或依赖限制。',
+            '自訂狀態不符合目前 Kconfig 約束；請先依懸浮提示解除 select 或相依限制。',
+            'The custom states violate active Kconfig constraints. Follow the state hint to release select/dependency limits.') : compatibilityInvalid ? uiText(
             '自定义状态仍会触发本规则，请至少关闭一个相关软件包。',
             '自訂狀態仍會觸發本規則，請至少關閉一個相關套件。',
             'The custom states still trigger this rule; disable at least one related package.') : '';
@@ -3359,14 +3775,16 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
         }
         list.querySelectorAll('.catalog-conflict-row').forEach((line) => {
           const row = rowBySymbol.get(line.dataset.symbol);
-          const selectable = new Set(CATALOG_ENGINE.selectableKconfigStates(
-            row.record, values, evaluation.context.validationOptions,
-          ));
+          const constraints = constraintsBySymbol.get(row.record.configSymbol);
           line.querySelectorAll('button[data-value]').forEach((button) => {
             const active = custom.get(line.dataset.symbol) === button.dataset.value;
-            button.classList.toggle('active', active);
-            button.disabled = !selectable.has(button.dataset.value);
-            button.hidden = button.disabled && !active;
+            const stateRow = constraints.states.find((item) => item.value === button.dataset.value);
+            button.classList.toggle('is-current', active);
+            button.classList.toggle('is-editable', Boolean(stateRow?.selectable));
+            button.classList.toggle('is-disabled', !stateRow?.selectable);
+            button.classList.toggle('is-locked', Boolean(active && stateRow?.locked));
+            button.setAttribute('aria-disabled', String(!stateRow?.selectable));
+            bindKconfigConstraintTooltip(button, row.option, button.dataset.value, constraints);
           });
         });
         if (customButton) customButton.disabled = customInvalid;
@@ -3377,15 +3795,27 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
         line.dataset.symbol = row.record.configSymbol;
         const name = document.createElement('code');
         name.textContent = row.record.package || row.record.configSymbol;
-        name.title = `CONFIG_${row.record.configSymbol}`;
+        bindUiTooltipContent(name, { body: `CONFIG_${row.record.configSymbol}` });
         const stateBox = document.createElement('span');
         stateBox.className = 'catalog-conflict-state';
-        for (const stateValue of CATALOG_ENGINE.allowedKconfigStates(row.record)) {
+        for (const stateValue of ['n', 'm', 'y']) {
+          if (row.record.type === 'bool' && stateValue === 'm') {
+            const spacer = document.createElement('span');
+            spacer.className = 'kconfig-state-spacer';
+            spacer.setAttribute('aria-hidden', 'true');
+            stateBox.appendChild(spacer);
+            continue;
+          }
           const button = document.createElement('button');
           button.type = 'button';
+          button.className = 'kconfig-state';
           button.dataset.value = stateValue;
           button.textContent = stateValue.toUpperCase();
-          button.onclick = () => {
+          button.onclick = (event) => {
+            if (button.getAttribute('aria-disabled') === 'true') {
+              showDatasetTooltip(button, event);
+              return;
+            }
             if (custom.get(row.record.configSymbol) === stateValue) return;
             custom.set(row.record.configSymbol, stateValue);
             if (recommendationApplied) {
@@ -3445,7 +3875,7 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
       recommendedButton.onclick = () => applyAndVerify(() => {
         const record = warning.records.find((item) => item.configSymbol === plans.recommended.symbol);
         applyCatalogIntent(menuOptionBySymbol.get(record.configSymbol) || { symbol: record.configSymbol },
-          'n', true, 'user');
+          'n', false, 'user');
       }, { keepOpen: true });
       customButton = document.createElement('button');
       customButton.type = 'button';
@@ -3454,12 +3884,12 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
       customButton.onclick = () => applyAndVerify(() => {
         for (const row of rows) {
           if ((custom.get(row.record.configSymbol) || 'n') === 'n') {
-            applyCatalogIntent(row.option, 'n', true, 'user');
+            applyCatalogIntent(row.option, 'n', false, 'user');
           }
         }
         for (const row of rows) {
           const value = custom.get(row.record.configSymbol) || 'n';
-          if (value !== 'n') applyCatalogIntent(row.option, value, true, 'user');
+          if (value !== 'n') applyCatalogIntent(row.option, value, false, 'user');
         }
       });
       const forceButton = document.createElement('button');
@@ -3548,18 +3978,25 @@ function initMenuconfigControls() {
   };
   let searchTimer = 0;
   $('menuconfigSearch').oninput = () => {
-    if ($('menuconfigSearch').value.trim() && !menuExpanded) void setMenuconfigExpanded(true);
+    const immediateQuery = normalizeMenuSearchQuery($('menuconfigSearch').value);
+    if (immediateQuery && !menuExpanded) void setMenuconfigExpanded(true);
+    setMenuconfigSearchBusy(immediateQuery.length >= 2);
     clearTimeout(searchTimer);
     searchTimer = setTimeout(async () => {
       const query = $('menuconfigSearch').value.trim();
+      const normalized = normalizeMenuSearchQuery(query);
       if (query) {
         $('menuconfigSelectedOnly').checked = false;
+        refreshMenuconfigFilterSummary();
         resetMenuNavigation();
       }
-      menuVisibleLimit = MENU_PAGE_SIZE;
+      menuVisibleLimit = normalized.length >= 2 ? MENU_SEARCH_PAGE_SIZE : MENU_PAGE_SIZE;
       resetMenuScroll();
-      if (query.length >= 2) await ensureCatalogHiddenLoaded().catch((error) =>
-        console.warn('[Catalog hidden shard]', error));
+      if (normalized.length >= 2) {
+        renderMenuconfig();
+        await ensureCatalogHiddenLoaded().catch((error) => console.warn('[Catalog hidden shard]', error));
+        if (normalizeMenuSearchQuery($('menuconfigSearch').value) !== normalized) return;
+      }
       renderMenuconfig();
     }, 180);
   };
@@ -3567,20 +4004,37 @@ function initMenuconfigControls() {
     $('menuconfigSearch').value = '';
     resetMenuNavigation();
     menuSelectedExpanded = $('menuconfigSelectedOnly').checked;
+    refreshMenuconfigFilterSummary();
     menuVisibleLimit = MENU_PAGE_SIZE;
     resetMenuScroll();
     renderMenuconfig();
   };
-  $('menuconfigOriginFilter').onchange = () => {
-    menuOriginFilter = $('menuconfigOriginFilter').value || 'all';
+  $('menuconfigUserSettable').onchange = () => {
+    menuUserSettableOnly = $('menuconfigUserSettable').checked;
+    refreshMenuconfigFilterSummary();
     resetMenuNavigation();
     menuVisibleLimit = MENU_PAGE_SIZE;
     resetMenuScroll();
     renderMenuconfig();
   };
+  $('menuconfigOriginFilter').onchange = (event) => {
+    const input = event.target.closest('input[name="menuconfigOrigin"]');
+    if (!input) return;
+    menuOriginFilter = input.value || 'all';
+    refreshMenuconfigFilterSummary();
+    resetMenuNavigation();
+    menuVisibleLimit = MENU_PAGE_SIZE;
+    resetMenuScroll();
+    renderMenuconfig();
+  };
+  $('menuconfigFilterTrigger').onclick = (event) => {
+    event.stopPropagation();
+    const menu = $('menuconfigFilterMenu');
+    menu.hidden = !menu.hidden;
+  };
   $('menuconfigStateHelp').onclick = (event) => {
     event.stopPropagation();
-    showMenuHelp($('menuconfigStateHelp'));
+    showDatasetTooltip($('menuconfigStateHelp'), event);
   };
   $('capText').onclick = () => {
     if (rootfsPartitionInfo()) openRootfsCapacityGuidance();
@@ -3593,7 +4047,7 @@ function initMenuconfigControls() {
     if (scroller.dataset.hasMore !== 'true' ||
         scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight > 120) return;
     const top = scroller.scrollTop;
-    menuVisibleLimit += MENU_PAGE_SIZE;
+    menuVisibleLimit += currentMenuPageSize();
     renderMenuconfig();
     requestAnimationFrame(() => { scroller.scrollTop = top; });
   };
@@ -3614,76 +4068,103 @@ function initMenuconfigControls() {
     renderImportedWorkspace();
   };
   $('importReset').onclick = resetImportedChanges;
-  document.addEventListener('pointerdown', (event) => {
-    if (event.target.closest('.menu-translation-chip')) return;
-    hideMenuTooltip();
+}
+function kconfigConstraintTooltip(option, stateValue, constraints) {
+  const stateRow = constraints.states.find((row) => row.value === stateValue) || {};
+  const selectorLines = constraints.selectors.map((selector) => {
+    const condition = selector.condition
+      ? uiText(`，条件 ${selector.condition}=${selector.conditionLevel === 2 ? 'Y' : 'M'}`,
+        `，條件 ${selector.condition}=${selector.conditionLevel === 2 ? 'Y' : 'M'}`,
+        `; condition ${selector.condition}=${selector.conditionLevel === 2 ? 'Y' : 'M'}`)
+      : '';
+    return `${selector.sourceSymbol}=${selector.sourceValue.toUpperCase()}${condition}`;
   });
-  document.addEventListener('click', async (event) => {
-    const chip = event.target.closest('.menu-translation-chip');
-    if (chip) {
+  const range = uiText(
+    `当前值 ${constraints.current.toUpperCase()}；依赖上限 ${constraints.maximum.toUpperCase()}；select 下限 ${constraints.minimum.toUpperCase()}。`,
+    `目前值 ${constraints.current.toUpperCase()}；相依上限 ${constraints.maximum.toUpperCase()}；select 下限 ${constraints.minimum.toUpperCase()}。`,
+    `Current ${constraints.current.toUpperCase()}; dependency maximum ${constraints.maximum.toUpperCase()}; select minimum ${constraints.minimum.toUpperCase()}.`);
+  let emphasis = '';
+  if (stateRow.selectable) {
+    emphasis = uiText(`可直接切换为 ${stateValue.toUpperCase()}。`, `可直接切換為 ${stateValue.toUpperCase()}。`,
+      `You can set this option directly to ${stateValue.toUpperCase()}.`);
+  } else if (constraints.readOnly && (option.defaults || []).length) {
+    emphasis = uiText(
+      '该符号没有可操作提示；当前状态由 Kconfig 条件默认值自动计算。请修改其父选项、固件语言或默认条件。',
+      '此符號沒有可操作提示；目前狀態由 Kconfig 條件預設值自動計算。請修改其父選項、韌體語言或預設條件。',
+      'This symbol has no user prompt. Kconfig computes it from conditional defaults; change its parent option, firmware language, or default condition instead.');
+  } else if (constraints.readOnly) {
+    emphasis = uiText(
+      '该符号没有可操作提示（userSettable=false），只能由 Profile、默认值、select 或导入配置决定。',
+      '此符號沒有可操作提示（userSettable=false），只能由 Profile、預設值、select 或匯入設定決定。',
+      'This symbol has no user prompt (userSettable=false). Profile/default/select/import resolution controls it.');
+  } else if (stateRow.code === 'selected-lower-bound' || stateRow.code === 'selected-fixed') {
+    emphasis = uiText(
+      `活动 select 将最低值锁定为 ${constraints.minimum.toUpperCase()}。要选择更低状态，必须关闭所有活动 selector，或让其条件变为 N。`,
+      `作用中的 select 將最低值鎖定為 ${constraints.minimum.toUpperCase()}。若要選擇更低狀態，必須關閉所有作用中的 selector，或讓其條件變為 N。`,
+      `Active select rules lock the minimum at ${constraints.minimum.toUpperCase()}. Disable every active selector or make its condition N before choosing a lower state.`);
+  } else if (stateRow.code === 'dependency-upper-bound') {
+    emphasis = uiText(
+      `依赖表达式把最高值限制为 ${constraints.maximum.toUpperCase()}；先满足或提升依赖条件。`,
+      `相依表示式把最高值限制為 ${constraints.maximum.toUpperCase()}；請先滿足或提高相依條件。`,
+      `Dependencies cap this option at ${constraints.maximum.toUpperCase()}. Satisfy or raise the dependency expression first.`);
+  } else if (stateRow.code === 'cannot-disable') {
+    emphasis = uiText('Catalog 声明该项不可直接关闭。', 'Catalog 宣告此項不可直接關閉。',
+      'Catalog declares that this option cannot be disabled directly.');
+  } else {
+    emphasis = uiText('当前 Kconfig 约束不允许直接选择此状态。', '目前 Kconfig 約束不允許直接選擇此狀態。',
+      'The active Kconfig constraints do not allow this direct state.');
+  }
+  const body = [range,
+    selectorLines.length ? uiText(`活动 selector：\n${selectorLines.join('\n')}`,
+      `作用中的 selector：\n${selectorLines.join('\n')}`,
+      `Active selectors:\n${selectorLines.join('\n')}`) : '',
+    option.depends?.length ? uiText(`依赖：${option.depends.join(' && ')}`, `相依：${option.depends.join(' && ')}`,
+      `Depends on: ${option.depends.join(' && ')}`) : '',
+    option.defaults?.length ? uiText(`默认：${option.defaults.join('；')}`, `預設：${option.defaults.join('；')}`,
+      `Defaults: ${option.defaults.join('; ')}`) : '',
+  ].filter(Boolean).join('\n\n');
+  return { title: `CONFIG_${option.symbol} · ${stateValue.toUpperCase()}`, emphasis, body };
+}
+function bindKconfigConstraintTooltip(button, option, stateValue, constraints) {
+  const tooltip = kconfigConstraintTooltip(option, stateValue, constraints);
+  bindUiTooltipContent(button, {
+    ...tooltip,
+    key: `CONFIG_${option.symbol}:${stateValue}`,
+  });
+}
+function renderCatalogOriginSlot(option, origin) {
+  const slot = document.createElement('span');
+  slot.className = 'menuconfig-origin-slot';
+  if (!origin || origin.kind === 'inactive') {
+    slot.setAttribute('aria-hidden', 'true');
+    return slot;
+  }
+  const restorable = Boolean(origin.restorable && catalogUserOverrides.has(option.symbol));
+  const badge = document.createElement(restorable ? 'button' : 'small');
+  const displayKind = origin.displayKind || origin.kind;
+  badge.className = `catalog-origin catalog-origin-${displayKind}${restorable ? ' catalog-origin-restore' : ''}`;
+  badge.textContent = `${origin.label}${restorable ? ' ↶' : ''}`;
+  badge.dataset.uiTooltipTitle = `CONFIG_${option.symbol} · ${origin.label}`;
+  badge.dataset.uiTooltipBody = origin.detail || origin.label;
+  if (restorable) {
+    badge.type = 'button';
+    badge.setAttribute('aria-label', `${origin.label}: ${origin.detail || ''}`);
+    badge.onclick = (event) => {
       event.preventDefault();
       event.stopPropagation();
-      const translated = chip.closest('.menu-translation');
-      if (translated?.dataset.symbol) showMenuOptionTooltip(translated);
-      else showMenuTooltip(translated);
-      return;
-    }
-    const optionLabel = event.target.closest('.menuconfig-option-label');
-    if (optionLabel?.dataset.symbol) showMenuOptionTooltip(optionLabel);
-  }, true);
-  document.addEventListener('pointerover', (event) => {
-    const optionLabel = event.target.closest('.menuconfig-option-label');
-    if (optionLabel?.dataset.symbol && !matchMedia('(hover: none)').matches) {
-      showMenuOptionTooltip(optionLabel, event);
-      return;
-    }
-    const help = event.target.closest('.menuconfig-state-help');
-    if (help && !matchMedia('(hover: none)').matches) {
-      showMenuHelp(help, event);
-      return;
-    }
-    const translated = event.target.closest('.menu-translation');
-    if (state.lang !== 'en' && translated && !matchMedia('(hover: none)').matches) {
-      showMenuTooltip(translated, event);
-    }
-  });
-  document.addEventListener('pointerout', (event) => {
-    if (event.target.closest('.menuconfig-option-label')) {
-      if (!event.relatedTarget?.closest?.('.menuconfig-option-label')) hideMenuTooltip();
-      return;
-    }
-    if (event.target.closest('.menuconfig-state-help')) {
-      if (!event.relatedTarget?.closest?.('.menuconfig-state-help')) hideMenuTooltip();
-      return;
-    }
-    if (!event.target.closest('.menu-translation') ||
-        event.relatedTarget?.closest?.('.menu-translation')) return;
-    hideMenuTooltip();
-  });
-  document.addEventListener('focusin', (event) => {
-    const optionLabel = event.target.closest('.menuconfig-option-label');
-    if (optionLabel?.dataset.symbol) {
-      showMenuOptionTooltip(optionLabel);
-      return;
-    }
-    const help = event.target.closest('.menuconfig-state-help');
-    if (help) {
-      showMenuHelp(help);
-      return;
-    }
-    const translated = event.target.closest('.menu-translation');
-    if (translated) showMenuTooltip(translated);
-  });
-  document.addEventListener('focusout', (event) => {
-    if (event.target.closest('.menuconfig-option-label,.menu-translation,.menuconfig-state-help') &&
-        !event.relatedTarget?.closest?.('.menuconfig-option-label,.menu-translation,.menuconfig-state-help')) hideMenuTooltip();
-  });
+      restoreCatalogDefault(option);
+    };
+  } else {
+    badge.tabIndex = 0;
+  }
+  slot.appendChild(badge);
+  return slot;
 }
 function renderMenuOption(option) {
   const rawValue = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
-  const selectableStates = optionSelectableStates(option);
+  const constraints = optionStateConstraints(option);
   const value = option.type === 'bool' || option.type === 'tristate'
-    ? CATALOG_ENGINE.normalizeKconfigStateValue(option, rawValue) : rawValue;
+    ? constraints.current : rawValue;
   const childCount = menuNestedCounts.get(option.symbol) || 0;
   const row = document.createElement('div');
   const packageName = option.symbol.startsWith('PACKAGE_') ? option.symbol.slice(8) : '';
@@ -3705,6 +4186,7 @@ function renderMenuOption(option) {
   id.dataset.english = english;
   id.dataset.path = path;
   id.tabIndex = 0;
+  bindMenuOptionTooltip(id);
   const description = document.createElement('span');
   description.className = 'menuconfig-option-label menuconfig-option-description';
   description.textContent = [...new Set([localized, english].filter(Boolean))].join(' · ') || id.textContent;
@@ -3713,34 +4195,55 @@ function renderMenuOption(option) {
   description.dataset.english = english;
   description.dataset.path = path;
   description.tabIndex = 0;
+  bindMenuOptionTooltip(description);
   summary.append(id);
-  if (origin.kind !== 'inactive' && origin.kind !== 'user') {
-    const badge = document.createElement('small');
-    badge.className = `catalog-origin catalog-origin-${origin.kind}`;
-    badge.textContent = origin.label;
-    badge.title = origin.detail || origin.label;
-    summary.appendChild(badge);
-  }
   summary.appendChild(description);
   row.appendChild(summary);
   const actions = document.createElement('span');
   actions.className = 'menuconfig-option-actions';
+  actions.appendChild(renderCatalogOriginSlot(option, origin));
   if (option.type === 'bool' || option.type === 'tristate') {
     const tri = document.createElement('span');
     tri.className = 'kconfig-tri';
-    const states = option.userSettable === false
-      ? [...new Set(['n', ...(value !== 'n' ? [value] : [])])]
-      : selectableStates;
-    for (const stateValue of states) {
+    for (const stateValue of ['n', 'm', 'y']) {
+      if (option.type === 'bool' && stateValue === 'm') {
+        const spacer = document.createElement('span');
+        spacer.className = 'kconfig-state-spacer';
+        spacer.setAttribute('aria-hidden', 'true');
+        tri.appendChild(spacer);
+        continue;
+      }
+      const stateConstraint = constraints.states.find((item) => item.value === stateValue) || {
+        value: stateValue, selectable: false, current: value === stateValue, locked: false,
+      };
       const button = document.createElement('button');
       button.type = 'button';
       button.textContent = stateValue.toUpperCase();
-      button.className = value === stateValue ? 'active' : '';
-      if (option.userSettable === false && stateValue !== 'n') {
-        button.disabled = true;
-        button.title = 'Hidden package: it can be disabled here but is enabled only through Catalog dependencies';
+      button.className = 'kconfig-state';
+      button.classList.toggle('is-current', value === stateValue);
+      button.classList.toggle('is-editable', stateConstraint.selectable);
+      button.classList.toggle('is-disabled', !stateConstraint.selectable);
+      button.classList.toggle('is-locked', Boolean(stateConstraint.locked));
+      button.dataset.value = stateValue;
+      button.setAttribute('aria-pressed', String(value === stateValue));
+      button.setAttribute('aria-disabled', String(!stateConstraint.selectable));
+      bindKconfigConstraintTooltip(button, option, stateValue, constraints);
+      if (stateConstraint.locked) {
+        const lock = document.createElement('span');
+        lock.className = 'kconfig-state-lock';
+        lock.textContent = '🔒';
+        lock.setAttribute('aria-hidden', 'true');
+        button.appendChild(lock);
       }
-      button.onclick = () => setMenuValue(option, stateValue, childCount > 0 && stateValue !== 'n');
+      button.onclick = (event) => {
+        if (!stateConstraint.selectable) {
+          event.preventDefault();
+          showDatasetTooltip(button, event);
+          return;
+        }
+        if (value === stateValue) return;
+        setMenuValue(option, stateValue, childCount > 0 && stateValue !== 'n');
+      };
       tri.appendChild(button);
     }
     actions.appendChild(tri);
@@ -3749,7 +4252,21 @@ function renderMenuOption(option) {
     input.type = 'text';
     input.inputMode = option.type === 'int' ? 'numeric' : 'text';
     input.value = option.type === 'string' ? String(value ?? '') : (value === 'n' ? '' : value);
+    input.readOnly = option.userSettable === false;
+    if (input.readOnly) {
+      input.dataset.uiTooltipTitle = `CONFIG_${option.symbol}`;
+      input.dataset.uiTooltipEmphasis = uiText(
+        '该符号没有可操作提示（userSettable=false），当前值仅供查看。',
+        '此符號沒有可操作提示（userSettable=false），目前值僅供查看。',
+        'This symbol has no user prompt (userSettable=false); its value is read-only.');
+      input.dataset.uiTooltipBody = uiText(
+        '值由 Profile、默认值、select 或导入配置决定。',
+        '此值由 Profile、預設值、select 或匯入設定決定。',
+        'Profile/default/select/import resolution controls this value.');
+      input.onclick = (event) => showDatasetTooltip(input, event);
+    }
     input.onchange = () => {
+      if (input.readOnly) return;
       const previous = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
       if (!setMenuValue(option, input.value)) {
         input.value = option.type === 'string' ? String(previous ?? '') : (previous === 'n' ? '' : previous);
@@ -3757,23 +4274,14 @@ function renderMenuOption(option) {
     };
     actions.appendChild(input);
   }
-  if (catalogUserOverrides.has(option.symbol)) {
-    const restore = document.createElement('button');
-    restore.type = 'button';
-    restore.className = 'menuconfig-restore-default';
-    restore.textContent = uiText('默认', '預設', 'Default');
-    restore.title = uiText('删除用户覆盖并恢复继承值', '刪除使用者覆寫並還原繼承值',
-      'Remove the user override and restore the inherited value');
-    restore.onclick = () => restoreCatalogDefault(option);
-    actions.appendChild(restore);
-  }
   if (childCount) {
     const childButton = document.createElement('button');
     childButton.type = 'button';
     childButton.className = 'menuconfig-child';
     childButton.textContent = '›';
-    childButton.title = value === 'n' ? 'Select M or Y to open sub-options' : 'Open sub-options';
-    childButton.setAttribute('aria-label', childButton.title);
+    const childHint = value === 'n' ? 'Select M or Y to open sub-options' : 'Open sub-options';
+    bindUiTooltipContent(childButton, { body: childHint });
+    childButton.setAttribute('aria-label', childHint);
     childButton.disabled = value === 'n';
     childButton.onclick = () => {
       openMenuChildren(option);
@@ -3821,7 +4329,7 @@ function renderMenuLeaf(options, list) {
         optionTranslation.title,
         menuOptionLabel(option),
       ].filter(Boolean))];
-      entry.title = [
+      entry.dataset.uiTooltipBody = [
         `CONFIG_${option.symbol}`,
         choiceDescription.join('\n'),
         (option.path || []).map(menuPathLabel).filter(Boolean).join(' › '),
@@ -3830,7 +4338,7 @@ function renderMenuLeaf(options, list) {
       select.appendChild(entry);
     }
     const syncChoiceTitle = () => {
-      select.title = select.selectedOptions[0]?.title || '';
+      bindUiTooltipContent(select, { body: select.selectedOptions[0]?.dataset.uiTooltipBody || '' });
     };
     syncChoiceTitle();
     select.onchange = () => {
@@ -3894,11 +4402,13 @@ function renderMenuPanelTitle(mode = 'path') {
     current.className = 'menuconfig-breadcrumb-current';
     current.textContent = mode;
     nav.appendChild(current);
-    nav.title = mode;
+    bindUiTooltipContent(nav, { body: mode });
     return;
   }
   const labels = ['Top level', ...menuBreadcrumb];
-  nav.title = labels.map((label) => label === 'Top level' ? menuUi('top') : menuPathLabel(label)).join(' / ');
+  bindUiTooltipContent(nav, {
+    body: labels.map((label) => label === 'Top level' ? menuUi('top') : menuPathLabel(label)).join(' / '),
+  });
   labels.forEach((label, index) => {
     if (index) {
       const separator = document.createElement('span');
@@ -3941,13 +4451,18 @@ function renderMenuconfig() {
   const list = $('menuconfigOptions');
   grid.textContent = '';
   list.textContent = '';
-  const query = $('menuconfigSearch').value.trim().toLowerCase();
+  const query = normalizeMenuSearchQuery($('menuconfigSearch').value);
   const selectedOnly = $('menuconfigSelectedOnly').checked;
+  menuUserSettableOnly = $('menuconfigUserSettable').checked;
+  refreshMenuconfigFilterSummary();
 
   // Resolve visibility once per Catalog state revision. Search, source filters,
   // selected counts, and child-directory counts reuse this result instead of
   // rebuilding Target context and re-evaluating every dependency repeatedly.
-  const visibleOptions = menuSearchOptions.filter(optionVisible);
+  const contextualReferenceView = Boolean(query || selectedOnly || menuOriginFilter !== 'all');
+  const visibleOptions = menuSearchOptions.filter(optionVisible).filter((option) =>
+    (!menuUserSettableOnly || option.userSettable !== false) &&
+    (option.userSettable !== false || option.path?.length || contextualReferenceView));
   const selected = visibleOptions.filter(menuOptionSelected);
   const selectedToggle = $('menuconfigSelectedToggle');
   selectedToggle.hidden = !selectedOnly;
@@ -3980,8 +4495,7 @@ function renderMenuconfig() {
       options = (matches || []).filter(eligible);
     }
   } else if (menuOriginFilter !== 'all') {
-    const originLabel = $('menuconfigOriginFilter')?.selectedOptions?.[0]?.textContent || 'Origin';
-    renderMenuPanelTitle(originLabel);
+    renderMenuPanelTitle(selectedOriginFilterLabel());
     options = eligibleOptions;
   } else {
     const key = menuPathKey(menuPath || []);
@@ -4014,6 +4528,7 @@ function renderMenuconfig() {
   $('menuconfigBack').hidden = !!query;
   $('menuconfigBack').disabled = menuHistory.length === 0;
   $('menuconfigBack').setAttribute('aria-disabled', String($('menuconfigBack').disabled));
+  setMenuconfigSearchBusy(searchPending);
   const nodeFragment = document.createDocumentFragment();
   for (const node of nodes) {
     const button = document.createElement('button');
@@ -4050,11 +4565,11 @@ function renderMenuconfig() {
     empty.textContent = searchPending ? 'Searching…' : query.length === 1
       ? 'Type one more character.'
       : 'No available options.';
-    empty.title = state.lang === 'en' ? '' : searchPending
+    bindUiTooltipContent(empty, { body: state.lang === 'en' ? '' : searchPending
       ? uiText('正在搜索…', '正在搜尋…', 'Searching…')
       : query.length === 1
         ? uiText('请再输入一个字符。', '請再輸入一個字元。', 'Type one more character.')
-        : uiText('没有可用选项。', '沒有可用選項。', 'No available options.');
+        : uiText('没有可用选项。', '沒有可用選項。', 'No available options.') });
     list.appendChild(empty);
   }
   panel.hidden = !options.length && !!nodes.length;
@@ -4187,7 +4702,7 @@ function renderImportedWorkspace() {
       ` (enabled ${activeUnknown}) · plugin actions ${state.sel.size + state.removed.size} · modified ${modified}`);
   const summaryTextElement = $('importSummaryText');
   summaryTextElement.textContent = summaryText;
-  summaryTextElement.title = summaryText;
+  bindUiTooltipContent(summaryTextElement, { body: summaryText });
   const targetCard = $('importTargetCard');
   targetCard.hidden = importedTargetVerified;
   workspace.hidden = importedTargetVerified;
@@ -4368,10 +4883,10 @@ function renderCatalogLocatorResults() {
     button.className = 'catalog-locator-item';
     const label = document.createElement('span');
     label.textContent = entry.label;
-    label.title = entry.label;
+    bindUiTooltipContent(label, { body: entry.label });
     const detail = document.createElement('small');
     detail.textContent = `${entry.type} · ${entry.detail}`;
-    detail.title = detail.textContent;
+    bindUiTooltipContent(detail, { body: detail.textContent });
     button.append(label, detail);
     button.onclick = async () => {
       results.hidden = true;
@@ -4426,7 +4941,7 @@ function renderDevices() {
     return;
   }
   if (!MENU_INDEX?.sources?.length) {
-    setCatalogLoadState('error', 'No usable Catalog sources are available');
+    if (catalogLoadMode !== 'error') setCatalogLoadState('loading');
     $('menuconfigGrid').textContent = '';
     $('menuconfigPanel').hidden = true;
     updateDeviceSummary();
@@ -4892,7 +5407,7 @@ function renderCatalogApplicationsState(box) {
   row.dataset.state = failed ? 'error' : (empty ? 'empty' : 'loading');
   if (failed) {
     row.type = 'button';
-    row.title = catalogApplicationsError;
+    bindUiTooltipContent(row, { body: catalogApplicationsError });
     row.addEventListener('click', () => requestCatalogApplications(true));
   } else {
     row.setAttribute('role', 'status');
@@ -5026,7 +5541,7 @@ window.addEventListener('resize', () => {
   }, 150);
 });
 
-/* 插件项只显示名字以保持列表紧凑,说明收进气泡,点名字才弹出 / Plugin rows show only the name to keep the list compact; details live in a popover opened by clicking the name */
+/* 插件项只显示名字以保持列表紧凑；说明复用统一浮窗，悬停临时显示、双击固定 / Plugin rows stay compact; details reuse the shared hover/double-click tooltip. */
 function renderPlugin(p) {
   const st = pluginState(p);
   const adv = state.advanced;
@@ -5052,9 +5567,9 @@ function renderPlugin(p) {
   // V10:灰色项只看双开关,其余沿用旧规则 / V10: grey items obey the double gate; everything else keeps the old rule
   cb.disabled = st === 'loading' || lockedItem || catalogLocked ||
     (st === 'unavailable' ? !canForce : (!adv && st !== 'ok'));
-  if (catalogLocked) cb.title = uiText(
+  if (catalogLocked) bindUiTooltipContent(item, { body: uiText(
     '由当前 Target / Profile 基础配置锁定', '由目前 Target / Profile 基礎設定鎖定',
-    'Locked by the current Target / Profile baseline');
+    'Locked by the current Target / Profile baseline') });
   cb.setAttribute('aria-label', pName(p));
   const applyChecked = (checked) => {
     cb.checked = checked;
@@ -5124,7 +5639,7 @@ function renderPlugin(p) {
       const f = document.createElement('span');
       f.className = `flag flag-origin flag-origin-${origin.kind}`;
       f.textContent = origin.label;
-      f.title = origin.detail || origin.label;
+      bindUiTooltipContent(f, { body: origin.detail || origin.label });
       nameBtn.appendChild(f);
     }
   }
@@ -5138,23 +5653,13 @@ function renderPlugin(p) {
   const size = p.sizeBytes === null ? uiText('大小未知', '大小未知', 'Size unknown')
     : t('drawer.size', { n: fmtSize(p.sizeBytes) });
   const tooltipBody = detail + '\n' + pkg + ' · ' + size;
-  item.dataset.uiTooltipTitle = pName(p);
-  item.dataset.uiTooltipBody = tooltipBody;
-  item.setAttribute('aria-describedby', 'uiTooltip');
+  bindUiTooltipContent(item, { title: pName(p), body: tooltipBody });
+  bindUiTooltipContent(nameBtn, { title: pName(p), body: tooltipBody });
   nameBtn.removeAttribute('title');
   nameBtn.addEventListener('click', (e) => {
     e.preventDefault();
     e.stopPropagation();
-    if (e.detail > 1) return;
-    showPopover(nameBtn, pName(p), tooltipBody);
-  });
-  item.addEventListener('dblclick', (event) => {
-    if (event.target.closest('a,select,textarea,input:not([type="checkbox"]),button:not(.plugin-name)')) return;
-    if (cb.disabled) return;
-    event.preventDefault();
-    event.stopPropagation();
-    hideUiTooltip(true);
-    applyChecked(!cb.checked);
+    showDatasetTooltip(nameBtn, e);
   });
   item.appendChild(nameBtn);
   return item;
@@ -5258,13 +5763,13 @@ function focusMenuconfigSymbol(symbol) {
     rebuildMenuSearchIndex();
     if (menuExpanded) startCatalogSearchWorker();
     $('menuconfigSelectedOnly').checked = false;
-    $('menuconfigOriginFilter').value = 'all';
     menuOriginFilter = 'all';
+    refreshMenuconfigFilterText();
     resetMenuNavigation();
     $('menuconfigSearch').value = symbol;
-    const query = symbol.toLowerCase();
+    const query = normalizeMenuSearchQuery(symbol);
     catalogSearchResults.set(query, [symbol]);
-    menuVisibleLimit = MENU_PAGE_SIZE;
+    menuVisibleLimit = MENU_SEARCH_PAGE_SIZE;
     resetMenuScroll();
     renderMenuconfig();
     requestAnimationFrame(() => {
@@ -5340,7 +5845,9 @@ function updateStats() {
     capText.disabled = false;
     capText.classList.add('rootfs-capacity');
     capText.textContent = `${rootfs.value} MiB`;
-    capText.title = uiText('查看 RootFS 容量与修改位置', '查看 RootFS 容量與修改位置', 'View RootFS capacity and where to modify it');
+    bindUiTooltipContent(capText, { body: uiText(
+      '查看 RootFS 容量与修改位置', '查看 RootFS 容量與修改位置',
+      'View RootFS capacity and where to modify it') });
   } else {
     $('capBox').hidden = false;
     capText.disabled = true;
@@ -5352,11 +5859,11 @@ function updateStats() {
     capText.textContent = knownBytes
       ? `${uiText('已知软件包体积', '已知軟體包體積', 'Known package size')} ${fmtSize(knownBytes)}`
       : uiText('软件包体积未知', '軟體包體積未知', 'Package size unknown');
-    capText.title = unknownCount
+    bindUiTooltipContent(capText, { body: unknownCount
       ? uiText(`另有 ${unknownCount} 项暂无官方体积数据`, `另有 ${unknownCount} 項暫無官方體積資料`,
         `${unknownCount} selected item(s) have no official size observation`)
       : uiText('来自 Catalog 的跨源官方软件包观测', '來自 Catalog 的跨源官方軟體包觀測',
-        'Cross-source official package observations from Catalog');
+        'Cross-source official package observations from Catalog') });
   }
   updateGroupBadges();
   renderBuildContract();
@@ -5524,14 +6031,6 @@ function applyToConfig(text, sel) {
     const value = themeResolution.values.get(change.symbol);
     if (!option || value === undefined || value === 'n' || value === '') continue;
     text = setConfigSymbol(text, change.symbol, value, option.type);
-  }
-  for (const symbol of themeResolution.symbols) {
-    const escaped = symbol.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const alreadyEnabled = new RegExp(`^CONFIG_${escaped}=[ym]$`, 'm').test(text);
-    if (symbol === themeResolution.symbol || catalogUserOverrides.has(symbol) || alreadyEnabled) {
-      text = setConfigSymbol(text, symbol, symbol === themeResolution.symbol ? 'y' : 'n',
-        menuOptionBySymbol.get(symbol)?.type || 'bool');
-    }
   }
   return '# Generated by WeiG-OpenWrt-AutoBuild web customizer\n' +
     '# page-version=' + state.siteVersion + '\n' +
@@ -6023,6 +6522,7 @@ function restoreSelections(config, payload) {
   catalogUserOverrides.clear();
   catalogImportedSymbols.clear();
   catalogDependencySymbols.clear();
+  catalogConditionalDefaultSymbols.clear();
   importedConfigValues.clear();
   importedUnknownOriginal.clear();
   importedUnknownEdits.clear();
@@ -6063,6 +6563,7 @@ function restoreSelections(config, payload) {
         if (String(value) !== String(defaultValue)) menuImportedNonDefault.add(option.symbol);
       }
     }
+    reconcileImportedConditionalDefaults();
   }
   if (explicit) {
     for (const p of PLUGINS.plugins) {
@@ -6117,6 +6618,7 @@ function restoreSelections(config, payload) {
   menuVisibleLimit = MENU_PAGE_SIZE;
   importedUnknownLimit = MENU_PAGE_SIZE;
   $('menuconfigSelectedOnly').checked = true;
+  refreshMenuconfigFilterSummary();
   renderMenuconfig();
   renderImportedWorkspace();
   updateStats();
@@ -6334,10 +6836,10 @@ function updateSubmitGate() {
   const readiness = submitReadiness();
   button.disabled = !readiness.ok;
   button.setAttribute('aria-disabled', String(!readiness.ok));
-  button.title = readiness.ok ? '' : uiText(
+  bindUiTooltipContent(button, { body: readiness.ok ? '' : uiText(
     `请等待构建参数就绪：${readiness.missing.join('、')}`,
     `請等待建置參數就緒：${readiness.missing.join('、')}`,
-    `Waiting for build stages: ${readiness.missing.join(', ')}`);
+    `Waiting for build stages: ${readiness.missing.join(', ')}`) });
 }
 async function mobileIssuePayload(payload) {
   if (!mobileIssueClient()) return '';
@@ -6740,7 +7242,8 @@ async function openPackageProbeModal() {
     const intro = document.createElement('section');
     intro.className = 'probe-intro';
     const introTitle = document.createElement('h4'); introTitle.textContent = probeUiText('title');
-    const introText = document.createElement('p'); introText.textContent = probeUiText('intro'); introText.title = introText.textContent;
+    const introText = document.createElement('p'); introText.textContent = probeUiText('intro');
+    bindUiTooltipContent(introText, { body: introText.textContent });
     const guide = document.createElement('details'); guide.className = 'probe-guide';
     const guideButton = document.createElement('summary'); guideButton.textContent = 'ⓘ';
     guideButton.setAttribute('aria-label', probeUiText('howTo'));
@@ -6781,13 +7284,9 @@ async function openPackageProbeModal() {
     overlayClose.addEventListener('click', closeProbeOverlay);
     overlay.addEventListener('click', (event) => { if (event.target === overlay) closeProbeOverlay(); });
 
-    const probeTextIsTruncated = (element) => element.scrollWidth > element.clientWidth + 1;
     const bindProbeTextTooltip = (element, text) => {
       if (!text) return;
-      element.addEventListener('mouseenter', () => {
-        if (probeTextIsTruncated(element)) showMenuPopup(element, text);
-      });
-      element.addEventListener('mouseleave', hideMenuTooltip);
+      bindUiTooltipContent(element, { body: text });
     };
 
     const renderSelected = () => {
@@ -6805,7 +7304,7 @@ async function openPackageProbeModal() {
         const packageName = option.symbol.slice('PACKAGE_'.length);
         const value = probeMenuOptionState(option);
         chip.textContent = `${packageName}=${String(value).toUpperCase()} ×`;
-        chip.title = `CONFIG_${option.symbol}`;
+        bindUiTooltipContent(chip, { body: `CONFIG_${option.symbol}` });
         chip.addEventListener('click', () => {
           const baselineValue = probePackageBaselineState(option);
           if (setMenuValue(option, baselineValue)) {
@@ -6852,17 +7351,15 @@ async function openPackageProbeModal() {
         bindProbeTextTooltip(title, choice.title);
         bindProbeTextTooltip(usage, choice.usage);
         const rowDetails = [choice.displayId, `CONFIG_${choice.symbol}`, choice.title, choice.usage].filter(Boolean).join('\n');
+        bindUiTooltipContent(row, { body: rowDetails });
         const info = document.createElement('span'); info.className = 'probe-package-info'; info.textContent = '!';
-        info.setAttribute('aria-hidden', 'true');
+        info.setAttribute('aria-label', rowDetails);
+        bindUiTooltipContent(info, { body: rowDetails });
         info.addEventListener('click', (event) => {
-          event.preventDefault(); event.stopPropagation(); showMenuPopup(row, rowDetails);
+          event.preventDefault(); event.stopPropagation(); showDatasetTooltip(info, event);
         });
         row.append(mark, code, title, usage, info);
         row.setAttribute('aria-label', rowDetails);
-        row.addEventListener('focus', () => {
-          if (probeTextIsTruncated(title) || probeTextIsTruncated(usage)) showMenuPopup(row, rowDetails);
-        });
-        row.addEventListener('blur', hideMenuTooltip);
         if (selectable) row.addEventListener('click', () => {
           const states = optionSelectableStates(option);
           const enableValue = states.includes('y') ? 'y' : states.find((value) => value !== 'n') || 'y';
@@ -6886,13 +7383,6 @@ async function openPackageProbeModal() {
       ['firmware-integration', 'firmwareIntegration', 'firmwareIntegrationShort', 'firmwareIntegrationHelp'],
       ['boot-smoke', 'bootSmoke', 'bootSmokeShort', 'bootSmokeHelp'],
     ];
-    const closeDepthHelp = (except = null) => {
-      for (const info of depth.querySelectorAll('.probe-info.is-open')) {
-        if (info === except) continue;
-        info.classList.remove('is-open');
-        info.querySelector('button')?.setAttribute('aria-expanded', 'false');
-      }
-    };
     for (const [index, [value, labelKey, shortKey, helpKey]] of depthOptions.entries()) {
       const option = document.createElement('div'); option.className = 'probe-depth-option';
       const label = document.createElement('label'); label.className = 'probe-depth-choice';
@@ -6903,16 +7393,17 @@ async function openPackageProbeModal() {
       label.append(input, level, title);
       const info = document.createElement('span'); info.className = 'probe-info';
       const infoButton = document.createElement('button'); infoButton.type = 'button'; infoButton.className = 'probe-info-button';
-      infoButton.textContent = 'ⓘ'; infoButton.setAttribute('aria-expanded', 'false');
+      infoButton.textContent = 'ⓘ';
       infoButton.setAttribute('aria-label', `${probeUiText(labelKey)}: ${probeUiText(helpKey)}`);
-      const popup = document.createElement('span'); popup.className = 'probe-info-popup'; popup.setAttribute('role', 'tooltip'); popup.textContent = probeUiText(helpKey);
-      info.append(infoButton, popup); option.append(label, info); depth.appendChild(option);
-      input.addEventListener('change', () => { closeDepthHelp(); renderPreview(); });
-      infoButton.addEventListener('click', (event) => {
-        event.preventDefault(); event.stopPropagation();
-        const opening = !info.classList.contains('is-open'); closeDepthHelp(info);
-        info.classList.toggle('is-open', opening); infoButton.setAttribute('aria-expanded', String(opening));
+      bindUiTooltipContent(infoButton, {
+        title: `L${index + 1} · ${probeUiText(labelKey)}`,
+        body: probeUiText(helpKey),
       });
+      infoButton.addEventListener('click', (event) => {
+        event.preventDefault(); event.stopPropagation(); showDatasetTooltip(infoButton, event);
+      });
+      info.appendChild(infoButton); option.append(label, info); depth.appendChild(option);
+      input.addEventListener('change', renderPreview);
     }
 
     const filterRow = document.createElement('div'); filterRow.className = 'probe-filter-row'; settings.appendChild(filterRow);
@@ -6973,8 +7464,7 @@ async function openPackageProbeModal() {
       const query = branchSearch.value.trim().toLocaleLowerCase();
       for (const label of branchList.querySelectorAll('label')) label.hidden = !!query && !label.dataset.search.includes(query);
     });
-    layout.addEventListener('click', (event) => { if (!event.target.closest('.probe-info')) closeDepthHelp(); });
-    layout.addEventListener('keydown', (event) => { if (event.key === 'Escape') { closeDepthHelp(); closeProbeOverlay(); } });
+    layout.addEventListener('keydown', (event) => { if (event.key === 'Escape') closeProbeOverlay(); });
 
     const preview = document.createElement('pre'); preview.className = 'probe-preview'; preview.hidden = true; layout.appendChild(preview);
     const actions = document.createElement('div'); actions.className = 'modal-actions probe-actions';
@@ -7067,10 +7557,10 @@ async function runSelfTest() {
   openModal(t('st.title'));
   const probe = $('modalProbe');
   probe.textContent = uiText('插件兼容探针', '外掛相容性探針', 'Package compatibility probe');
-  probe.title = uiText(
+  bindUiTooltipContent(probe, { body: uiText(
     '按 Catalog Source/Branch 探测软件包编译与同装兼容性',
     '依 Catalog Source/Branch 探測套件編譯與共裝相容性',
-    'Probe package compilation and co-install compatibility across Catalog Source/Branch entries');
+    'Probe package compilation and co-install compatibility across Catalog Source/Branch entries') });
   probe.hidden = false;
   const mb = $('modalBody');
   mb.textContent = '';

@@ -21,24 +21,15 @@ function safeReleaseTag(value) {
 
 export function safeCatalogDataRef(value) {
   const ref = String(value || '').trim();
-  if (!/^catalog-(?:fix(?:-[A-Za-z0-9][A-Za-z0-9._-]{0,95})?|dev|staging|main)$/.test(ref)) {
+  if (!/^catalog-(?:fix-[A-Za-z0-9][A-Za-z0-9._-]{0,95}|dev|staging|main)$/.test(ref)) {
     throw new Error(`invalid Catalog data branch: ${value}`);
   }
   return ref;
 }
 
 function catalogFixCodeRefMatches(codeRef, branch) {
-  const ref = String(codeRef || '').trim();
-  if (branch === 'catalog-fix') {
-    if (!/^fix\/[A-Za-z0-9._/-]+$/.test(ref)) return false;
-    return !/-[ABC]$/i.test(ref);
-  }
   const suffix = /^catalog-fix-([A-Za-z0-9][A-Za-z0-9._-]{0,95})$/.exec(branch)?.[1] || '';
-  if (!suffix) return false;
-  if (ref === `fix-${suffix}`) return true;
-  if (!/^fix\/[A-Za-z0-9._/-]+$/.test(ref)) return false;
-  const legacyLane = /-([ABC])$/i.exec(ref)?.[1]?.toUpperCase() || '';
-  return Boolean(legacyLane) && suffix === legacyLane;
+  return Boolean(suffix) && String(codeRef || '').trim() === `fix-${suffix}`;
 }
 
 export function validateCatalogProvenance(index, dataRef, repository) {
@@ -58,7 +49,7 @@ export function validateCatalogProvenance(index, dataRef, repository) {
   if (typeof provenance.complete !== 'boolean') throw new Error('Catalog provenance complete must be boolean');
 
   const branch = safeCatalogDataRef(dataRef);
-  const validCodeRef = branch.startsWith('catalog-fix') ? catalogFixCodeRefMatches(codeRef, branch)
+  const validCodeRef = branch.startsWith('catalog-fix-') ? catalogFixCodeRefMatches(codeRef, branch)
     : branch === 'catalog-dev' ? codeRef === 'dev'
       : branch === 'catalog-staging' ? codeRef === 'staging'
         : codeRef === 'main';
@@ -115,6 +106,12 @@ function providers(repository, releaseTag, dataRef) {
       id: 'jsdelivr',
       indexUrl: (nonce) => `https://cdn.jsdelivr.net/gh/${repo}@${branch}/index.json?wrt_refresh=${nonce}`,
       assetUrl: (asset, ref) => `https://cdn.jsdelivr.net/gh/${repo}@${ref}/${asset}`,
+    },
+    'github-api': {
+      id: 'github-api',
+      headers: { accept: 'application/vnd.github.raw+json' },
+      indexUrl: () => `https://api.github.com/repos/${repo}/contents/index.json?ref=${branch}`,
+      assetUrl: (asset, ref) => `https://api.github.com/repos/${repo}/contents/${asset}?ref=${ref}`,
     },
     'github-release': {
       id: 'github-release',
@@ -375,7 +372,8 @@ export function createCatalogLoader({
   const exactDataRef = safeCatalogDataRef(dataRef);
   const providerMap = providers(repository, releaseTag, exactDataRef);
   const indexProviderOrder = allowReleaseFallback
-    ? ['github-raw', 'jsdelivr', 'github-release'] : ['github-raw', 'jsdelivr'];
+    ? ['jsdelivr', 'github-raw', 'github-api', 'github-release']
+    : ['jsdelivr', 'github-raw', 'github-api'];
   let lastIndexResult = null;
   let indexPromise = null;
   const compatibilityMemory = new Map();
@@ -394,7 +392,9 @@ export function createCatalogLoader({
         const provider = providerMap[id];
         const url = provider.indexUrl(now());
         try {
-          const response = await fetchImpl(url, { cache: 'no-store', signal });
+          const response = await fetchImpl(url, {
+            cache: 'no-store', signal, ...(provider.headers ? { headers: provider.headers } : {}),
+          });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
           const index = validateIndex(await response.json(), exactDataRef, repository);
           const result = { index, provider: id, url };
@@ -443,7 +443,9 @@ export function createCatalogLoader({
   }
 
   function assetProviderOrder(preferredAssetProvider = '', includeRelease = allowReleaseFallback) {
-    const order = includeRelease ? ['jsdelivr', 'github-raw', 'github-release'] : ['jsdelivr', 'github-raw'];
+    const order = includeRelease
+      ? ['jsdelivr', 'github-raw', 'github-api', 'github-release']
+      : ['jsdelivr', 'github-raw', 'github-api'];
     if (order.includes(preferredAssetProvider)) {
       order.splice(order.indexOf(preferredAssetProvider), 1);
       order.unshift(preferredAssetProvider);
@@ -480,7 +482,9 @@ export function createCatalogLoader({
       const provider = providerMap[id];
       const url = provider.assetUrl(safeAsset, ref, index);
       try {
-        const response = await fetchImpl(url, { cache: 'no-store', signal });
+        const response = await fetchImpl(url, {
+          cache: 'no-store', signal, ...(provider.headers ? { headers: provider.headers } : {}),
+        });
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const buffer = await response.arrayBuffer();
         const data = await readDocumentBuffer(buffer, contract, subtle, Decompression);
