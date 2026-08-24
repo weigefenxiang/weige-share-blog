@@ -748,6 +748,7 @@ function variantLevel(expressions, values, options) {
 function dependencyState(record, values, requestedLevel = null, options = {}) {
   const actual = requestedLevel ?? stateLevel(values.get(record.configSymbol) ?? 'n');
   const variants = dependencyVariants(record);
+  const requirements = variants.map((expressions) => expressions.filter(Boolean));
   let maximum = 0;
   let deferred = false;
   for (const expressions of variants) {
@@ -755,11 +756,11 @@ function dependencyState(record, values, requestedLevel = null, options = {}) {
     if (result.status === 'satisfied') {
       const level = record.type === 'bool' && result.level === 1 ? 2 : result.level;
       maximum = Math.max(maximum, level);
-      if (level >= actual) return { status: 'satisfied', maximum: level };
+      if (level >= actual) return { status: 'satisfied', maximum: level, requirements };
     } else if (result.status === 'deferred') deferred = true;
   }
-  if (deferred) return { status: 'deferred', maximum };
-  return { status: actual <= maximum ? 'satisfied' : 'unsatisfied', maximum };
+  if (deferred) return { status: 'deferred', maximum, requirements };
+  return { status: actual <= maximum ? 'satisfied' : 'unsatisfied', maximum, requirements };
 }
 
 function dependencyLevel(record, values, options = {}) {
@@ -819,6 +820,38 @@ function activeImplyRequirements(model, record, values, options = {}) {
   return active;
 }
 
+// OpenWrt's resolver suppresses an active reverse select only when the
+// target's direct dependency (`dir_dep`) is N.  A non-zero dependency ceiling
+// keeps the native reverse-select lower bound, even when that select drives a
+// tristate target above the ceiling; that case is reported as a non-blocking
+// Kconfig select diagnostic.  Keep this decision in one helper so interactive
+// constraints, forward rule application, and reverse reconciliation agree.
+function effectiveSelectRequirements(model, record, values, options = {}) {
+  const selectors = activeSelectRequirements(model, record, values, options);
+  if (!selectors.length) return selectors;
+  const maximum = dependencyLevel(record, values, options);
+  return maximum === 0 ? [] : selectors;
+}
+
+// Keep suppressed reverse-select provenance separate from validation.  A
+// target with dir_dep=N is intentionally left at N, so it must not become a
+// violation or a user-facing error; callers can still explain why the target
+// did not follow its selector through this diagnostic channel.
+function selectSuppressionDiagnostics(model, values, options = {}) {
+  const diagnostics = [];
+  for (const targetSymbol of model?.reverseSelects?.keys() || []) {
+    const target = model.bySymbol.get(targetSymbol);
+    if (!target) continue;
+    if (dependencyLevel(target, values, options) !== 0) continue;
+    const selectedBy = activeSelectRequirements(model, target, values, options);
+    if (!selectedBy.length) continue;
+    diagnostics.push({ code: 'kconfig-select-suppressed', target: targetSymbol,
+      symbol: targetSymbol, package: target.package, dependencyMaximum: 0,
+      blocking: false, selectedBy });
+  }
+  return diagnostics;
+}
+
 export function kconfigStateConstraints(model, record = {}, inputValues = new Map(), options = {}) {
   const values = valuesMap(inputValues);
   const normalizedOptions = validationOptions(values, options);
@@ -828,7 +861,7 @@ export function kconfigStateConstraints(model, record = {}, inputValues = new Ma
   const legalStates = allowedKconfigStates(canonical);
   const dependency = dependencyState(canonical, values, 2, normalizedOptions);
   const maximumLevel = dependency.status === 'deferred' ? 2 : dependency.maximum;
-  const selectors = activeSelectRequirements(model, canonical, values, normalizedOptions);
+  const selectors = effectiveSelectRequirements(model, canonical, values, normalizedOptions);
   const minimumLevel = selectors.reduce((maximum, item) => Math.max(maximum, item.level), 0);
   const readOnly = canonical.userSettable === false;
   const directlySelectable = readOnly ? [] : legalStates.filter((value) => {
@@ -854,7 +887,8 @@ export function kconfigStateConstraints(model, record = {}, inputValues = new Ma
   });
   return { symbol: configSymbol, current, legalStates, selectableStates: directlySelectable, readOnly,
     minimumLevel, minimum: STATE[minimumLevel], maximumLevel, maximum: STATE[maximumLevel],
-    dependencyStatus: dependency.status, selectors, states };
+    dependencyStatus: dependency.status, dependencyExpressions: dependency.requirements,
+    selectors, states };
 }
 
 export function selectableKconfigStates(record = {}, inputValues = new Map(), options = {}) {
@@ -902,6 +936,16 @@ function packageDependencyViolations(model, record, values, options) {
   return violations;
 }
 
+function isKconfigSelectWarning(item) {
+  return item?.code === 'kconfig-select-warning' ||
+    (item?.warning === true && item?.code === 'kconfig-dependency-unsatisfied' &&
+      Array.isArray(item?.selectedBy) && item.selectedBy.length > 0);
+}
+
+function isBlockingViolation(item) {
+  return !item?.deferred && !isKconfigSelectWarning(item);
+}
+
 function recordViolations(model, record, values, rawOptions = {}) {
   if (!recordEnabled(record, values)) return [];
   const options = validationOptions(values, rawOptions);
@@ -909,11 +953,26 @@ function recordViolations(model, record, values, rawOptions = {}) {
   const violations = [];
   const actual = stateLevel(values.get(record.configSymbol));
   const dependency = dependencyState(record, values, actual, options);
-  if (dependency.status === 'unsatisfied') violations.push({ code: 'kconfig-dependency-unsatisfied',
-    symbol: record.configSymbol, package: record.package, actual, maximum: dependency.maximum });
+  if (dependency.status === 'unsatisfied') {
+    // A non-zero direct dependency ceiling does not suppress a reverse
+    // select.  If the active selector is what raised the target above that
+    // ceiling, expose the native Kconfig warning without making it blocking.
+    // A zero ceiling remains a hard direct-dependency violation; select is
+    // fully suppressed in that case and must not turn the target into Y.
+    const selectedBy = dependency.maximum > 0
+      ? activeSelectRequirements(model, record, values, options)
+        .filter((selector) => selector.level >= actual)
+      : [];
+    if (selectedBy.length) violations.push({ code: 'kconfig-select-warning', warning: true,
+      symbol: record.configSymbol, package: record.package, actual, maximum: dependency.maximum,
+      requirements: dependency.requirements, selectedBy });
+    else violations.push({ code: 'kconfig-dependency-unsatisfied',
+      symbol: record.configSymbol, package: record.package, actual, maximum: dependency.maximum,
+      requirements: dependency.requirements });
+  }
   else if (dependency.status === 'deferred' && options.deferred !== 'ignore') violations.push({
     code: 'kconfig-dependency-deferred', symbol: record.configSymbol, package: record.package,
-    actual, maximum: dependency.maximum, deferred: true });
+    actual, maximum: dependency.maximum, requirements: dependency.requirements, deferred: true });
   violations.push(...packageDependencyViolations(model, record, values, options));
   return violations;
 }
@@ -923,6 +982,10 @@ export function violationKey(item) {
   if (item.code === 'package-conflict') return `${item.code}:${[item.package, item.otherPackage].sort().join(':')}`;
   if (item.code === 'choice-conflict') return `${item.code}:${item.choice}:${[...(item.symbols || [])].sort().join(',')}`;
   return `${item.code}:${item.symbol || item.package || ''}:${item.dependency || ''}`;
+}
+
+function formatKconfigRequirements(requirements = []) {
+  return requirements.map((group) => (group || []).filter(Boolean).join(' && ')).filter(Boolean).join(' || ');
 }
 
 export function validateConfig(model, inputValues, rawOptions = {}) {
@@ -971,6 +1034,10 @@ function applyKconfigRules(model, record, requested, values, changes, options = 
       const target = model.bySymbol.get(symbol);
       if (!target) continue;
       const requiredLevel = selectRequirement(target, requested, conditionLevel);
+      // A reverse select cannot make a target with dir_dep=N active.  This is
+      // deliberately a generic Kconfig rule; do not special-case package or
+      // source names here.
+      if (dependencyLevel(target, values, options) === 0) continue;
       if (stateLevel(values.get(symbol) ?? 'n') >= requiredLevel) continue;
       setValue(values, changes, symbol, STATE[requiredLevel], 'select', record.configSymbol);
     }
@@ -1105,7 +1172,7 @@ function cascadeDisabled(model, values, changes, initialSymbols, options = {}) {
     for (const candidateSymbol of reverseCandidates(model, record)) {
       const candidate = model.bySymbol.get(candidateSymbol);
       if (!candidate || !recordEnabled(candidate, values)) continue;
-      const violations = recordViolations(model, candidate, values, options).filter((item) => !item.deferred);
+      const violations = recordViolations(model, candidate, values, options).filter(isBlockingViolation);
       if (!violations.length) continue;
       if (setValue(values, changes, candidate.configSymbol, 'n', 'dependency-unsatisfied', record.configSymbol)) queue.push(candidate.configSymbol);
     }
@@ -1151,8 +1218,8 @@ function dependencyStillRequired(model, symbol, values, options = {}) {
     const candidate = model.bySymbol.get(candidateSymbol);
     if (!candidate || !recordEnabled(candidate, values)) continue;
     if (activeSelectsSymbol(candidate, symbol, values, options)) return true;
-    const before = new Set(recordViolations(model, candidate, values, options).filter((item) => !item.deferred).map(violationKey));
-    const after = recordViolations(model, candidate, testValues, options).filter((item) => !item.deferred);
+    const before = new Set(recordViolations(model, candidate, values, options).filter(isBlockingViolation).map(violationKey));
+    const after = recordViolations(model, candidate, testValues, options).filter(isBlockingViolation);
     if (after.some((item) => !before.has(violationKey(item)))) return true;
   }
   return false;
@@ -1178,11 +1245,28 @@ function enforceActiveReverseRelations(model, values, changes, options = {}) {
     for (const targetSymbol of model.reverseSelects?.keys() || []) {
       const target = model.bySymbol.get(targetSymbol);
       if (!target) continue;
-      const active = activeSelectRequirements(model, target, values, options);
+      const rawActive = activeSelectRequirements(model, target, values, options);
+      const dependencyMaximum = dependencyLevel(target, values, options);
+      if (dependencyMaximum === 0 && rawActive.length && targetSymbol !== options.intentSymbol &&
+          stateLevel(values.get(targetSymbol) ?? 'n') > 0) {
+        // A previously propagated select must be withdrawn when dir_dep falls
+        // to N.  This is the reverse transition of the suppression rule above;
+        // cascade its dependents so no stale selected chain survives.
+        const source = rawActive[0]?.sourceSymbol || '';
+        if (setValue(values, changes, targetSymbol, 'n', 'select-suppressed', source)) {
+          cascadeDisabled(model, values, changes, [targetSymbol], options);
+          progress = true;
+        }
+        continue;
+      }
+      const active = dependencyMaximum === 0 ? [] : rawActive;
       const minimum = active.reduce((level, item) => Math.max(level, item.level), 0);
       if (minimum > stateLevel(values.get(targetSymbol) ?? 'n')) {
-        progress = setValue(values, changes, targetSymbol, STATE[minimum], 'select',
-          active.find((item) => item.level === minimum)?.sourceSymbol || '') || progress;
+        if (setValue(values, changes, targetSymbol, STATE[minimum], 'select',
+          active.find((item) => item.level === minimum)?.sourceSymbol || '')) {
+          cascadeEnabled(model, values, changes, [targetSymbol], options);
+          progress = true;
+        }
       }
     }
     for (const targetSymbol of model.reverseImplies?.keys() || []) {
@@ -1209,7 +1293,7 @@ function derivedDefaultState(model, record, values, options = {}) {
   const dependencyMaximum = dependencyLevel(record, values, options);
   let defaultLevel = stateLevel(resolved.value);
   if (dependencyMaximum !== UNKNOWN) defaultLevel = Math.min(defaultLevel, dependencyMaximum);
-  const selectors = activeSelectRequirements(model, record, values, options);
+  const selectors = effectiveSelectRequirements(model, record, values, options);
   const selectorLevel = selectors.reduce((maximum, item) => Math.max(maximum, item.level), 0);
   const implies = activeImplyRequirements(model, record, values, options);
   let implyLevel = implies.reduce((maximum, item) => Math.max(maximum, item.level), 0);
@@ -1255,7 +1339,7 @@ function reconcileNonUserSettableDependents(model, values, changes, options = {}
       if (!record?.configSymbol || record.userSettable !== false || !recordEnabled(record, values) ||
           options.trustedSymbols?.has(record.configSymbol)) continue;
       const violations = recordViolations(model, record, values, options).filter((item) =>
-        !item.deferred && (item.code === 'kconfig-dependency-unsatisfied' ||
+        isBlockingViolation(item) && (item.code === 'kconfig-dependency-unsatisfied' ||
           item.code === 'package-dependency-unsatisfied'));
       if (!violations.length) continue;
       if (setValue(values, changes, record.configSymbol, 'n', 'dependency-unsatisfied',
@@ -1281,7 +1365,152 @@ export function reconcileKconfigDerivedValues(model, inputValues, rawOptions = {
     derived.derivedSymbols.add(symbol);
     if (!derived.derivedReasons.has(symbol)) derived.derivedReasons.set(symbol, 'dependency-unsatisfied');
   }
-  return { values, changes, ...derived, violations: validateConfig(model, values, options) };
+  return { values, changes, ...derived, violations: validateConfig(model, values, options),
+    diagnostics: selectSuppressionDiagnostics(model, values, options) };
+}
+
+function prerequisiteSymbols(model, record) {
+  return unique(dependencyVariants(record).flatMap((group) => group.flatMap((expression) =>
+    referencedExpressionSymbols(expression))))
+    .filter((symbol) => symbol !== record.configSymbol && model?.bySymbol?.has(symbol));
+}
+
+function prerequisiteStateCandidates(model, symbol, inputValues, options = {}) {
+  const record = model?.bySymbol?.get(symbol);
+  if (!record || record.userSettable === false || options.explicitSymbols?.has(symbol)) return [];
+  const constraints = kconfigStateConstraints(model, record, inputValues, options);
+  const current = normalizeKconfigStateValue(record, inputValues.get(symbol) ?? 'n');
+  return constraints.selectableStates.filter((value) => value !== current);
+}
+
+function prerequisitePlanReplay(model, inputValues, steps, target, intent, options) {
+  let values = new Map(inputValues);
+  const changes = [];
+  for (const step of steps) {
+    let result;
+    try {
+      result = applyUserIntent(model, values, {
+        ...intent, symbol: step.symbol, value: step.value,
+        skipPrerequisitePlanning: true,
+      });
+    } catch {
+      return null;
+    }
+    values = result.values;
+    changes.push(...result.changes);
+  }
+  let targetResult;
+  try {
+    targetResult = applyUserIntent(model, values, {
+      ...intent, symbol: target.configSymbol, value: intent.value,
+      skipPrerequisitePlanning: true,
+    });
+  } catch {
+    return null;
+  }
+  values = targetResult.values;
+  changes.push(...targetResult.changes);
+  const baselineKeys = new Set(validateConfig(model, inputValues, options).map(violationKey));
+  const newViolations = validateConfig(model, values, options)
+    .filter((item) => isBlockingViolation(item) && !baselineKeys.has(violationKey(item)));
+  if (newViolations.length) return null;
+  const stepSymbols = new Set(steps.map((step) => step.symbol));
+  return {
+    steps,
+    values,
+    changes,
+    automaticChanges: changes.filter((change) =>
+      !stepSymbols.has(change.symbol) && change.symbol !== target.configSymbol),
+  };
+}
+
+/**
+ * Find the smallest legal Kconfig prerequisite sequence for a positive intent.
+ * This is deliberately expression/model driven: no package, source, or branch
+ * names are special-cased.  The search is bounded so a malformed or very large
+ * expression remains an ordinary unsatisfied dependency instead of stalling UI.
+ */
+export function deriveKconfigPrerequisitePlans(model, inputValues, record, requestedValue, intent = {}) {
+  const target = model?.bySymbol?.get(record?.configSymbol || record?.symbol) || record;
+  const value = normalizeValue(requestedValue ?? intent.value ?? 'n');
+  if (!target?.configSymbol || value === 'n' || !model?.bySymbol) return { candidates: [], recommended: null };
+  const initialValues = new Map(valuesMap(inputValues));
+  const options = validationOptions(initialValues, intent.validationOptions || {});
+  const normalizedIntent = {
+    ...intent,
+    explicitSymbols: new Set(intent.explicitSymbols || options.explicitSymbols || []),
+  };
+  options.explicitSymbols = normalizedIntent.explicitSymbols;
+  const requestedLevel = stateLevel(value);
+  const initialDependency = dependencyState(target, initialValues, requestedLevel, options);
+  if (initialDependency.status === 'satisfied') return { candidates: [], recommended: null };
+  const symbols = prerequisiteSymbols(model, target);
+  if (!symbols.length) return { candidates: [], recommended: null };
+
+  const queue = [{ values: initialValues, steps: [], used: new Set() }];
+  const visited = new Set();
+  const candidates = [];
+  const maxSteps = Math.min(6, Math.max(1, symbols.length));
+  let visitedNodes = 0;
+  while (queue.length && visitedNodes < 4096) {
+    const node = queue.shift();
+    visitedNodes += 1;
+    const key = symbols.map((symbol) => normalizeValue(node.values.get(symbol) ?? 'n')).join('|');
+    if (visited.has(key)) continue;
+    visited.add(key);
+    const dependency = dependencyState(target, node.values, requestedLevel, options);
+    if (dependency.status === 'satisfied' && node.steps.length) {
+      const replay = prerequisitePlanReplay(model, initialValues, node.steps, target, {
+        ...normalizedIntent, value,
+      }, options);
+      if (replay) {
+        candidates.push({
+          ...replay,
+          symbol: target.configSymbol,
+          package: target.package || packageNameFromSymbol(target.configSymbol),
+          value,
+          cost: node.steps.length,
+          key: node.steps.map((step) => `${step.symbol}=${step.value}`).join('\\0'),
+        });
+      }
+      continue;
+    }
+    if (node.steps.length >= maxSteps || dependency.status === 'deferred') continue;
+    for (const symbol of symbols) {
+      if (node.used.has(symbol)) continue;
+      for (const nextValue of prerequisiteStateCandidates(model, symbol, node.values, options)) {
+        const values = new Map(node.values);
+        values.set(symbol, nextValue);
+        queue.push({
+          values,
+          steps: [...node.steps, {
+            symbol,
+            value: nextValue,
+            package: model.bySymbol.get(symbol)?.package || packageNameFromSymbol(symbol),
+          }],
+          used: new Set([...node.used, symbol]),
+        });
+      }
+    }
+  }
+  // The BFS can reach the same set of operations in more than one order. The
+  // order is not a second user choice, so collapse those permutations before
+  // deciding whether the minimum plan is unique. Keep the lexicographically
+  // stable replay for deterministic UI output.
+  const uniqueCandidates = new Map();
+  for (const candidate of candidates) {
+    const operationKey = candidate.steps.map((step) => `${step.symbol}=${step.value}`)
+      .sort().join('\\0');
+    const existing = uniqueCandidates.get(operationKey);
+    if (!existing || candidate.key.localeCompare(existing.key) < 0) {
+      uniqueCandidates.set(operationKey, candidate);
+    }
+  }
+  const normalizedCandidates = [...uniqueCandidates.values()]
+    .sort((left, right) => left.cost - right.cost || left.key.localeCompare(right.key));
+  const minimum = normalizedCandidates[0]?.cost;
+  const cheapest = normalizedCandidates.filter((candidate) => candidate.cost === minimum);
+  return { candidates: normalizedCandidates, recommended: cheapest.length === 1 ? cheapest[0] : null };
 }
 
 export function applyUserIntent(model, inputValues, intent) {
@@ -1293,19 +1522,37 @@ export function applyUserIntent(model, inputValues, intent) {
   const record = model.bySymbol.get(symbol);
   if (!record) throw new Error(`Catalog does not define ${symbol}`);
   const options = validationOptions(initialValues, intent?.validationOptions || {});
-  options.explicitSymbols = new Set(intent?.explicitSymbols || options.explicitSymbols || []);
+  const normalizedIntent = {
+    ...(intent || {}),
+    explicitSymbols: new Set(intent?.explicitSymbols || options.explicitSymbols || []),
+  };
+  // Keep a direct positive intent from being silently normalized away by the
+  // reverse-select suppression pass; it must reach validation and be rejected
+  // for its own unsatisfied dependency.  State transitions on another symbol
+  // (for example the dependency gate) remain free to lower the stale target.
+  options.intentSymbol = symbol;
+  options.explicitSymbols = normalizedIntent.explicitSymbols;
   const constraints = kconfigStateConstraints(model, record, initialValues, options);
   const legal = constraints.legalStates.includes(value);
+  const alreadyRequested = value !== 'n' && legal && constraints.current === value &&
+    constraints.dependencyStatus === 'satisfied' && record.userSettable !== false;
   const systemSelectable = legal && stateLevel(value) >= constraints.minimumLevel &&
     (value === 'n' ? record.canDisable !== false :
       (stateLevel(value) <= constraints.maximumLevel || stateLevel(value) <= constraints.minimumLevel));
   const repairablePositiveIntent = value !== 'n' && constraints.minimumLevel === 0 &&
     constraints.legalStates.includes(value) && record.userSettable !== false;
   const allowed = intent?.force === true ? systemSelectable :
-    (constraints.selectableStates.includes(value) || repairablePositiveIntent);
+    (constraints.selectableStates.includes(value) || repairablePositiveIntent || alreadyRequested);
   if (!allowed) {
-    const error = new Error(`${symbol} cannot be set to ${value.toUpperCase()} under the active Kconfig constraints`);
-    error.name = 'CatalogIntentError'; error.intent = { symbol, value }; error.constraints = constraints; throw error;
+    const prerequisitePlans = value !== 'n' && !intent?.skipPrerequisitePlanning
+      ? deriveKconfigPrerequisitePlans(model, initialValues, record, value, normalizedIntent) : null;
+    const requirement = formatKconfigRequirements(constraints.dependencyExpressions || []);
+    const message = requirement ? `${symbol} requires ${requirement}` :
+      `${symbol} cannot be set to ${value.toUpperCase()} under the active Kconfig constraints`;
+    const error = new Error(message);
+    error.name = 'CatalogIntentError'; error.intent = { symbol, value }; error.constraints = constraints;
+    if (prerequisitePlans?.recommended) error.prerequisitePlans = prerequisitePlans;
+    throw error;
   }
   const beforeKeys = new Set(validateConfig(model, initialValues, options).map(violationKey));
   setValue(values, changes, symbol, value, 'user');
@@ -1356,14 +1603,29 @@ export function applyUserIntent(model, inputValues, intent) {
     derived = reconcileDerivedDefaults(model, values, changes, options);
   }
   const violations = validateConfig(model, values, options);
+  const diagnostics = selectSuppressionDiagnostics(model, values, options);
   if (value !== 'n') {
-    const blocking = violations.filter((item) => !beforeKeys.has(violationKey(item)));
+    // A positive user intent must still be rejected when the requested symbol
+    // was already present in an invalid imported state.  Comparing only with
+    // beforeKeys would otherwise turn a direct re-selection of an unsatisfied
+    // target into a silent no-op.  Reverse-select suppression never reaches
+    // this branch for the selector/root: its selected target remains N.
+    const blocking = violations.filter((item) => isBlockingViolation(item) &&
+      (item.symbol === symbol || !beforeKeys.has(violationKey(item))));
     if (blocking.length) {
       const error = new Error(formatViolations(blocking)); error.name = 'CatalogIntentError';
-      error.violations = blocking; error.intent = { symbol, value }; throw error;
+      error.violations = blocking; error.intent = { symbol, value };
+      error.diagnostics = diagnostics;
+      error.warnings = violations.filter((item) => isKconfigSelectWarning(item) &&
+        !beforeKeys.has(violationKey(item)));
+      if (!intent?.skipPrerequisitePlanning && blocking.some((item) => item.code === 'kconfig-dependency-unsatisfied')) {
+        const prerequisitePlans = deriveKconfigPrerequisitePlans(model, initialValues, record, value, normalizedIntent);
+        if (prerequisitePlans?.recommended) error.prerequisitePlans = prerequisitePlans;
+      }
+      throw error;
     }
   }
-  return { values, changes, ...derived, violations };
+  return { values, changes, ...derived, violations, diagnostics };
 }
 
 export function resolveEffectiveTheme(model, target, inputValues = new Map(), options = {}) {
@@ -1686,9 +1948,22 @@ export function compatibilityAcknowledgementKey({ sha256, dataRef, sourceId, bra
 
 export function formatViolations(violations) {
   return (violations || []).map((item) => {
+    if (item.code === 'kconfig-select-warning') {
+      const selectors = (item.selectedBy || []).map((selector) => selector.sourceSymbol).filter(Boolean);
+      const owner = selectors.length ? ` selected by ${selectors.join(', ')}` : '';
+      const requirement = formatKconfigRequirements(item.requirements || []);
+      return requirement ? `${item.symbol}${owner} requires ${requirement}` :
+        `${item.symbol}${owner} has unsatisfied Kconfig dependencies`;
+    }
     if (item.code === 'package-dependency-unsatisfied') return `${item.symbol} requires ${item.packages.join(' || ')}`;
-    if (item.code === 'kconfig-dependency-unsatisfied') return `${item.symbol} has unsatisfied Kconfig dependencies`;
-    if (item.code === 'kconfig-dependency-deferred') return `${item.symbol} has deferred Kconfig dependencies`;
+    if (item.code === 'kconfig-dependency-unsatisfied') {
+      const requirement = formatKconfigRequirements(item.requirements || []);
+      return requirement ? `${item.symbol} requires ${requirement}` : `${item.symbol} has unsatisfied Kconfig dependencies`;
+    }
+    if (item.code === 'kconfig-dependency-deferred') {
+      const requirement = formatKconfigRequirements(item.requirements || []);
+      return requirement ? `${item.symbol} has deferred Kconfig dependency ${requirement}` : `${item.symbol} has deferred Kconfig dependencies`;
+    }
     if (item.code === 'package-dependency-deferred') return `${item.symbol} has deferred package dependencies`;
     if (item.code === 'package-conflict') return `${item.package} conflicts with ${item.otherPackage}`;
     if (item.code === 'choice-conflict') return `${item.choice} enables multiple values: ${item.symbols.join(', ')}`;

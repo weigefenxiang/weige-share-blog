@@ -8,19 +8,97 @@
  */
 'use strict';
 
+const PROBE_V3_DEPTH_OPTIONS = Object.freeze([
+  Object.freeze({ level: 1, mode: 'config-resolve', shortKey: 'depth1Short', titleKey: 'configResolve', helpKey: 'configResolveHelp' }),
+  Object.freeze({ level: 2, mode: 'package-compile', shortKey: 'depth2Short', titleKey: 'packageCompile', helpKey: 'packageCompileHelp' }),
+  Object.freeze({ level: 3, mode: 'rootfs-integration', shortKey: 'depth3Short', titleKey: 'rootfsIntegration', helpKey: 'rootfsIntegrationHelp' }),
+  Object.freeze({ level: 4, mode: 'firmware-integration', shortKey: 'depth4Short', titleKey: 'firmwareIntegration', helpKey: 'firmwareIntegrationHelp' }),
+  Object.freeze({ level: 5, mode: 'boot-smoke', shortKey: 'depth5Short', titleKey: 'bootSmoke', helpKey: 'bootSmokeHelp' }),
+  Object.freeze({ level: 6, mode: 'runtime-health', shortKey: 'depth6Short', titleKey: 'runtimeHealth', helpKey: 'runtimeHealthHelp' }),
+  Object.freeze({ level: 7, mode: 'reboot-validation', shortKey: 'depth7Short', titleKey: 'rebootValidation', helpKey: 'rebootValidationHelp' }),
+]);
+
+const PROBE_V3_COMPARISON = Object.freeze({
+  mode: 'paired-exclusion',
+  executionOrder: Object.freeze(['baseline', 'final']),
+});
+
+const PROBE_V3_RESULT_STATUSES = Object.freeze([
+  'compatible', 'incompatible', 'blocked', 'skipped', 'unresolved',
+]);
+
+function probeV3ComparisonRequest(enabled = true) {
+  // The comparison field was introduced after the original Probe state
+  // contract. Treat an omitted/legacy value as enabled, while preserving an
+  // explicit user opt-out. Keeping this distinction here makes every caller
+  // follow the same migration rule instead of relying on truthiness.
+  if (enabled === false) return null;
+  return {
+    mode: PROBE_V3_COMPARISON.mode,
+    executionOrder: [...PROBE_V3_COMPARISON.executionOrder],
+  };
+}
+
+function probeV3ResultStatus(result) {
+  const raw = String(result?.status || result?.outcome || result?.result || '').trim().toLowerCase();
+  return PROBE_V3_RESULT_STATUSES.includes(raw) ? raw : 'unresolved';
+}
+
+function probeV3ResultReason(result) {
+  const values = [
+    result?.reason, result?.cause, result?.failureCause, result?.attribution,
+    result?.diagnosis?.reason, result?.classification?.reason,
+  ];
+  return values.map((value) => String(value || '').trim()).find(Boolean) || '';
+}
+
+// Result cards are rendered by the Catalog/Actions side, but keep one small
+// browser-side presentation model for any future result viewer. In particular,
+// a Base Profile blocker must never look like a plugin incompatibility.
+function probeV3ResultPresentation(result) {
+  const status = probeV3ResultStatus(result);
+  const reason = probeV3ResultReason(result);
+  const attribution = String(result?.attribution || '').trim().toLowerCase().replaceAll('_', '-');
+  const normalizedReason = reason.toLowerCase().replaceAll('_', '-');
+  const baseProfile = status === 'blocked' || attribution === 'base-profile' ||
+    /(?:^|[- ])base[- ]?profile(?:[- ]|$)/.test(normalizedReason);
+  const pluginEvaluated = status === 'compatible' || status === 'incompatible'
+    ? true : status === 'unresolved' ? null : false;
+  return {
+    status,
+    reason,
+    baseProfile,
+    pluginEvaluated,
+    pluginEvaluation: pluginEvaluated === true ? 'evaluated' :
+      pluginEvaluated === false ? 'not-evaluated' : 'unknown',
+    statusKey: `result${status[0].toUpperCase()}${status.slice(1)}`,
+    evaluationKey: pluginEvaluated === true ? 'pluginEvaluated' :
+      pluginEvaluated === false ? 'pluginNotEvaluated' : 'pluginEvaluationUnknown',
+  };
+}
+
 function probeV3UiText(key) {
   const external = catalogApplicationsDocument?.probeUi?.strings?.[key];
   if (external && typeof external === 'object') {
     const exact = String(external[state.lang] || external.en || external['zh-CN'] || '').trim();
     if (exact) return exact;
   }
-  if (key === 'level1') return `L${1}`;
+  const depthOption = PROBE_V3_DEPTH_OPTIONS.find((option) =>
+    option.shortKey === key || option.titleKey === key || option.helpKey === key);
+  if (depthOption) return key === depthOption.shortKey ? `L${depthOption.level}` : depthOption.mode;
   const fallback = {
-    l1Intro: 'intro', l1HowTo: 'howTo', configResolve: 'defconfig', configResolveHelp: 'defconfigHelp',
-    environmentLimit: 'coverageMode', sourceExcluded: 'notApplicable', l1StateInstruction: 'stateInstruction',
-    l1Submitted: 'submittedState',
+    environmentLimit: 'coverageMode', sourceExcluded: 'notApplicable',
   }[key] || key;
   return t('probe.v3.' + fallback);
+}
+function probeV3CoveragePolicy() {
+  const coverage = catalogApplicationsDocument?.probeUi?.coverage;
+  const defaultLimit = Number(coverage?.defaultLimit);
+  const maxLimit = Number(coverage?.maxLimit);
+  if (!Number.isInteger(defaultLimit) || !Number.isInteger(maxLimit) || defaultLimit < 1 || defaultLimit > maxLimit) {
+    throw new Error('Catalog Probe coverage contract is unavailable');
+  }
+  return { defaultLimit, maxLimit };
 }
 function probeV3CodeChannel() {
   const branch = String(state.buildMeta?.branch || 'main');
@@ -133,6 +211,16 @@ function probeV3PackageStateMap(text) {
     if (match) states.set(match[1], match[2]);
   }
   return states;
+}
+function probeV3RequestPackageConfigs(packageIntent) {
+  const intentConfig = (stateKey) => packageIntent
+    .filter((row) => ['m', 'y'].includes(row[stateKey]))
+    .map((row) => `CONFIG_PACKAGE_${row.package}=${row[stateKey]}`)
+    .join('\n') + (packageIntent.some((row) => ['m', 'y'].includes(row[stateKey])) ? '\n' : '');
+  return {
+    baselinePackageConfig: intentConfig('before'),
+    packageConfig: intentConfig('after'),
+  };
 }
 function probeV3EnabledIntent(request) {
   return (request?.packageIntent || []).filter((row) => row && ['m', 'y'].includes(row.after));

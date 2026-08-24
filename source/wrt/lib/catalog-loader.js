@@ -371,9 +371,16 @@ export function createCatalogLoader({
 } = {}) {
   const exactDataRef = safeCatalogDataRef(dataRef);
   const providerMap = providers(repository, releaseTag, exactDataRef);
-  const indexProviderOrder = allowReleaseFallback
-    ? ['jsdelivr', 'github-raw', 'github-api', 'github-release']
-    : ['jsdelivr', 'github-raw', 'github-api'];
+  const indexProviderOrder = (forceRefresh = false) => {
+    if (forceRefresh) {
+      return allowReleaseFallback
+        ? ['github-raw', 'github-api', 'jsdelivr', 'github-release']
+        : ['github-raw', 'github-api', 'jsdelivr'];
+    }
+    return allowReleaseFallback
+      ? ['jsdelivr', 'github-raw', 'github-api', 'github-release']
+      : ['jsdelivr', 'github-raw', 'github-api'];
+  };
   let lastIndexResult = null;
   let indexPromise = null;
   const compatibilityMemory = new Map();
@@ -384,11 +391,11 @@ export function createCatalogLoader({
   const corePromises = new Map();
 
   async function fetchIndex({ signal, forceRefresh = false, diagnostics = [] } = {}) {
-    if (!forceRefresh && lastIndexResult) return { ...lastIndexResult, diagnostics };
     if (!forceRefresh && indexPromise) return indexPromise;
+    if (!forceRefresh && lastIndexResult) return { ...lastIndexResult, diagnostics };
     const run = async () => {
       const errors = [];
-      for (const id of indexProviderOrder) {
+      for (const id of indexProviderOrder(forceRefresh)) {
         const provider = providerMap[id];
         const url = provider.indexUrl(now());
         try {
@@ -410,8 +417,11 @@ export function createCatalogLoader({
       }
       throw loaderError(`Catalog index unavailable\n${errors.join('\n')}`, diagnostics);
     };
-    indexPromise = run().finally(() => { indexPromise = null; });
-    return indexPromise;
+    const promise = run().finally(() => {
+      if (indexPromise === promise) indexPromise = null;
+    });
+    indexPromise = promise;
+    return promise;
   }
 
   async function readCachedBuffer(asset, contract, diagnostics, stage = 'cache') {
