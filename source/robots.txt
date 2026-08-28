@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.weigeshare.cc.cd/sitemap.xml
+Sitemap: https://www.weigshare.com/sitemap.xml

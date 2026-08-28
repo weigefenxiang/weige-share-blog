@@ -9,7 +9,7 @@ tags:
   - 图床
 categories:
   - 网站搭建
-cover: https://img.weigeshare.cc.cd/img/001.PicList-Cloudflare-R2-Guide_cover.png
+cover: https://img.weigshare.com/img/001.PicList-Cloudflare-R2-Guide_cover.png
 description: 使用 PicList 配合 Cloudflare R2 搭建免费、高速、全球 CDN 加速的图床。
 ---
 
@@ -43,7 +43,7 @@ PicList 版本当前为26年7月v3.5.0
 
 在左边导航窗口【**图床**】-【**AWS S3**】-【**新增配置**】：
 
-<img src="https://img.weigeshare.cc.cd/img/001.002_PicList_orign.png" width="120"/>
+<img src="https://img.weigshare.com/img/001.002_PicList_orign.png" width="120"/>
 
 ### 必填项
 
@@ -52,12 +52,12 @@ PicList 版本当前为26年7月v3.5.0
     ● 设定 secretAccessKey：c8a3********************************************************fa6e
     ● 设定自定义节点：https://770*************************39d8.r2.cloudflarestorage.com
 
-以上均可在此获取 [API图示](https://img.weigeshare.cc.cd/img/001.005_CF_API_token.png)。
+以上均可在此获取 [API图示](https://img.weigshare.com/img/001.005_CF_API_token.png)。
 
 * 权限： **管理员读和写** （否则 **PicLlist** 云端访问失败）
 * 只展示一次，记得保存，否则得重新弄。
 
-● 设定 Bucket（存储桶）： （我的是**hexo-img** ）[图示](https://img.weigeshare.cc.cd/img/001.003_CDF_bucket.png)
+● 设定 Bucket（存储桶）： （我的是**hexo-img** ）[图示](https://img.weigshare.com/img/001.003_CDF_bucket.png)
 
 
  
@@ -68,10 +68,10 @@ PicList 版本当前为26年7月v3.5.0
 
 ■ 设定上传路径：**/**（根目录）
 
-我想放在目录 **img** 下： **/img/** [图示](https://img.weigeshare.cc.cd/img/001.004_Directory.png)
+我想放在目录 **img** 下： **/img/** [图示](https://img.weigshare.com/img/001.004_Directory.png)
 
 
- ●设定自定义域名：  https://img.weigeshare.cc.cd/     （绑定了域名才能设置，上传后就可拿到对应域名的链接 ）[图示](https://img.weigeshare.cc.cd/img/001.004_Directory.png)
+ ●设定自定义域名：  https://img.weigshare.com/     （绑定了域名才能设置，上传后就可拿到对应域名的链接 ）[图示](https://img.weigshare.com/img/001.004_Directory.png)
 
  ```shell
 https://img.weigeshare.com/img/x.png
@@ -91,7 +91,7 @@ https://img.weigeshare.com/img/x.png
 
 在左边导航窗口【**云端**】-【**S3 API**】-【**新增配置**】-【**保存**】：
 
-<img src="https://img.weigeshare.cc.cd/img/001.005_piclist_cloud_configuration1.png" height="280"/> <img src="https://img.weigeshare.cc.cd/img/001.005_piclist_cloud_configuration2.png" height="280"/>
+<img src="https://img.weigshare.com/img/001.005_piclist_cloud_configuration1.png" height="280"/> <img src="https://img.weigshare.com/img/001.005_piclist_cloud_configuration2.png" height="280"/>
 
 ### 必填项
 
@@ -100,15 +100,15 @@ https://img.weigeshare.com/img/x.png
     ● Access Key Secret：c8a3********************************************************fa6e
     ● endpoint 自定义节点：https://770*************************39d8.r2.cloudflarestorage.com
 
-API令牌在此获取 [API](https://img.weigeshare.cc.cd/img/001.005_CF_API_token.png)。
+API令牌在此获取 [API](https://img.weigshare.com/img/001.005_CF_API_token.png)。
 
 * 权限： **管理员读和写** （否则 **PicLlist** 云端访问失败）
 
-● 存储桶名（Bucket）： **hexo-img**  [图示](https://img.weigeshare.cc.cd/img/001.003_CDF_bucket.png)
+● 存储桶名（Bucket）： **hexo-img**  [图示](https://img.weigshare.com/img/001.003_CDF_bucket.png)
 
 ■ 起始目录：**/**
 
-* 我想储存在 **/img/** 目录下：[图示](https://img.weigeshare.cc.cd/img/001.004_Directory.png)
+* 我想储存在 **/img/** 目录下：[图示](https://img.weigshare.com/img/001.004_Directory.png)
 
 
 ### 非必需项

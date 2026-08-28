@@ -6,7 +6,115 @@
  */
 'use strict';
 
-/* ============ 初始化 / Init ============ */
+let firmwareThemeExplicit = false;
+
+function storedPreference(key) {
+  try { return localStorage.getItem(key); }
+  catch (error) { return null; }
+}
+
+function projectCustomization() {
+  return PROJECT?.customization && typeof PROJECT.customization === 'object'
+    ? PROJECT.customization : {};
+}
+
+function applyProjectLinks() {
+  const links = PROJECT?.links;
+  if (!links || typeof links !== 'object') throw new Error('Site configuration is missing public links');
+  const assign = (id, key) => { const link = $(id); if (link) link.href = links[key]; };
+  assign('repoLink', 'repository');
+  assign('footRepo', 'repository');
+  assign('actionsLink', 'actions');
+  document.querySelectorAll('[data-project-catalog-link]').forEach((link) => { link.href = links.catalog; });
+  document.querySelectorAll('.blog-link').forEach((link) => {
+    if (links.blog) { link.href = links.blog; link.hidden = false; }
+    else { link.hidden = true; link.removeAttribute('href'); }
+  });
+}
+
+async function applyProjectCustomization() {
+  const customization = projectCustomization();
+  const ui = customization.ui && typeof customization.ui === 'object' ? customization.ui : {};
+  const firmware = customization.firmware && typeof customization.firmware === 'object'
+    ? customization.firmware : {};
+  const build = customization.build && typeof customization.build === 'object' ? customization.build : {};
+
+  const savedLanguage = storedPreference('wrt_lang');
+  const languageSaved = I18N?.languages?.some((entry) => entry.id === savedLanguage);
+  if (!languageSaved && (ui.defaultLanguage === 'zh-CN' || ui.defaultLanguage === 'en')) {
+    state.lang = ui.defaultLanguage;
+    await ensureI18nLanguage(state.lang).catch(() => {});
+  }
+
+  const savedColorMode = storedPreference('wrt_theme');
+  if (!['auto', 'light', 'dark'].includes(savedColorMode) &&
+      ['auto', 'light', 'dark'].includes(ui.colorMode)) {
+    globalThis.__WEIG_APPLY_THEME__?.(ui.colorMode);
+    PAGE_SHELL_CONTROLLER?.refreshThemeControl?.();
+  }
+
+  if (!storedPreference('wrt_lanip') && LANIP_RE.test(String(firmware.lanIp || ''))) {
+    state.lanip = String(firmware.lanIp);
+  }
+  if (!storedPreference('wrt_timezone') && Array.isArray(TIMEZONES?.zones)) {
+    const configuredTimezone = firmware.timezone && typeof firmware.timezone === 'object'
+      ? firmware.timezone : {};
+    const candidates = [configuredTimezone.zonename, configuredTimezone.timezone]
+      .filter((value) => typeof value === 'string' && value);
+    const zone = candidates.map((candidate) => TIMEZONES.zones.find((item) =>
+      item.zonename === candidate || item.timezone === candidate)).find(Boolean);
+    if (zone) state.timezone = zone.zonename;
+  }
+  if (Object.hasOwn(NTP_PRESETS, firmware.ntp?.preset)) state.ntp = firmware.ntp.preset;
+  if (typeof firmware.theme === 'string' && /^luci-theme-[A-Za-z0-9._+-]{1,48}$/.test(firmware.theme)) {
+    state.theme = firmware.theme;
+  }
+  if (!packageMirrorSelectionExplicit && typeof firmware.packageMirror === 'string') {
+    state.packageMirror = firmware.packageMirror;
+  }
+
+  const tag = $('tagBox');
+  if (tag && !tag.value.trim() && typeof build.defaultTag === 'string') {
+    tag.value = BUILD_IDENTITY_MODULE.normalizeBuildTag(build.defaultTag, build.defaultTag);
+  }
+}
+
+function applyProjectCatalogDefaults() {
+  const firmware = projectCustomization().firmware;
+  if (!firmware || !MENU_CATALOG || !CATALOG_MODEL) return;
+
+  const configuredTheme = String(firmware.theme || '');
+  const configuredSymbol = `PACKAGE_${configuredTheme}`;
+  if (!state.importedConfig && !firmwareThemeExplicit) {
+    if (configuredTheme && menuOptionBySymbol.has(configuredSymbol)) {
+      try {
+        setFirmwareTheme(configuredTheme);
+        const resolved = resolveCatalogTheme();
+        if (resolved.package && resolved.package !== configuredTheme) setFirmwareTheme(resolved.package);
+      } catch (error) {
+        const fallback = resolveCatalogTheme().package;
+        try { setFirmwareTheme(fallback || '@base'); }
+        catch (fallbackError) { state.theme = '@base'; renderFirmwareSettings(); }
+      }
+    } else {
+      const fallback = resolveCatalogTheme().package;
+      try { setFirmwareTheme(fallback || '@base'); }
+      catch (error) { state.theme = '@base'; renderFirmwareSettings(); }
+    }
+  }
+  if (!packageMirrorSelectionExplicit && typeof firmware.packageMirror === 'string') {
+    const previousExplicit = packageMirrorSelectionExplicit;
+    packageMirrorSelectionExplicit = true;
+    try {
+      state.packageMirror = firmware.packageMirror;
+      renderFirmwareSettings();
+    } finally {
+      packageMirrorSelectionExplicit = previousExplicit;
+    }
+  }
+}
+
+/* ============ Initialization ============ */
 function startCatalogAfterFirstPaint() {
   const start = () => {
     catalogAutoloadReady = true;
@@ -26,6 +134,7 @@ function startCatalogAfterFirstPaint() {
     catalogStartupPromise = startup;
     startup.then(() => {
       if (catalogStartupPromise === startup) catalogStartupPromise = null;
+      applyProjectCatalogDefaults();
       flushCatalogApplicationsDemand();
     });
   };
@@ -49,43 +158,32 @@ async function init() {
       }
     });
     await initializeI18n();
-    renderLangSel();
-    try {
-      PROJECT = await loadJson('project.json');
-      if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(PROJECT.repository || '')) {
-        OFFICIAL_REPO = PROJECT.repository;
-        REPO_NAME = OFFICIAL_REPO.split('/')[1];
-      }
-      if (/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(PROJECT.catalogRepository || '')) {
-        MENU_CATALOG_REPO = PROJECT.catalogRepository;
-      }
-      const repoUrl = `https://github.com/${OFFICIAL_REPO}`;
-      $('repoLink').href = repoUrl;
-      $('footRepo').href = repoUrl;
-      $('actionsLink').href = `${repoUrl}/actions`;
-      document.querySelectorAll('.blog-link').forEach((link) => {
-        if (/^https?:\/\//.test(PROJECT.blogUrl || '')) link.href = PROJECT.blogUrl;
-      });
-    } catch (e) { /* old deployments keep the built-in project defaults */ }
+    PROJECT = await loadSiteConfig();
+    OFFICIAL_REPO = PROJECT.repository;
+    REPO_NAME = OFFICIAL_REPO.split('/')[1];
+    MENU_CATALOG_REPO = PROJECT.catalogRepository;
+    applyProjectLinks();
+    state.siteConfigReady = true;
     const deploymentIdentity = await loadDeploymentIdentity();
     state.siteVersion = deploymentIdentity.siteVersion;
     state.buildMeta = deploymentIdentity.buildMeta;
-    MENU_CATALOG_DATA_REF = BUILD_IDENTITY_MODULE.catalogDataBranch(
-      state.buildMeta?.branch, PROJECT?.catalogDataBranches,
-    );
+    MENU_CATALOG_DATA_REF = BUILD_IDENTITY_MODULE.catalogDataBranch(state.buildMeta?.branch);
     CATALOG_LOADER = CATALOG_LOADER_MODULE.createCatalogLoader({
       repository: MENU_CATALOG_REPO,
       releaseTag: PROJECT?.catalogReleaseTag || 'menuconfig-catalog-complete',
       dataRef: MENU_CATALOG_DATA_REF,
-      allowReleaseFallback: MENU_CATALOG_DATA_REF === 'catalog-data',
+      allowReleaseFallback: MENU_CATALOG_DATA_REF === 'catalog-main',
       engine: CATALOG_ENGINE,
     });
     TIMEZONES = await loadJson('timezones.json');
     initializeTimezone();
+    await applyProjectCustomization();
+    renderLangSel();
     renderBuildInfo();
     resetPluginWorkspace(PLUGINS);
     renderDevices();
     renderModes();
+    $('fwThemeBox')?.addEventListener('change', () => { firmwareThemeExplicit = true; });
     renderFirmwareSettings();
     initDeviceFold();
     initMenuconfigControls();
@@ -96,14 +194,18 @@ async function init() {
     initDefconfig();
     applyI18n();
     $('advMode').checked = state.advanced;
-    resetAdvGrey();   // V10:门禁行随记忆的开发者模式显隐,但永远从未勾开始 / V10: gate row follows the remembered developer mode, but always starts unticked
+    resetAdvGrey();   // V10: gate row follows the remembered developer mode, but always starts unticked
     $('loading').hidden = true;
     $('form').hidden = false;
     $('actionbar').hidden = false;
     if (localStorage.getItem('wrt_risk') !== 'ok') $('riskBar').hidden = false;
     startCatalogAfterFirstPaint();
   } catch (err) {
-    $('loading').textContent = (I18N ? t('loading.fail', { msg: err.message }) : '加载失败: ' + err.message);
+    PROJECT = null;
+    state.siteConfigReady = false;
+    state.buildMeta = null;
+    updateSubmitGate?.();
+    $('loading').textContent = (I18N ? t('loading.fail', { msg: err.message }) : 'Loading failed: ' + err.message);
   }
 }
 

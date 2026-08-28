@@ -11,7 +11,7 @@ tags:
   - 标准溶液
 categories:
   - Python
-cover: https://img.weigeshare.cc.cd/img/002.001.StandardSolution_Conver.png
+cover: https://img.weigshare.com/img/002.001.StandardSolution_Conver.png
 description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验室Windows标准溶液计算审核系统，支持温度校正、滴定管校正、平行样统计及相对极差自动计算。
 ---
 # 项目背景
@@ -39,7 +39,7 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 
 支持温度校正、滴定管校正、单人四平行、双人八平行及相对极差自动计算，提高实验室标准溶液管理效率。
 
-<img src="https://img.weigeshare.cc.cd/img/002.StandardSolution_Review_System_Demo_GIF.gif" >
+<img src="https://img.weigshare.com/img/002.StandardSolution_Review_System_Demo_GIF.gif" >
 
 输入实验数据后，即可自动完成计算与审核。开始使用 [exe](https://github.com/weigefenxiang/StandardSolutionReviewSystem/releases)
 
@@ -73,13 +73,13 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 
 ### 主界面
 
-<img src="https://img.weigeshare.cc.cd/img/002.StandardSolution_Review_System_Demo.png" >
+<img src="https://img.weigshare.com/img/002.StandardSolution_Review_System_Demo.png" >
 
 #### 旧界面
 
 经过多次迭代
 
-<img src=https://img.weigeshare.cc.cd/img/002.002.StandardSolution_Review_System_Demo_old.png >
+<img src=https://img.weigshare.com/img/002.002.StandardSolution_Review_System_Demo_old.png >
 
 
 | **支持录入**         | **自动生成**         |
