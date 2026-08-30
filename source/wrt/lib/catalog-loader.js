@@ -110,6 +110,7 @@ function providers(repository, releaseTag, dataRef) {
     'github-api': {
       id: 'github-api',
       headers: { accept: 'application/vnd.github.raw+json' },
+      indexHeadUrl: () => `https://api.github.com/repos/${repo}/contents/index.json?ref=${branch}`,
       indexUrl: () => `https://api.github.com/repos/${repo}/contents/index.json?ref=${branch}`,
       assetUrl: (asset, ref) => `https://api.github.com/repos/${repo}/contents/${asset}?ref=${ref}`,
     },
@@ -205,6 +206,34 @@ export async function sha256Hex(buffer, subtle = globalThis.crypto?.subtle) {
   return sha256Fallback(buffer);
 }
 
+async function gitBlobSha1(text, subtle = globalThis.crypto?.subtle) {
+  if (!subtle?.digest) throw new Error('SHA-1 freshness verification is unavailable');
+  const body = new TextEncoder().encode(String(text));
+  const header = new TextEncoder().encode(`blob ${body.byteLength}\0`);
+  const input = new Uint8Array(header.byteLength + body.byteLength);
+  input.set(header);
+  input.set(body, header.byteLength);
+  const digest = await subtle.digest('SHA-1', input);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, '0')).join('');
+}
+
+function normalizeExpectedBinding(value, dataRef, repository) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return null;
+  const channel = String(value.channel || '');
+  const expectedRepository = safeRepository(repository);
+  const boundRepository = safeRepository(value.repository);
+  const codeSha = String(value.codeSha || '').trim().toLowerCase();
+  const assetRef = String(value.assetRef || '').trim().toLowerCase();
+  if (channel !== dataRef || boundRepository !== expectedRepository ||
+      !/^[a-f0-9]{40}$/.test(codeSha) || !/^[a-f0-9]{40}$/.test(assetRef)) return null;
+  return { channel, repository: boundRepository, codeSha, assetRef };
+}
+
+function bindingMatchesIndex(binding, index) {
+  return !binding || (binding.assetRef === String(index?.assetRef || '').toLowerCase() &&
+    binding.codeSha === String(index?.provenance?.codeSha || '').toLowerCase());
+}
+
 export async function decodeCatalogBytes(buffer, Decompression = globalThis.DecompressionStream) {
   const bytes = new Uint8Array(buffer);
   let text;
@@ -271,13 +300,14 @@ function validateIndex(index, dataRef, repository) {
 
 function compatibilityContract(index) {
   const contract = index?.assets?.compatibility;
+  const schema = Number(contract?.schema);
   if (!contract || safeCatalogAsset(contract.asset) !== 'compatibility.json.gz' ||
       !/^[a-f0-9]{64}$/.test(String(contract.hash || '')) ||
       !Number.isSafeInteger(Number(contract.bytes)) || Number(contract.bytes) <= 0 ||
       Number(contract.bytes) > MAX_COMPATIBILITY_JSON_BYTES + 1024 ||
       !Number.isSafeInteger(Number(contract.jsonBytes)) || Number(contract.jsonBytes) <= 0 ||
       Number(contract.jsonBytes) > MAX_COMPATIBILITY_JSON_BYTES ||
-      Number(contract.schema) !== 2 || !Number.isSafeInteger(Number(contract.rules)) || Number(contract.rules) < 0) {
+      ![2, 3, 4, 5].includes(schema) || !Number.isSafeInteger(Number(contract.rules)) || Number(contract.rules) < 0) {
     throw new Error('Catalog index lacks a valid compatibility asset contract');
   }
   return {
@@ -285,7 +315,7 @@ function compatibilityContract(index) {
     hash: String(contract.hash).toLowerCase(),
     bytes: Number(contract.bytes),
     jsonBytes: Number(contract.jsonBytes),
-    schema: 2,
+    schema,
     rules: Number(contract.rules),
   };
 }
@@ -309,7 +339,7 @@ function applicationsContract(index) {
 
 function validateCompatibilityDocument(data, expected) {
   const actualJsonBytes = new TextEncoder().encode(JSON.stringify(data)).byteLength;
-  if (!data || Number(data.schema) !== 2 || Number(data.schema) !== Number(expected.schema) || !Array.isArray(data.rules) ||
+  if (!data || ![2, 3, 4, 5].includes(Number(data.schema)) || Number(data.schema) !== Number(expected.schema) || !Array.isArray(data.rules) ||
       data.rules.length !== Number(expected.rules) || actualJsonBytes !== Number(expected.jsonBytes)) {
     throw new Error('Catalog compatibility document does not match its index contract');
   }
@@ -361,6 +391,7 @@ export function createCatalogLoader({
   repository,
   releaseTag = 'menuconfig-catalog-complete',
   dataRef = 'catalog-main',
+  expectedBinding = null,
   allowReleaseFallback = dataRef === 'catalog-main',
   engine,
   fetchImpl = globalThis.fetch,
@@ -370,6 +401,7 @@ export function createCatalogLoader({
   now = () => Date.now(),
 } = {}) {
   const exactDataRef = safeCatalogDataRef(dataRef);
+  const binding = normalizeExpectedBinding(expectedBinding, exactDataRef, repository);
   const providerMap = providers(repository, releaseTag, exactDataRef);
   const indexProviderOrder = (forceRefresh = false) => {
     if (forceRefresh) {
@@ -395,6 +427,7 @@ export function createCatalogLoader({
     if (!forceRefresh && lastIndexResult) return { ...lastIndexResult, diagnostics };
     const run = async () => {
       const errors = [];
+      let unverifiedJsdelivr = null;
       for (const id of indexProviderOrder(forceRefresh)) {
         const provider = providerMap[id];
         const url = provider.indexUrl(now());
@@ -403,8 +436,43 @@ export function createCatalogLoader({
             cache: 'no-store', signal, ...(provider.headers ? { headers: provider.headers } : {}),
           });
           if (!response.ok) throw new Error(`HTTP ${response.status}`);
-          const index = validateIndex(await response.json(), exactDataRef, repository);
+          const text = await response.text();
+          const index = validateIndex(JSON.parse(text), exactDataRef, repository);
           const result = { index, provider: id, url };
+          if (id === 'jsdelivr' && !forceRefresh && binding) {
+            if (!bindingMatchesIndex(binding, index)) {
+              diagnostic(diagnostics, 'index-freshness', id, false,
+                `snapshot ${index.assetRef.slice(0, 8)} differs from page binding ${binding.assetRef.slice(0, 8)}`, url);
+              errors.push(`${id}: snapshot differs from page binding`);
+              continue;
+            }
+            try {
+              const headUrl = providerMap['github-api'].indexHeadUrl();
+              const head = await fetchImpl(headUrl, {
+                method: 'HEAD', cache: 'no-store', signal,
+                headers: providerMap['github-api'].headers,
+              });
+              if (!head.ok) throw new Error(`HTTP ${head.status}`);
+              const etag = String(head.headers.get('etag') || '').replace(/^W\//, '').replaceAll('"', '').trim().toLowerCase();
+              if (!/^[a-f0-9]{40}$/.test(etag)) throw new Error('GitHub index blob identity is unavailable');
+              const candidateBlob = await gitBlobSha1(text, subtle);
+              if (candidateBlob !== etag) {
+                diagnostic(diagnostics, 'index-freshness', id, false,
+                  `stale branch cache ${candidateBlob.slice(0, 8)} != ${etag.slice(0, 8)}`, headUrl);
+                errors.push(`${id}: stale branch cache`);
+                continue;
+              }
+              diagnostic(diagnostics, 'index-freshness', 'github-api', true,
+                `branch blob ${etag.slice(0, 8)} matches jsDelivr`, headUrl);
+            } catch (error) {
+              if (error?.name === 'AbortError') throw error;
+              diagnostic(diagnostics, 'index-freshness', 'github-api', false, error.message,
+                providerMap['github-api'].indexHeadUrl());
+              unverifiedJsdelivr = result;
+              errors.push(`github-api freshness: ${error.message}`);
+              continue;
+            }
+          }
           lastIndexResult = result;
           diagnostic(diagnostics, 'index', id, true,
             `schema ${index.schema}; assetRef ${index.assetRef.slice(0, 8)}`, url);
@@ -414,6 +482,12 @@ export function createCatalogLoader({
           diagnostic(diagnostics, 'index', id, false, error.message, url);
           errors.push(`${id}: ${error.message}`);
         }
+      }
+      if (unverifiedJsdelivr) {
+        lastIndexResult = unverifiedJsdelivr;
+        diagnostic(diagnostics, 'index', 'jsdelivr', true,
+          `freshness unverified; use snapshot ${unverifiedJsdelivr.index.assetRef.slice(0, 8)}`, unverifiedJsdelivr.url);
+        return { ...unverifiedJsdelivr, diagnostics, freshnessVerified: false };
       }
       throw loaderError(`Catalog index unavailable\n${errors.join('\n')}`, diagnostics);
     };
