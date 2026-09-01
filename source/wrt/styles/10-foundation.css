@@ -1,0 +1,77 @@
+* { box-sizing: border-box; }
+/* 作者样式会压过 UA 的 [hidden]{display:none},必须显式兜底(否则 .modal-mask 的 display:flex 会让 hidden 失效) */
+[hidden] { display: none !important; }
+html { min-height: 100%; -webkit-text-size-adjust: 100%; }
+body.modal-open { overflow: hidden; }
+body {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  min-height: 100vh;
+  min-height: 100dvh;
+  min-width: 0;
+  background:
+    radial-gradient(circle at 12% -10%, color-mix(in srgb, var(--accent) 9%, transparent), transparent 34rem),
+    radial-gradient(circle at 9% 14%, var(--star-field-a) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 83% 22%, var(--star-field-b) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 22% 78%, var(--star-field-b) 0 .85px, transparent 1.5px),
+    radial-gradient(circle at 72% 88%, var(--star-field-a) 0 .9px, transparent 1.5px),
+    radial-gradient(circle at 92% 64%, var(--star-field-b) 0 .8px, transparent 1.4px),
+    radial-gradient(circle at 47% 12%, var(--star-field-a) 0 .7px, transparent 1.4px),
+    radial-gradient(circle at 64% 55%, var(--star-field-b) 0 .65px, transparent 1.35px),
+    var(--surface-page);
+  background-size: auto, 420px 360px, 620px 520px, 560px 470px, 700px 580px, 510px 430px, 760px 610px, 880px 720px, auto;
+  color: var(--content-strong);
+  font: var(--font-body)/var(--font-line-body) var(--font-family-sans);
+  transition: background-color var(--motion-slow) var(--ease-standard), color var(--motion-slow) var(--ease-standard);
+}
+/* The application canvas absorbs short-page space, keeping the action bar and
+   footer in normal document order without inventing footer height. */
+main#app { flex: 1 0 auto; min-height: 0; }
+.site-footer { flex: 0 0 auto; }
+/* Keep the star field behind the work surfaces, with no hit target or layout
+   effect. The surface modules provide the opaque/raised foreground layers. */
+body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(ellipse at 50% 0%, var(--star-field-glow), transparent 58%);
+  opacity: .7;
+}
+.wrap { isolation: isolate; }
+::selection { background: var(--accent); color: #fff; }
+:focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
+.wrap {
+  width: 100%;
+  max-width: var(--content-max);
+  margin: 0 auto;
+  padding: 0 max(var(--viewport-gutter), env(safe-area-inset-left));
+  padding-right: max(var(--viewport-gutter), env(safe-area-inset-right));
+}
+a { color: var(--accent-text); }
+button { font: inherit; cursor: pointer; }
+input[type="search"], input[type="text"] {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--card);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-body); /* mobile token never drops below 16px, avoiding iOS Safari focus zoom */
+  outline: none;
+  transition: border-color .15s ease;
+}
+input:focus-visible { border-color: var(--accent); }
+
+.site-header, .group, .pill, .plugin, .actionbar, .modal, .btn, .icon-btn, .text-btn {
+  transition: background-color var(--motion-slow) var(--ease-standard), color var(--motion-slow) var(--ease-standard), border-color var(--motion-slow) var(--ease-standard), box-shadow var(--motion-slow) var(--ease-standard);
+}
