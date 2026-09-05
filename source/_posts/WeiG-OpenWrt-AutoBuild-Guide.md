@@ -32,9 +32,9 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 ## 背景
 
 - 想自己编译固件，体会手搓固件的乐趣。
-- 某些插件一定要编译到固件里才可使用
-- **配置环境** 对于大多数人来说相当复杂及繁琐，配置及网络环境无法满足。
-- **未来:** 每个人都可一键 **folk** ,即可拥有自己的在线编译网站（**Page** + **Github**）
+- 某些插件或依赖需要编译到固件里才可使用
+- **配置环境** 对于大多数人来，配置过程相当复杂及繁琐，网络环境很难满足要求。
+- **未来:** 每个人都可一键 **folk** ,即可拥有自己的在线编译网站 Github（**Page** + **Actions**）
 - 支持电脑、手机端
 
 <div style="display:flex; gap:10px;">
@@ -55,7 +55,7 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 
 - **[Github](https://github.com/)** 账号 (如果没有无法构建)
 - 登录 **[WeiG_OpenWrt_在线定制](https://www.weigshare.com/wrt)**
-  - **[Page 页](https://dev.weig-wrt.pages.dev/)** (实验功能，体验最新功能)
+  - 或登录 **[Cloudflare dev 页](https://dev.weig-wrt.pages.dev/)** (开发者项目，体验最新功能)
 
 <!-- 截图 1：网页首页，展示 Source、Branch、Target 与插件区域 -->
 
@@ -67,7 +67,8 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 
 
 
-- **Advanced menuconfig** → 勾选插件
+- **Advanced menuconfig › LuCI › 3. Applications** 勾选你想要的应用
+- **Advanced menuconfig** 其它高级设置自己摸索
 
 然后按需；**时区**、**固件主题**、**NTP 服务器**和**软件源镜像** 一并设置。
 <div style="display:flex; gap:10px;">
@@ -100,11 +101,11 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 
 ## 3. 下载固件
 
-编译通常需要2~3小时。完成后进入 Actions 页面，在底部 **Artifacts** 下载：
+编译通常需要2~4小时。完成后进入 Actions 页面，在底部 **Artifacts** 下载：
 
-- `FIRMWARE-ALL-…`：全部固件与校验资料；首次刷机通常找 `factory` 等文件。
-- `CONFIG-…`：本次提交配置、最终配置和差异，建议留存。
-- `BUILD-LOGS-…`：完整构建日志；用于排查原因。
+- `FIRMWARE-ALL-XXX`：全部固件与校验资料；首次刷机通常找 `factory` 等文件。
+- `CONFIG-XXX`：本次提交配置、最终配置和差异，建议留存。
+- `BUILD-LOGS-XXX`：完整构建日志；用于排查原因。
 
 <div style="display:flex; gap:10px;">
 <img src=https://img.weigshare.com/img/003.007.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
@@ -128,6 +129,6 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 - **参考：** [P3TERX](https://github.com/P3TERX/Actions-OpenWrt)
 
 
-- **LuCI 插件的全部作者**
+- **LuCI 插件的作者们**
 
 - **每一位**参与的小伙伴

@@ -18,19 +18,21 @@ description: 使用 PicList 配合 Cloudflare R2 搭建免费、高速、全球 
 PicList 目前对 Cloudflare R2 的支持已经比较完善，但在配置过程中仍存在一些小问题： 
 - 配置项较多，新手容易填错
 - 缺少连接测试功能
-- 配置是否正确只能通过实际上传验证
+  - 只能通过实际上传验证配置是否正确
 
-本文将介绍如何使用 PicList 连接 Cloudflare R2，实现免费、高速、支持 CDN 的图床方案。
+本文将介绍如何使用 **PicList** 连接 **Cloudflare R2**，实现免费、高速、支持 CDN 的图床方案。
 Cloudflare R2 图床的搭建可参照
-- [Cloudflare R2 教程](https://www.fecify.com/doc/cn-1.0/fecify-shop-helper-cloudflare-r2.html)
+- **[Cloudflare R2 教程](https://www.fecify.com/doc/cn-1.0/fecify-shop-helper-cloudflare-r2.html)**
 
-PicList 版本当前为26年7月v3.5.0
+  - PicList 版本为26年7月v3.5.0
 
 ---
 
 最近将博客图片迁移到了 **Cloudflare R2**，配合 **PicList** 使用，效果非常不错：
 
-✅ 免费额度充足  ✅ 全球 CDN 加速  ✅ 支持自定义域名  ✅ 不占用 VPS 空间  ✅ 与 Hexo 完美搭配
+优点：
+
+✅ 免费  ✅ 稳定  ✅ 高速  ✅ 自定义域名  ✅ 全球 CDN 加速  ✅ VPS 零压力
 
 ---
 
@@ -148,8 +150,5 @@ API令牌在此获取 [API](https://img.weigshare.com/img/001.005_CF_API_token.p
  Hexo + Butterfly + Github + Cloudflare R2 + Cloudflare CDN
 ```
 
-优点：
-
-✅ 免费  ✅ 稳定  ✅ 高速  ✅ 自定义域名  ✅ 全球 CDN 加速  ✅ VPS 零压力
 
 如果你正在寻找一个长期稳定的博客图床方案，PicList + Cloudflare R2 非常值得尝试。

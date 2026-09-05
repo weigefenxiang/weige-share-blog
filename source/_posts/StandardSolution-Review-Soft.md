@@ -14,6 +14,8 @@ categories:
 cover: https://img.weigshare.com/img/002.001.StandardSolution_Conver.png
 description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验室Windows标准溶液计算审核系统，支持温度校正、滴定管校正、平行样统计及相对极差自动计算。
 ---
+
+
 # 项目背景
 
 化学分析工作中需要大量配制和标定标准滴定溶液。标定完成后，需根据实验数据进行浓度计算、校正值换算及审核确认。人工计算和复核方式不仅效率较低，还容易因数据量大而产生计算或审核误差，增加质量管理风险。
@@ -25,6 +27,8 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 - 实际投入使用后，每人每周可节省约 1 小时以上的数据审核时间，实现了某个夜晚的一个梦——用半年开发一个工具，换来每周“偷懒”一小时。😆
 
 - 近期刚离职，闲暇之余整理完毕，索性作为开源项目分享出来。
+
+**[网页预览](https://www.weigshare.com/standard) ⬅** 点击这里 
 
 # 标准溶液计算审核系统
 
@@ -92,10 +96,6 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
 ---
 
 ## 运行方式
-
-### 网页版
-
-**[网页预览](https://www.weigshare.com/standard) ⬅** 点击这里 
 
 ### 发布版
 
