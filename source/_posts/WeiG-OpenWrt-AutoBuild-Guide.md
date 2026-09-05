@@ -10,10 +10,10 @@ tags:
 categories:
   - OpenWrt
 cover: https://img.weigshare.com/img/003.001.WeiG-OpenWrt-AutoBuild-Guide.png
-description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每个人体会手搓固件的乐趣。
+description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每个人体会手搓固件的乐趣。
 ---
 
-想要一份适合自己的 OpenWrt 固件，不必在本地安装编译环境。打开 [WeiG OpenWrt 在线定制](https://www.weigshare.com/wrt)，选择参数后提交到 GitHub Actions，等待云端编译即可。
+想要一份适合自己的 OpenWrt 固件，不必在本地安装编译环境。打开 [Wei.G 在线定制](https://www.weigshare.com/wrt)，选择参数后提交到 GitHub Actions，等待云端编译即可。
 
 <div align="left" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:left;">
   <img src="https://img.shields.io/badge/JavaScript-ES2020-f7df1e?logo=javascript&logoColor=black" alt="JavaScript">
@@ -25,17 +25,22 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 </div>
 
 
+## 快速开始
 
  <span style="color:#ffc107;">⚠️ </span> <span style="color:#ff7b72;"> 刷机有风险。请先确认路由器型号、分区与刷写方式；不确定时不要刷写。</span>
 
+- 登录 **[Github](https://github.com/)**
+- 打开 **[Wei.G 在线定制](https://www.weigshare.com/wrt)**
+- 新人请看下方教程👇
 
 ## 背景
 
-- 想自己编译固件，体会手搓固件的乐趣。
-- 某些插件或依赖需要编译到固件里才可使用
-- **配置环境** 对于大多数人来，配置过程相当复杂及繁琐，网络环境很难满足要求。
-- **未来:** 每个人都可一键 **folk** ,即可拥有自己的在线编译网站 Github（**Page** + **Actions**）
-- 支持电脑、手机端
+- **【起点】** 如果你想自己编译固件，体验“手搓固件”的乐趣，这个项目会是一个不错的起点。
+- **【依赖】** 某些插件或依赖需要编译到固件里才可使用。
+- **【配置】** 配置过程相当复杂及繁琐，国内网络环境很难满足要求。
+- **【耗时】** 编译数小时，最终仍可能失败，排查成本也比较高。
+- **【未来】** 每个人都可一键 **folk** 复制,即可拥有自己的 Openwrt 在线编译网站 Github（**Page** + **Actions**）。
+- **【阶段】** 项目目前仍处于测试阶段，难免还存在不少 bug，因此暂时不做大规模推广。使用过多，还可能违法 GitHub 政策。
 
 <div style="display:flex; gap:10px;">
 <img src=https://img.weigshare.com/img/003.009.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
@@ -48,14 +53,18 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 ## 适用
 当前仅适用以下机型，其它机型尚未验证，如您没有救砖工具，请勿使用，
 
-- **源码： [OpenWrt](https://github.com/openwrt/openwrt) · [ImmortalWrt](https://github.com/immortalwrt/immortalwrt) · [LEDE](https://github.com/coolsnowwolf/lede) · [hanwckf](https://github.com/hanwckf/immortalwrt-mt798x)**
+- **源： [OpenWrt](https://github.com/openwrt/openwrt) · [ImmortalWrt](https://github.com/immortalwrt/immortalwrt) · [LEDE](https://github.com/coolsnowwolf/lede) · [hanwckf](https://github.com/hanwckf/immortalwrt-mt798x)**
 - **x86 / 64**
+- 支持电脑、手机端访问
 
 ## 准备
 
-- **[Github](https://github.com/)** 账号 (如果没有无法构建)
-- 登录 **[WeiG_OpenWrt_在线定制](https://www.weigshare.com/wrt)**
-  - 或登录 **[Cloudflare dev 页](https://dev.weig-wrt.pages.dev/)** (开发者项目，体验最新功能)
+ <span style="color:#ffc107;">⚠️ </span> <span style="color:#ff7b72;"> 刷机有风险。请先确认路由器型号、分区与刷写方式；不确定时不要刷写。</span>
+
+- 登录 **[Github](https://github.com/)** 账号 (如果没有无法构建)
+- 打开 **[Wei.G 在线定制](https://www.weigshare.com/wrt)** 网站
+  - **[Cloudflare dev 页](https://dev.weig-wrt.pages.dev/)** (实验功能，体验最新功能，可能有bug)
+
 
 <!-- 截图 1：网页首页，展示 Source、Branch、Target 与插件区域 -->
 
@@ -120,7 +129,7 @@ description: 不需安装编译环境，用 WeiG OpenWrt 在线定制器让每�
 - **为什么没有下载按钮？** GitHub 的 Artifacts 下载通常需要先登录账号。
 - **公共仓库排队较久？** 未来做到 [Fork 本项目](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild)，按页面提示提交到自己的仓库运行。就不会受到排队限制。
 
-项目地址：[WeiG-OpenWrt-AutoBuild](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild)。
+项目地址：[WeiG-OpenWrt-AutoBuild](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild)
 
 ## 鸣谢
 
