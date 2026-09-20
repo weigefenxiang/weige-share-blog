@@ -31,7 +31,7 @@ function normalizeImportedKconfigValue(entry, type = 'bool', fallbackValue = '')
   }
   let value = String(entry?.value ?? '');
   if (normalizedType === 'string' && /^"(?:[^"\\]|\\.)*"$/.test(value)) {
-    try { value = JSON.parse(value); } catch (error) { /* keep the raw literal */ }
+    value = CATALOG_ENGINE.decodeKconfigString(value);
   }
   return normalizeKconfigValueByType(value, normalizedType);
 }
@@ -202,8 +202,8 @@ function clearImportedWorkspace() {
   $('importUnknownBox').hidden = true;
   updateMenuconfigOverviewVisibility();
 }
-function resetImportedChanges() {
+async function resetImportedChanges() {
   if (!state.importedConfig) return;
-  restoreSelections(state.importedConfig, null);
+  await withUiOperation(t('busy.import'), (operation) => restoreSelections(state.importedConfig, null, operation));
   showToast(t('runtime.ad61809aa910'));
 }

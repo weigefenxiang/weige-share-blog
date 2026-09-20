@@ -10,6 +10,20 @@ function kconfigRequirementText(requirements = []) {
   return displayText(requirements.map((group) => (group || []).filter(Boolean).join(' && ')).filter(Boolean).join(' || '));
 }
 
+function displayCompatibilityIdentity(violation = {}) {
+  if (violation.symbol) return displayConfigSymbol(violation.symbol, { kind: 'config' });
+  if (violation.package) return displayPackageName(violation.package);
+  return displayText(violation.code || 'configuration-invalid');
+}
+function displayCompatibilityDetail(violation = {}) {
+  if (violation.code === 'package-conflict') {
+    const providers = [violation.otherPackage, ...(violation.otherPackages || [])]
+      .filter(Boolean).map(displayPackageName);
+    return displayText(`${violation.capability || 'conflict'}: ${providers.join(' || ') || 'unknown provider'}`);
+  }
+  return displayText(violation.dependency || violation.code || 'configuration-invalid');
+}
+
 function openKconfigPrerequisiteModal(option, value, error) {
   const plan = error?.prerequisitePlans?.recommended;
   if (!plan?.steps?.length) return false;
@@ -45,13 +59,13 @@ function openKconfigPrerequisiteModal(option, value, error) {
   for (const step of plan.steps) {
     const item = document.createElement('li');
     const symbol = document.createElement('code');
-    symbol.textContent = `${displayConfigSymbol(step.symbol)}=${String(step.value || 'n').toUpperCase()}`;
+    symbol.textContent = `${displayConfigSymbol(step.symbol, { kind: 'config' })}=${String(step.value || 'n').toUpperCase()}`;
     item.appendChild(symbol);
     list.appendChild(item);
   }
   const target = document.createElement('li');
   target.className = 'compatibility-recommendation-action';
-  target.textContent = `${t('runtime.kconfigPrerequisiteTarget')}: ${displayConfigSymbol(option.symbol)}=${String(value).toUpperCase()}`;
+  target.textContent = `${t('runtime.kconfigPrerequisiteTarget')}: ${displayConfigSymbol(option.symbol, { kind: 'config' })}=${String(value).toUpperCase()}`;
   list.appendChild(target);
   body.appendChild(list);
   const automatic = (plan.automaticChanges || []).filter((change) => change.symbol !== option.symbol);
@@ -59,7 +73,7 @@ function openKconfigPrerequisiteModal(option, value, error) {
     const automaticLine = document.createElement('p');
     automaticLine.className = 'compatibility-recommendation-detail';
     automaticLine.textContent = t('runtime.kconfigPrerequisiteAutomatic', {
-      value1: automatic.map((change) => `${displayConfigSymbol(change.symbol)}=${String(change.to).toUpperCase()}`).join(', '),
+      value1: automatic.map((change) => `${displayConfigSymbol(change.symbol, { kind: 'config' })}=${String(change.to).toUpperCase()}`).join(', '),
     });
     body.appendChild(automaticLine);
   }
@@ -173,7 +187,7 @@ function openCatalogConflictModal(option, value, violations, openChildren = fals
     const name = document.createElement('code');
     name.textContent = displayText(row.label);
     bindUiTooltipContent(name, {
-      body: row.symbol.startsWith('PACKAGE_') ? displayConfigSymbol(row.symbol) : displayText(row.symbol),
+      body: row.symbol.startsWith('PACKAGE_') ? displayConfigSymbol(row.symbol, { kind: 'config' }) : displayText(row.symbol),
     });
     const stateBox = document.createElement('span');
     stateBox.className = 'catalog-conflict-state';
@@ -241,7 +255,8 @@ function configurationBlockingViolations(values = menuValues) {
 
 function configurationViolationKey(item = {}) {
   if (item.code === 'package-conflict') {
-    return `${item.code}:${[item.package, item.otherPackage].filter(Boolean).sort().join(':')}`;
+    return `${item.code}:${[item.package, item.otherPackage, ...(item.otherPackages || [])]
+      .filter(Boolean).sort().join(':')}:${item.capability || ''}`;
   }
   if (item.code === 'choice-conflict') {
     return `${item.code}:${item.choice || ''}:${[...(item.symbols || [])].sort().join(',')}`;
@@ -263,6 +278,7 @@ function configurationPreflightEvaluation() {
       protectedSymbols: catalogProtectedSymbols(),
       preferredValues: catalogPreferredValues(),
       explicitSymbols: catalogUserOverrides.keys(),
+      disabledSymbols: [...menuTouched].filter((symbol) => (menuValues.get(symbol) ?? 'n') === 'n'),
       validationOptions: context.validationOptions,
     },
   );
@@ -288,9 +304,16 @@ function forcedConfigurationAudit(evaluation) {
     .map((item) => [configurationViolationKey(item), {
       code: String(item.code || 'configuration-invalid'),
       ...(item.symbol ? { symbol: String(item.symbol) } : {}),
-      ...((item.dependency || item.choice || item.otherPackage) ? {
+      ...(item.package ? { package: String(item.package) } : {}),
+      ...(item.otherPackage ? { otherPackage: String(item.otherPackage) } : {}),
+      ...(Array.isArray(item.otherPackages) && item.otherPackages.length ? {
+        otherPackages: [...new Set(item.otherPackages.map((value) => String(value || '').trim()).filter(Boolean))].sort(),
+      } : {}),
+      ...(item.capability ? { capability: String(item.capability) } : {}),
+      ...(item.condition ? { condition: String(item.condition) } : {}),
+      ...((item.dependency || item.choice || item.otherPackage || (Array.isArray(item.otherPackages) && item.otherPackages.length)) ? {
         dependency: String(item.dependency || item.choice ||
-          [item.package, item.otherPackage].filter(Boolean).sort().join(' || ')),
+          [item.package, item.otherPackage, ...(item.otherPackages || [])].filter(Boolean).sort().join(' || ')),
       } : {}),
     }])).values()].slice(0, 64);
   return forced.length ? { schema: 1, ...configurationPreflightIdentity(), forced } : null;
@@ -308,7 +331,7 @@ function configurationPreflightRows(evaluation) {
     if (violation.code === 'kconfig-dependency-unsatisfied' && violation.symbol) {
       const record = CATALOG_MODEL?.bySymbol?.get(violation.symbol);
       const value = evaluation.context?.values?.get(violation.symbol) ?? 'n';
-      const plans = record ? CATALOG_ENGINE.deriveKconfigPrerequisitePlans(
+      const plans = record && ['bool', 'tristate'].includes(record.type) ? CATALOG_ENGINE.deriveKconfigPrerequisitePlans(
         CATALOG_MODEL, evaluation.context.values, record, value, {
           explicitSymbols: catalogUserOverrides.keys(),
           validationOptions: evaluation.context.validationOptions,
@@ -330,6 +353,14 @@ function applyConfigurationRecommendation(evaluation) {
   const snapshot = snapshotCatalogUiState();
   try {
     for (const action of evaluation.actions || []) {
+      if (action.kind === 'scalar') {
+        applyMenuValue(menuOptionBySymbol.get(action.symbol), action.value, false, 'recommended');
+        continue;
+      }
+      if (action.kind === 'reconcile') {
+        reconcileImportedConditionalDefaults({ dependencySeeds: action.dependencySeeds });
+        continue;
+      }
       for (const step of action.steps || []) {
         if ((menuValues.get(step.symbol) ?? 'n') === step.value) continue;
         applyCatalogIntent(menuOptionBySymbol.get(step.symbol) || { symbol: step.symbol },
@@ -340,7 +371,8 @@ function applyConfigurationRecommendation(evaluation) {
         action.value ?? current, false, 'recommended');
     }
     const remaining = configurationBlockingViolations();
-    if (remaining.length >= (evaluation.initialViolations || []).length) {
+    const beforeKeys = new Set((evaluation.initialViolations || []).map(configurationViolationKey));
+    if (remaining.length >= beforeKeys.size || remaining.some((row) => !beforeKeys.has(configurationViolationKey(row)))) {
       throw new Error(t('runtime.configurationPreflightNoProgress'));
     }
     renderCatalogUiAfterIntent();
@@ -354,7 +386,8 @@ function applyConfigurationRecommendation(evaluation) {
 function openConfigurationPreflightModal(evaluation) {
   return new Promise((resolve) => {
     const rows = configurationPreflightRows(evaluation);
-    const custom = new Map(rows.map((row) => [row.symbol, menuValues.get(row.symbol) ?? 'n']));
+    const custom = new Map(rows.map((row) => [row.symbol, menuValues.has(row.symbol)
+      ? menuValues.get(row.symbol) : scalarKconfigOption(row.option) ? null : 'n']));
     let settled = false;
     const finish = (action) => {
       if (settled) return;
@@ -409,9 +442,9 @@ function openConfigurationPreflightModal(evaluation) {
         const line = document.createElement('div');
         line.className = 'catalog-conflict-row';
         const name = document.createElement('code');
-        name.textContent = displayConfigSymbol(violation.symbol || violation.package || violation.code);
+        name.textContent = displayCompatibilityIdentity(violation);
         const detail = document.createElement('span');
-        detail.textContent = displayText(violation.dependency || violation.code || 'configuration-invalid');
+        detail.textContent = displayCompatibilityDetail(violation);
         line.append(name, detail);
         violationList.appendChild(line);
       }
@@ -426,6 +459,25 @@ function openConfigurationPreflightModal(evaluation) {
           name.textContent = displayText(row.record.package || row.symbol);
           const stateBox = document.createElement('span');
           stateBox.className = 'catalog-conflict-state';
+          if (scalarKconfigOption(row.option)) {
+            const constraints = optionStateConstraints(row.option);
+            const input = document.createElement('input');
+            input.type = 'text'; input.inputMode = row.record.type === 'int' ? 'numeric' : 'text';
+            input.value = custom.get(row.symbol) ?? '';
+            input.readOnly = constraints.readOnly;
+            input.setAttribute('aria-label', displayText(row.symbol));
+            input.onchange = () => custom.set(row.symbol, input.value);
+            stateBox.appendChild(input);
+            if (constraints.canUnset) {
+              const unset = document.createElement('button');
+              unset.type = 'button'; unset.className = 'btn';
+              unset.textContent = t('configuration.removeInactive');
+              unset.onclick = () => { custom.set(row.symbol, null); renderChoice(); };
+              stateBox.appendChild(unset);
+            }
+            line.append(name, stateBox); customList.appendChild(line);
+            continue;
+          }
           for (const stateValue of ['n', 'm', 'y']) {
             if (row.record.type === 'bool' && stateValue === 'm') {
               const spacer = document.createElement('span');
@@ -452,6 +504,13 @@ function openConfigurationPreflightModal(evaluation) {
         ? t('runtime.configurationPreflightRecommendation', { value1: evaluation.actions.length })
         : t('runtime.configurationPreflightUnavailable');
       body.appendChild(note);
+      for (const action of evaluation.actions || []) if (action.kind === 'scalar') {
+        const detail = document.createElement('p');
+        detail.textContent = action.value === null
+          ? t('configuration.removeInactiveDetail', { symbol: displayText(action.symbol) })
+          : t('configuration.restoreTypedDefault', { symbol: displayText(action.symbol), value: action.value });
+        body.appendChild(detail);
+      }
       const warning = document.createElement('p');
       warning.className = 'catalog-conflict-warning'; body.appendChild(warning);
       const actions = document.createElement('div');
@@ -461,14 +520,19 @@ function openConfigurationPreflightModal(evaluation) {
       force.textContent = t('runtime.3ea8d64eb087'); force.onclick = renderForceConfirmation;
       const customButton = document.createElement('button');
       customButton.type = 'button'; customButton.className = 'btn compatibility-custom';
-      customButton.textContent = t('runtime.68bccc92256e'); customButton.disabled = !rows.length;
+      customButton.textContent = t('configuration.applyCustomValues'); customButton.disabled = !rows.length;
       customButton.onclick = () => {
         const snapshot = snapshotCatalogUiState();
         try {
-          for (const row of rows) if ((custom.get(row.symbol) || 'n') === 'n') {
+          for (const row of rows.filter((row) => scalarKconfigOption(row.option))) {
+            if (custom.get(row.symbol) !== (menuValues.has(row.symbol) ? menuValues.get(row.symbol) : null)) {
+              applyMenuValue(row.option, custom.get(row.symbol), false, 'user');
+            }
+          }
+          for (const row of rows.filter((row) => !scalarKconfigOption(row.option))) if ((custom.get(row.symbol) || 'n') === 'n') {
             applyCatalogIntent(row.option, 'n', false, 'user');
           }
-          let pending = rows.filter((row) => (custom.get(row.symbol) || 'n') !== 'n');
+          let pending = rows.filter((row) => !scalarKconfigOption(row.option) && (custom.get(row.symbol) || 'n') !== 'n');
           while (pending.length) {
             const deferred = [];
             let progress = false;
@@ -501,9 +565,9 @@ function openConfigurationPreflightModal(evaluation) {
       recommended.type = 'button'; recommended.className = 'btn btn-primary compatibility-recommended';
       recommended.textContent = t('runtime.configurationPreflightApplyAll');
       recommended.disabled = !evaluation.actions?.length;
-      recommended.onclick = () => {
+      recommended.onclick = async () => {
         try {
-          const remaining = applyConfigurationRecommendation(evaluation);
+          const remaining = await withUiComputation(t('busy.processing'), () => applyConfigurationRecommendation(evaluation));
           if (!remaining.length) finish('applied');
           else finish('recheck');
         } catch (error) {
@@ -521,9 +585,9 @@ function openConfigurationPreflightModal(evaluation) {
 
 async function ensureConfigurationPreflight() {
   while (true) {
-    const evaluation = configurationPreflightEvaluation();
+    const evaluation = await withUiComputation(t('busy.processing'), configurationPreflightEvaluation);
     if (!evaluation.initialViolations?.length) return null;
-    const action = await openConfigurationPreflightModal(evaluation);
+    const action = await withUiOperationInteraction(() => openConfigurationPreflightModal(evaluation));
     if (action === 'forced') return forcedConfigurationAudit(evaluation);
     if (action === 'applied' || action === 'recheck') continue;
     const error = new Error('Configuration preflight cancelled');
@@ -688,10 +752,12 @@ async function ensureCompatibilityRules() {
       CATALOG_MODEL, warning.values, warning, {
         dependencySymbols: catalogDependencySymbols,
         protectedSymbols: catalogProtectedSymbols(),
+        preferredValues: catalogPreferredValues(),
+        explicitSymbols: new Set(catalogUserOverrides.keys()),
         validationOptions: evaluation.context.validationOptions,
       },
     );
-    const action = await openCompatibilityWarningModal(evaluation, warning, plans);
+    const action = await withUiOperationInteraction(() => openCompatibilityWarningModal(evaluation, warning, plans));
     if (action === 'cancel') {
       const error = new Error('Compatibility check cancelled');
       error.name = 'CompatibilityCancelledError';
@@ -710,7 +776,15 @@ async function ensureCompatibilityRules() {
 
 async function ensureBuildPreflight() {
   const configuration = await ensureConfigurationPreflight();
+  const accepted = new Set(configurationBlockingViolations().map(configurationViolationKey));
   const compatibility = await ensureCompatibilityRules();
+  // Compatibility actions mutate the same config. Do not let an earlier
+  // configuration acknowledgement cover new errors in the final state.
+  if (configurationBlockingViolations().some((row) => !accepted.has(configurationViolationKey(row)))) {
+    const error = new Error(t('runtime.configurationPreflightNoProgress'));
+    error.name = 'ConfigurationPreflightCancelledError';
+    throw error;
+  }
   return { configuration, compatibility };
 }
 
@@ -737,15 +811,19 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
       settled = true;
       resolve(recommendationApplied ? 'applied' : 'cancel');
     };
-    const applyAndVerify = (applyPlan, { keepOpen = false, requiredTargets = [] } = {}) => {
+    const applyAndVerify = (applyPlan, { keepOpen = false, requiredTargets = [] } = {}) => withUiComputation(t('busy.processing'), async (operation) => {
       const snapshot = snapshotCatalogUiState();
+      const beforeKeys = new Set(configurationBlockingViolations().map(configurationViolationKey));
       try {
-        applyPlan();
+        await applyPlan(operation);
         if (!compatibilityTargetsResolved(requiredTargets)) {
           throw new Error(t('runtime.3e85d2e445d7'));
         }
         if (compatibilityRuleStillActive(evaluation.loaded, warning.rule.id)) {
           throw new Error(t('runtime.3e85d2e445d7'));
+        }
+        if (configurationBlockingViolations().some((row) => !beforeKeys.has(configurationViolationKey(row)))) {
+          throw new Error(t('runtime.configurationPreflightNoProgress'));
         }
         renderCatalogUiAfterIntent();
         if (!keepOpen) {
@@ -764,7 +842,7 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
         const warningText = $('modalBody').querySelector('.catalog-conflict-warning');
         if (warningText) warningText.textContent = displayText(String(error?.message || error).split(';')[0]);
       }
-    };
+    });
 
     const renderModalShell = (title) => {
       if ($('modal').hidden) openModal(title);
@@ -880,11 +958,9 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
           CATALOG_ENGINE.kconfigStateConstraints(CATALOG_MODEL, row.record, values,
             evaluation.context.validationOptions)]));
         try {
-          const compatibilitySchema = Number(evaluation.loaded.compatibility?.schema ??
-            evaluation.loaded.contract?.schema ?? 0);
-          const compatibilityInvalid = CATALOG_ENGINE.evaluateCompatibilityRules(CATALOG_MODEL, {
-            schema: compatibilitySchema, rules: [warning.rule],
-          }, values, evaluation.context).warnings.length > 0;
+          const compatibilityInvalid = CATALOG_ENGINE.evaluateNormalizedCompatibilityRules(
+            CATALOG_MODEL, evaluation.document, values, evaluation.context,
+          ).warnings.some((item) => item.rule.id === warning.rule.id);
           const stateInvalid = rows.some((row) => {
             const constraints = constraintsBySymbol.get(row.record.configSymbol);
             const stateRow = constraints.states.find((item) =>
@@ -919,7 +995,7 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
         line.dataset.symbol = row.record.configSymbol;
         const name = document.createElement('code');
         name.textContent = displayText(row.record.package || row.record.configSymbol);
-        bindUiTooltipContent(name, { body: displayConfigSymbol(row.record.configSymbol) });
+        bindUiTooltipContent(name, { body: displayConfigSymbol(row.record.configSymbol, { kind: 'config' }) });
         const stateBox = document.createElement('span');
         stateBox.className = 'catalog-conflict-state';
         for (const stateValue of ['n', 'm', 'y']) {
@@ -991,6 +1067,19 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
         list: formatList(automaticChangeNames),
       }) : '';
       recommendationDetail.textContent = recommendationApplied ? t('runtime.beae674c2c45') : plans.recommended ? `${t('runtime.e7029a40a144', { value1: plans.recommended.cost })}${automaticDetail}` : t('runtime.a1add5a3f534');
+      if (!plans.recommended && plans.reason?.length) {
+        const reasons = plans.reason.map((row) => typeof row === 'string' ? row :
+          [row.source, row.reason].filter(Boolean).join(': '));
+        recommendationDetail.textContent = t('compatibility.planUnavailable', {
+          reason: displayText([...new Set(reasons)].join('; ')),
+        });
+      }
+      if (plans.recommended?.retainedDependencies?.length) {
+        recommendationDetail.textContent += ` ${t('compatibility.retainedDependencies', {
+          list: formatList(plans.recommended.retainedDependencies.map((symbol) =>
+            displayText(symbol.replace(/^PACKAGE_/, '')))),
+        })}`;
+      }
       recommendationHeader.append(recommendationTitle, recommendationDetail);
       recommendation.append(recommendationHeader, recommendationAction);
       body.appendChild(recommendation);
@@ -1004,8 +1093,10 @@ function openCompatibilityWarningModal(evaluation, warning, plans) {
         ? t('runtime.57518ffee317')
         : t('runtime.5c2c197f7d61');
       recommendedButton.disabled = !plans.recommended || recommendationApplied;
-      recommendedButton.onclick = () => applyAndVerify(() => {
+      recommendedButton.onclick = () => applyAndVerify(async (operation) => {
+        for (const symbol of plans.recommended?.dependencySymbols || []) catalogDependencySymbols.add(symbol);
         for (const step of recommendationActions) {
+          await operation.checkpoint();
           const value = step.value || 'n';
           if ((menuValues.get(step.symbol) ?? 'n') === value) continue;
           applyCatalogIntent(menuOptionBySymbol.get(step.symbol) || { symbol: step.symbol },

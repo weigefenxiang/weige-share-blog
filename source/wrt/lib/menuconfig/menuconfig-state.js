@@ -445,6 +445,11 @@ function catalogPreferredValues() {
 }
 function recordCatalogExplicitIntent(option, value) {
   if (!option?.symbol) return 'user';
+  if (scalarKconfigOption(option) && value === null) {
+    catalogUserOverrides.set(option.symbol, null);
+    menuTouched.add(option.symbol);
+    return 'user';
+  }
   const override = CATALOG_ENGINE?.resolveCatalogUserOverride
     ? CATALOG_ENGINE.resolveCatalogUserOverride(catalogInheritedValue(option.symbol), value)
     : (catalogInheritedValue(option.symbol) === value ? null : value);
@@ -479,16 +484,18 @@ function applyCatalogIntent(option, value, force = false, source = 'user') {
       });
     let directIntentChanged = false;
     for (const change of result.changes) {
-      menuValues.set(change.symbol, change.to);
+      if (change.remove) menuValues.delete(change.symbol);
+      else menuValues.set(change.symbol, change.to);
       const explicit = change.symbol === option.symbol;
-      const conditionalDefault = change.reason === 'conditional-default';
+      const conditionalDefault = ['conditional-default', 'choice-default'].includes(change.reason);
       const changedOption = menuOptionBySymbol.get(change.symbol);
       if (conditionalDefault) {
         menuTouched.delete(change.symbol);
         catalogImportedSymbols.delete(change.symbol);
         catalogDependencySymbols.delete(change.symbol);
-        if (change.to === 'n') catalogConditionalDefaultSymbols.delete(change.symbol);
-        else catalogConditionalDefaultSymbols.add(change.symbol);
+        if (change.to === (catalogBaselineValues.get(change.symbol) ?? 'n')) {
+          catalogConditionalDefaultSymbols.delete(change.symbol);
+        } else catalogConditionalDefaultSymbols.add(change.symbol);
       } else if (source === 'restore' && explicit) {
         if (!catalogRecommendedValues.has(change.symbol) && !catalogImportedSymbols.has(change.symbol)) {
           menuTouched.delete(change.symbol);
@@ -540,16 +547,18 @@ function applyCatalogIntent(option, value, force = false, source = 'user') {
     throw error;
   }
 }
-function reconcileImportedConditionalDefaults() {
+function reconcileImportedConditionalDefaults(options = {}) {
   if (!CATALOG_MODEL || !CATALOG_ENGINE?.reconcileKconfigDerivedValues) return;
   const context = catalogValidationContext(menuValues, 'interactive');
   const result = CATALOG_ENGINE.reconcileKconfigDerivedValues(
-    CATALOG_MODEL, context.values, context.validationOptions);
+    CATALOG_MODEL, context.values, { ...context.validationOptions, ...options });
   const derivedSymbols = result.derivedSymbols || new Set();
   const derivedReasons = result.derivedReasons || new Map();
   for (const change of result.changes) {
     if (!menuOptionBySymbol.has(change.symbol)) continue;
-    menuValues.set(change.symbol, change.to);
+    if (change.remove) { menuValues.delete(change.symbol); menuTouched.add(change.symbol); }
+    else menuValues.set(change.symbol, change.to);
+    if (options.dependencySeeds?.length && change.reason === 'dependency-unsatisfied') menuTouched.add(change.symbol);
     if (derivedSymbols.has(change.symbol)) continue;
     if (change.to === 'n') catalogDependencySymbols.delete(change.symbol);
     else catalogDependencySymbols.add(change.symbol);
@@ -557,13 +566,15 @@ function reconcileImportedConditionalDefaults() {
   for (const symbol of derivedSymbols) {
     if (!menuOptionBySymbol.has(symbol)) continue;
     const value = result.values.get(symbol) ?? 'n';
-    menuValues.set(symbol, value);
+    if (!result.values.has(symbol) && scalarKconfigOption(menuOptionBySymbol.get(symbol))) {
+      menuValues.delete(symbol); menuTouched.add(symbol);
+    } else menuValues.set(symbol, value);
     catalogImportedSymbols.delete(symbol);
     menuImportedOriginal.delete(symbol);
     menuImportedNonDefault.delete(symbol);
     catalogDependencySymbols.delete(symbol);
     const baseline = catalogBaselineValues.get(symbol) ?? 'n';
-    if (value !== 'n' && value !== baseline && derivedReasons.get(symbol) === 'conditional-default') {
+    if (value !== baseline && ['conditional-default', 'choice-default'].includes(derivedReasons.get(symbol))) {
       catalogConditionalDefaultSymbols.add(symbol);
     } else {
       catalogConditionalDefaultSymbols.delete(symbol);
@@ -572,6 +583,8 @@ function reconcileImportedConditionalDefaults() {
       }
     }
   }
+  if (result.changes.length) markCatalogStateChanged();
+  return result;
 }
 function normalizeKconfigValueByType(rawValue, type = 'bool', symbol = 'Kconfig option') {
   const raw = String(rawValue ?? '');
@@ -610,28 +623,11 @@ function normalizeScalarKconfigValue(option, rawValue) {
   return normalizeKconfigValueByType(rawValue, option.type, option.symbol);
 }
 function applyScalarMenuValue(option, rawValue, source = 'user') {
-  const value = normalizeScalarKconfigValue(option, rawValue);
-  const previous = menuValues.get(option.symbol) ?? simpleKconfigDefault(option);
-  menuValues.set(option.symbol, value);
-  if (source === 'restore') {
-    if (!catalogRecommendedValues.has(option.symbol) && !catalogImportedSymbols.has(option.symbol)) {
-      menuTouched.delete(option.symbol);
-    }
-  } else {
-    menuTouched.add(option.symbol);
-  }
-  if (source === 'user') catalogUserOverrides.set(option.symbol, value);
-  else if (source === 'recommended') catalogRecommendedValues.set(option.symbol, value);
-  else if (source === 'imported') catalogImportedSymbols.add(option.symbol);
-  catalogDependencySymbols.delete(option.symbol);
-  if (previous !== value) markCatalogStateChanged();
-  return {
-    changes: previous === value ? [] : [{ symbol: option.symbol, from: previous, to: value, reason: 'scalar' }],
-    violations: [],
-  };
+  const value = rawValue === null ? null : normalizeScalarKconfigValue(option, rawValue);
+  return applyCatalogIntent(option, value, false, source);
 }
 function applyMenuValue(option, value, force = false, source = 'user') {
-  if (scalarKconfigOption(option) && option.userSettable === false && force !== true) {
+  if (scalarKconfigOption(option) && value !== null && option.userSettable === false && force !== true) {
     const error = new Error(`${option.symbol} is read-only because userSettable=false`);
     error.name = 'CatalogIntentError';
     throw error;
@@ -648,9 +644,11 @@ function catalogConflictRows(option, requestedValue, violations) {
   for (const violation of violations || []) {
     if (violation.code === 'package-conflict') {
       const left = catalogConflictRecordForPackage(violation.package);
-      const right = catalogConflictRecordForPackage(violation.otherPackage);
       if (left?.configSymbol) symbols.add(left.configSymbol);
-      if (right?.configSymbol) symbols.add(right.configSymbol);
+      for (const packageName of [violation.otherPackage, ...(violation.otherPackages || [])]) {
+        const right = catalogConflictRecordForPackage(packageName);
+        if (right?.configSymbol) symbols.add(right.configSymbol);
+      }
     } else if (violation.code === 'choice-conflict') {
       for (const symbol of violation.symbols || []) symbols.add(symbol);
     }
@@ -672,8 +670,10 @@ function catalogConflictPlanInvalid(plan, violations) {
   for (const violation of violations || []) {
     if (violation.code === 'package-conflict') {
       const left = catalogConflictRecordForPackage(violation.package)?.configSymbol;
-      const right = catalogConflictRecordForPackage(violation.otherPackage)?.configSymbol;
-      if (left && right && (plan.get(left) || 'n') !== 'n' && (plan.get(right) || 'n') !== 'n') return true;
+      const rightSymbols = [violation.otherPackage, ...(violation.otherPackages || [])]
+        .map((packageName) => catalogConflictRecordForPackage(packageName)?.configSymbol).filter(Boolean);
+      if (left && rightSymbols.some((right) =>
+        (plan.get(left) || 'n') !== 'n' && (plan.get(right) || 'n') !== 'n')) return true;
     }
     if (violation.code === 'choice-conflict') {
       const enabled = (violation.symbols || []).filter((symbol) => (plan.get(symbol) || 'n') !== 'n');
