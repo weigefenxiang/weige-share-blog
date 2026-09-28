@@ -2,6 +2,8 @@
 node_modules/
 public/
 db.json
+_multiconfig.yml
+.multilang-build.yml
 .deploy_git/
 
 # 系统临时文件

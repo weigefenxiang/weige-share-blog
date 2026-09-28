@@ -1,0 +1,58 @@
+#wg-language-switcher i {
+  pointer-events: none;
+}
+
+#wg-language-menu {
+  position: fixed;
+  z-index: 1001;
+  display: none;
+  min-width: 156px;
+  max-height: min(70vh, 420px);
+  padding: 6px;
+  overflow-y: auto;
+  border: 1px solid var(--light-grey);
+  border-radius: 8px;
+  background: var(--card-bg);
+  box-shadow: 0 5px 20px rgba(0, 0, 0, .22);
+}
+
+#wg-language-menu.show {
+  display: block;
+}
+
+#wg-language-menu a {
+  display: block;
+  padding: 7px 10px;
+  border-radius: 5px;
+  color: var(--font-color);
+  line-height: 1.5;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+#wg-language-menu a:hover,
+#wg-language-menu a.active {
+  background: var(--btn-bg);
+  color: var(--btn-color);
+}
+
+#wg-language-menu .wg-language-auto {
+  margin-bottom: 5px;
+  padding-bottom: 9px;
+  border-bottom: 1px solid var(--light-grey);
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+#wg-language-menu a.active::after {
+  float: right;
+  margin-left: 14px;
+  content: '✓';
+}
+
+@media screen and (max-width: 768px) {
+  #wg-language-menu {
+    min-width: 148px;
+    max-height: 60vh;
+  }
+}

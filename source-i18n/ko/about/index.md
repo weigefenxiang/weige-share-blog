@@ -1,19 +1,19 @@
 ---
-title: About Me
+title: 소개
 date: 2026-07-08
 type: about
 ---
 
 # Hi 👋
 
-I'm Wei.G
+Wei.G입니다.
 
-## Tech Stack
+## 기술 스택
 
 - Python
 - Shell
 
-## Contact
+## 연락처
 
 - GitHub: https://github.com/weigefenxiang
 - Email: weigefenxiang@gmail.com

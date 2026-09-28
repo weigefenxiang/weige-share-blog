@@ -1,0 +1,32 @@
+language: ru
+root: /ru/
+source_dir: source-i18n/ru
+public_dir: public/ru
+
+description: Опыт работы с Cloudflare, AI, Python, Linux и созданием сайтов
+
+theme_config:
+  menu:
+    Главная: / || fas fa-home
+    Архив: /archives/ || fas fa-archive
+    Категории: /categories/ || fas fa-folder-open
+    Теги: /tags/ || fas fa-tags
+    Обо мне: /about/ || fas fa-user
+    Конструктор прошивки: https://www.weigshare.com/wrt/ || fas fa-wifi
+  subtitle:
+    sub:
+      - Делюсь Cloudflare
+      - Делюсь инструментами AI
+      - Делюсь Python
+  search:
+    placeholder: Поиск статей
+  aside:
+    card_author:
+      button:
+        text: Обо мне
+        link: /ru/about/
+    card_announcement:
+      content: Добро пожаловать в Wei.G Share Blog 🚀
+  giscus:
+    option:
+      data-lang: ru

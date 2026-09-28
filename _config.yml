@@ -3,9 +3,9 @@
 ## Source: https://github.com/hexojs/hexo/
 
 # Site
-title: Weige Share Blog
+title: Wei.G Share Blog
 subtitle: Cloud · AI · Python · DevOps
-description: 分享 Cloudflare、AI、Python、Linux 与建站经验
+description: Sharing Cloudflare, AI, Python, Linux, and site-building experience
 keywords:
   - Cloudflare
   - AI
@@ -14,7 +14,7 @@ keywords:
   - DevOps
   - Hexo
 author: Wei.G
-language: zh-CN
+language: en
 timezone: Asia/Singapore
 
 # URL

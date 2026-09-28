@@ -1,0 +1,32 @@
+language: ko
+root: /ko/
+source_dir: source-i18n/ko
+public_dir: public/ko
+
+description: Cloudflare, AI, Python, Linux 및 사이트 구축 경험을 공유합니다
+
+theme_config:
+  menu:
+    홈: / || fas fa-home
+    아카이브: /archives/ || fas fa-archive
+    카테고리: /categories/ || fas fa-folder-open
+    태그: /tags/ || fas fa-tags
+    소개: /about/ || fas fa-user
+    펌웨어 빌더: https://www.weigshare.com/wrt/ || fas fa-wifi
+  subtitle:
+    sub:
+      - Cloudflare 공유
+      - AI 도구 공유
+      - Python 공유
+  search:
+    placeholder: 글 검색
+  aside:
+    card_author:
+      button:
+        text: 소개
+        link: /ko/about/
+    card_announcement:
+      content: Wei.G Share Blog에 오신 것을 환영합니다 🚀
+  giscus:
+    option:
+      data-lang: ko

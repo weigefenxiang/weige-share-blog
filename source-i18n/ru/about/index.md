@@ -1,19 +1,19 @@
 ---
-title: About Me
+title: Обо мне
 date: 2026-07-08
 type: about
 ---
 
 # Hi 👋
 
-I'm Wei.G
+Я Wei.G.
 
-## Tech Stack
+## Технологии
 
 - Python
 - Shell
 
-## Contact
+## Контакты
 
 - GitHub: https://github.com/weigefenxiang
 - Email: weigefenxiang@gmail.com

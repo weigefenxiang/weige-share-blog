@@ -1,19 +1,19 @@
 ---
-title: 从零到一云编译自己的 OpenWrt 固件
+title: "Build Your Own OpenWrt Firmware in the Cloud: A Beginner’s Guide"
 date: 2026-08-01 20:11:00
 sticky: 100
 tags:
   - OpenWrt
   - ImmortalWrt
   - GitHub Actions
-  - 固件编译
+  - Firmware Build
 categories:
   - OpenWrt
 cover: https://img.weigshare.com/img/003.001.WeiG-OpenWrt-AutoBuild-Guide.png
-description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每个人体会手搓固件的乐趣。
+description: "Build a customized OpenWrt firmware image with the Wei.G online customizer and GitHub Actions—no local build environment required."
 ---
 
-想要一份适合自己的 OpenWrt 固件，不必在本地安装编译环境。打开 [Wei.G 在线定制](https://www.weigshare.com/wrt)，选择参数后提交到 GitHub Actions，等待云端编译即可。
+Need an OpenWrt image tailored to your router but do not want to maintain a local build environment? Open the [Wei.G Online Customizer](https://www.weigshare.com/wrt), choose the source, target, packages, and firmware options you need, then send the request to GitHub Actions and let the cloud do the build.
 
 <div align="left" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:left;">
   <img src="https://img.shields.io/badge/JavaScript-ES2020-f7df1e?logo=javascript&logoColor=black" alt="JavaScript">
@@ -24,23 +24,22 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
   <img src="https://img.shields.io/badge/YAML-1.2-cb171e?logo=yaml&logoColor=white" alt="YAML">
 </div>
 
+## Quick Start
 
-## 快速开始
+<span style="color:#ffc107;">⚠️ </span> <span style="color:#ff7b72;">Flashing firmware carries risk. Confirm your router model, partition layout, and flashing method first. If you are unsure, do not flash.</span>
 
- <span style="color:#ffc107;">⚠️ </span> <span style="color:#ff7b72;"> 刷机有风险。请先确认路由器型号、分区与刷写方式；不确定时不要刷写。</span>
+- Sign in to **[GitHub](https://github.com/)**
+- Open the **[Wei.G Online Customizer](https://www.weigshare.com/wrt)**
+- If you are new, follow the tutorial below 👇
 
-- 登录 **[Github](https://github.com/)**
-- 打开 **[Wei.G 在线定制](https://www.weigshare.com/wrt)**
-- 新人请看下方教程👇
+## Background
 
-## 背景
-
-- **【起点】** 如果你想自己编译固件，体验“手搓固件”的乐趣，这个项目会是一个不错的起点。
-- **【依赖】** 某些插件或依赖需要编译到固件里才可使用。
-- **【配置】** 配置过程相当复杂及繁琐，国内网络环境很难满足要求。
-- **【耗时】** 编译数小时，最终仍可能失败，排查成本也比较高。
-- **【未来】** 每个人都可一键 **folk** 复制,即可拥有自己的 Openwrt 在线编译网站 Github（**Page** + **Actions**）。
-- **【阶段】** 项目目前仍处于测试阶段，难免还存在不少 bug，因此暂时不做大规模推广。使用过多，还可能违法 GitHub 政策。
+- **[A simpler starting point]** If you want to learn what goes into a custom firmware image without first setting up a full local toolchain, this project gives you an easier place to begin.
+- **[Packages and dependencies]** Some plugins and dependencies must be compiled into the firmware before they can be used.
+- **[Configuration]** OpenWrt build configuration can be time-consuming, and network conditions in mainland China can make dependency downloads especially painful.
+- **[Build time]** A full build can take several hours and can still fail, so troubleshooting locally is costly.
+- **[Where this is going]** The long-term goal is to let anyone fork the project and run their own OpenWrt build site with GitHub **Pages + Actions**.
+- **[Current stage]** The project is still being tested. Bugs are expected, and heavy use of the shared public workflow may run into GitHub policy or quota limits.
 
 <div style="display:flex; gap:10px;">
 <img src=https://img.weigshare.com/img/003.009.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
@@ -50,36 +49,35 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 <img src=https://img.weigshare.com/img/003.010.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
-## 适用
-当前仅适用以下机型，其它机型尚未验证，如您没有救砖工具，请勿使用，
+## Supported Devices
 
-- **源： [OpenWrt](https://github.com/openwrt/openwrt) · [ImmortalWrt](https://github.com/immortalwrt/immortalwrt) · [LEDE](https://github.com/coolsnowwolf/lede) · [hanwckf](https://github.com/hanwckf/immortalwrt-mt798x)**
+The following targets are currently supported. Other devices have not yet been verified. If you do not have a recovery method, do not use this tool.
+
+- **Sources: [OpenWrt](https://github.com/openwrt/openwrt) · [ImmortalWrt](https://github.com/immortalwrt/immortalwrt) · [LEDE](https://github.com/coolsnowwolf/lede) · [hanwckf](https://github.com/hanwckf/immortalwrt-mt798x)**
 - **x86 / 64**
-- 支持电脑、手机端访问
+- Accessible from both desktop and mobile devices
 
-## 准备
+## Preparation
 
- <span style="color:#ffc107;">⚠️ </span> <span style="color:#ff7b72;"> 刷机有风险。请先确认路由器型号、分区与刷写方式；不确定时不要刷写。</span>
+<span style="color:#ffc107;">⚠️ </span> <span style="color:#ff7b72;">Flashing firmware carries risk. Confirm your router model, partition layout, and flashing method first. If you are unsure, do not flash.</span>
 
-- 登录 **[Github](https://github.com/)** 账号 (如果没有无法构建)
-- 打开 **[Wei.G 在线定制](https://www.weigshare.com/wrt)** 网站
-  - **[Cloudflare dev 页](https://dev.weig-wrt.pages.dev/)** (实验功能，体验最新功能，可能有bug)
+- Sign in to a **[GitHub](https://github.com/)** account. Without an account, you cannot start a build.
+- Open the **[Wei.G Online Customizer](https://www.weigshare.com/wrt)**.
+  - **[Cloudflare dev page](https://dev.weig-wrt.pages.dev/)** (experimental features; newest functions, but may contain bugs)
 
+<!-- Screenshot 1: website home page showing Source, Branch, Target and plugin areas -->
 
-<!-- 截图 1：网页首页，展示 Source、Branch、Target 与插件区域 -->
+## 1. Choose Parameters
 
-## 1. 选择参数
+- After choosing a source, search for the corresponding device model or environment. You can also load a config file.
+- Select **Source → Branch → Target System → Subtarget → Target Profile**.
+  - Example for x86/64: **ImmortalWrt → openwrt-24.10 → x86 → 64 → Generic x86/64**
 
-- 选择源后，在搜索框搜索相应机型或环境。也可加载config
-- **Source → Branch → Target System → Subtarget → Target Profile**。
-  - 例 X86/64：  **ImmortalWrt → openwrt-24.10 → x86 → 64** → Generic x86/64
+- Under **Advanced menuconfig › LuCI › 3. Applications**, select the applications you want.
+- Explore other advanced settings under **Advanced menuconfig** as needed.
 
+Then configure the **time zone**, **firmware theme**, **NTP servers**, and **package mirror** as required.
 
-
-- **Advanced menuconfig › LuCI › 3. Applications** 勾选你想要的应用
-- **Advanced menuconfig** 其它高级设置自己摸索
-
-然后按需；**时区**、**固件主题**、**NTP 服务器**和**软件源镜像** 一并设置。
 <div style="display:flex; gap:10px;">
 
 <img src=https://img.weigshare.com/img/003.002.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
@@ -88,56 +86,54 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 
 </div>
 
-### 已有配置
-已有 `.config`、`config.buildinfo` 或以前下载的请求文件，可点底部“加载配置”，在确认框核对源码、分支、Target Profile、插件和固件设置。
+### Existing Configuration
 
-## 2. 提交构建
+If you already have a `.config`, `config.buildinfo`, or a previously downloaded request file, click **Load Configuration** at the bottom. In the confirmation dialog, verify the source, branch, Target Profile, plugins, and firmware settings.
 
-点击右下角 **提交云编译**，
+## 2. Submit a Build
 
-选择 **下载请求并打开 GitHub**：浏览器会下载一个 JSON 文件，并自动打开 GitHub 的新 Issue 页面。
+Click **Submit Cloud Build** in the lower-right corner.
 
+Choose **Download Request and Open GitHub**. The browser downloads a JSON file and automatically opens a new GitHub Issue page.
 
-将文件移动到 Issue 的对话框，直接点击 **Create**。
+Move the downloaded file into the Issue dialog and click **Create**.
 
-机器人会在 Issue 中回复本次构建的 Actions 链接。
+The bot replies in the Issue with the Actions link for the build.
 
 <div style="display:flex; gap:10px;">
 <img src=https://img.weigshare.com/img/003.005.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 <img src=https://img.weigshare.com/img/003.006.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
+## 3. Download the Firmware
 
-## 3. 下载固件
+A build usually takes 2–4 hours. When it is complete, open the Actions page and download the artifacts at the bottom:
 
-编译通常需要2~4小时。完成后进入 Actions 页面，在底部 **Artifacts** 下载：
-
-- `FIRMWARE-ALL-XXX`：全部固件与校验资料；首次刷机通常找 `factory` 等文件。
-- `CONFIG-XXX`：本次提交配置、最终配置和差异，建议留存。
-- `BUILD-LOGS-XXX`：完整构建日志；用于排查原因。
+- `FIRMWARE-ALL-XXX`: all firmware files and checksums. For a first flash, you will usually look for files such as `factory`.
+- `CONFIG-XXX`: the submitted configuration, final configuration, and differences. Keeping this is recommended.
+- `BUILD-LOGS-XXX`: complete build logs for troubleshooting.
 
 <div style="display:flex; gap:10px;">
 <img src=https://img.weigshare.com/img/003.007.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 <img src=https://img.weigshare.com/img/003.008.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
-## 常见问题
+## FAQ
 
-- **构建失败怎么办？** 下载 `BUILD-LOGS-…`，查看最后出现的 `Error`；也可在 Issue 反馈。
-- **如何取消？** 在自己的构建 Issue 回复 `/cancel`。
-- **同时构建数量** 一个账号只允许同时2个构建任务，否则得排队。
-- **为什么没有下载按钮？** GitHub 的 Artifacts 下载通常需要先登录账号。
-- **公共仓库排队较久？** 未来做到 [Fork 本项目](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild)，按页面提示提交到自己的仓库运行。就不会受到排队限制。
+- **What if the build fails?** Download `BUILD-LOGS-…` and check the last `Error`. You can also report the problem in the Issue.
+- **How do I cancel?** Reply with `/cancel` in your build Issue.
+- **How many builds can run at once?** One account can run only two build jobs at the same time; additional jobs must wait.
+- **Why is there no download button?** GitHub usually requires you to sign in before downloading Actions artifacts.
+- **Long queue in the public repository?** A future workflow will let you [fork this project](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild) and submit builds to your own repository by following the page instructions, avoiding the shared queue.
 
-项目地址：[WeiG-OpenWrt-AutoBuild](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild)
+Project: [WeiG-OpenWrt-AutoBuild](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild)
 
-## 鸣谢
+## Acknowledgements
 
-- **源码：** [OpenWrt](https://github.com/openwrt/openwrt) · [ImmortalWrt](https://github.com/immortalwrt/immortalwrt) · [LEDE](https://github.com/coolsnowwolf/lede) · [hanwckf](https://github.com/hanwckf/immortalwrt-mt798x) 
+- **Sources:** [OpenWrt](https://github.com/openwrt/openwrt) · [ImmortalWrt](https://github.com/immortalwrt/immortalwrt) · [LEDE](https://github.com/coolsnowwolf/lede) · [hanwckf](https://github.com/hanwckf/immortalwrt-mt798x)
 
-- **参考：** [P3TERX](https://github.com/P3TERX/Actions-OpenWrt)
+- **Reference:** [P3TERX](https://github.com/P3TERX/Actions-OpenWrt)
 
+- **LuCI plugin authors**
 
-- **LuCI 插件的作者们**
-
-- **每一位**参与的小伙伴
+- **Everyone** who has participated in the project

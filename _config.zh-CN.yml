@@ -1,0 +1,32 @@
+language: zh-CN
+root: /zh-CN/
+source_dir: source-i18n/zh-CN
+public_dir: public/zh-CN
+
+description: 分享 Cloudflare、AI、Python、Linux 与建站经验
+
+theme_config:
+  menu:
+    首页: / || fas fa-home
+    归档: /archives/ || fas fa-archive
+    分类: /categories/ || fas fa-folder-open
+    标签: /tags/ || fas fa-tags
+    关于我: /about/ || fas fa-user
+    固件定制: https://www.weigshare.com/wrt/ || fas fa-wifi
+  subtitle:
+    sub:
+      - 分享 Cloudflare
+      - 分享 AI 工具
+      - 分享 Python
+  search:
+    placeholder: 搜索文章
+  aside:
+    card_author:
+      button:
+        text: 关于我
+        link: /zh-CN/about/
+    card_announcement:
+      content: 欢迎来到 Wei.G Share Blog 🚀
+  giscus:
+    option:
+      data-lang: zh-CN

@@ -1,0 +1,32 @@
+language: ja
+root: /ja/
+source_dir: source-i18n/ja
+public_dir: public/ja
+
+description: Cloudflare、AI、Python、Linux、サイト構築の経験を共有します
+
+theme_config:
+  menu:
+    ホーム: / || fas fa-home
+    アーカイブ: /archives/ || fas fa-archive
+    カテゴリー: /categories/ || fas fa-folder-open
+    タグ: /tags/ || fas fa-tags
+    私について: /about/ || fas fa-user
+    ファームウェア作成: https://www.weigshare.com/wrt/ || fas fa-wifi
+  subtitle:
+    sub:
+      - Cloudflare を共有
+      - AI ツールを共有
+      - Python を共有
+  search:
+    placeholder: 記事を検索
+  aside:
+    card_author:
+      button:
+        text: 私について
+        link: /ja/about/
+    card_announcement:
+      content: Wei.G Share Blog へようこそ 🚀
+  giscus:
+    option:
+      data-lang: ja

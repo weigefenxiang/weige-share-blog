@@ -1,36 +1,35 @@
 ---
-title: 标准溶液计算审核系统（Standard Solution Review System）
+title: "Laboratory Standard Solution Calculation and Review System"
 date: 2026-07-02 09:19:11
 tags:
   - Python
   - PyQt6
-  - 实验室
-  - 化学分析
-  - 国标
-  - 标准滴定液
-  - 标准溶液
+  - Laboratory
+  - Chemical Analysis
+  - Standards
+  - Standard Titration Solution
+  - Standard Solution
 categories:
   - Python
 cover: https://img.weigshare.com/img/002.001.StandardSolution_Conver.png
-description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验室Windows标准溶液计算审核系统，支持温度校正、滴定管校正、平行样统计及相对极差自动计算。
+description: "A Windows desktop tool built with Python, PyQt6, QFluentWidgets, and SQLite for standard-solution calculations and review, including temperature and burette corrections, parallel results, and relative-range checks."
 ---
 
+# Why I Built It
 
-# 项目背景
+Standardizing titration solutions creates a surprising amount of follow-up work: concentrations need to be calculated, correction values applied, parallel results compared, and the final data reviewed. Doing all of that by hand is slow, and the more data there is, the easier it becomes to miss a calculation or review error.
 
-化学分析工作中需要大量配制和标定标准滴定溶液。标定完成后，需根据实验数据进行浓度计算、校正值换算及审核确认。人工计算和复核方式不仅效率较低，还容易因数据量大而产生计算或审核误差，增加质量管理风险。
+- I built this tool in my spare time. The project started in April, and the first production-ready release was finished in November—more than six months of work and my first GUI desktop application.
 
-- 利用工作之余时间开发本系统，从 4 月立项到 11 月完成首个正式版本，历时 6 个多月，也是个人开发的第一个可视化桌面程序；
+- Along the way I taught myself Python and PyQt6, then handled the application design, calculation logic, testing, and deployment myself. QFluentWidgets is used to make the interface more pleasant to work with.
 
-- 自主学习 Python 编程语言及 PyQt6 GUI 开发框架，独立完成软件设计、逻辑编码、测试与部署；QFluentWidgets 框架优化界面交互体验。
+- After the tool was put into real use, it saved each person more than an hour of review work per week. That was the little idea behind the project: spend half a year building something once, then “steal back” an hour every week. 😆
 
-- 实际投入使用后，每人每周可节省约 1 小时以上的数据审核时间，实现了某个夜晚的一个梦——用半年开发一个工具，换来每周“偷懒”一小时。😆
+- I recently left my job and finally had time to clean up the project, so I decided to publish it as open source.
 
-- 近期刚离职，闲暇之余整理完毕，索性作为开源项目分享出来。
+**[Web Preview](https://www.weigshare.com/standard) ⬅** Click here
 
-**[网页预览](https://www.weigshare.com/standard) ⬅** 点击这里 
-
-# 标准溶液计算审核系统
+# Standard Solution Calculation Review System
 
 <div align="left" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:left;">
   <img src="https://img.shields.io/badge/Python-3.12-blue" alt="Python">
@@ -39,112 +38,109 @@ description: 基于 Python、PyQt6、QFluentWidgets 与 SQLite 开发的实验�
   <img src="https://img.shields.io/badge/GPL--3.0-red" alt="GPL3">
 </div>
 
-一款用于实验室标准溶液标定、计算与审核的软件。
+A desktop application for standard-solution standardization, calculation, and review in laboratories.
 
-支持温度校正、滴定管校正、单人四平行、双人八平行及相对极差自动计算，提高实验室标准溶液管理效率。
+It supports temperature correction, burette correction, four parallel determinations by one analyst, eight parallel determinations by two analysts, and automatic relative-range calculation, improving the efficiency of laboratory standard-solution management.
 
 <img src="https://img.weigshare.com/img/002.StandardSolution_Review_System_Demo_GIF.gif" >
 
-输入实验数据后，即可自动完成计算与审核。开始使用 [exe](https://github.com/weigefenxiang/StandardSolutionReviewSystem/releases)
+After entering experimental data, the system automatically completes the calculation and review. Get started with the [exe](https://github.com/weigefenxiang/StandardSolutionReviewSystem/releases).
 
 ---
 
-## 功能特点
+## Features
 
-✅ 温度校正计算
-✅ 滴定管校正值修正
-✅ 标液浓度自动计算
+✅ Temperature-correction calculation  
+✅ Burette-correction adjustment  
+✅ Automatic standard-solution concentration calculation
 
-✅ 单人四平行计算
-✅ 双人八平行计算
-✅ 相对极差计算 
-✅ 标液报出浓度计算
-
----
-
-
-## 支持的标准溶液
-
-- 盐酸、氢氧化钠、硫酸、高锰酸钾、硝酸银、硫代硫酸钠、乙二胺四乙酸（EDTA）、氯化锌、氢氧化钾-乙醇、碳酸钠等
-
-- HCl、NaOH、H₂SO₄、KMnO₄、AgNO₃、Na₂S₂O₃、EDTA、ZnCl₂、KOH-Ethanol、Na₂CO₃、Custom Molar Mass (g/mol)
-
-- **自定义**
+✅ Four parallel determinations by one analyst  
+✅ Eight parallel determinations by two analysts  
+✅ Relative-range calculation  
+✅ Reported concentration calculation
 
 ---
 
-## 软件界面
+## Supported Standard Solutions
 
-### 主界面
+- Hydrochloric acid, sodium hydroxide, sulfuric acid, potassium permanganate, silver nitrate, sodium thiosulfate, ethylenediaminetetraacetic acid (EDTA), zinc chloride, potassium hydroxide in ethanol, sodium carbonate, and more.
+
+- HCl, NaOH, H₂SO₄, KMnO₄, AgNO₃, Na₂S₂O₃, EDTA, ZnCl₂, KOH-Ethanol, Na₂CO₃, Custom Molar Mass (g/mol)
+
+- **Custom**
+
+---
+
+## User Interface
+
+### Main Interface
 
 <img src="https://img.weigshare.com/img/002.StandardSolution_Review_System_Demo.png" >
 
-#### 旧界面
+#### Old Interface
 
-经过多次迭代
+The interface has gone through multiple iterations.
 
 <img src=https://img.weigshare.com/img/002.002.StandardSolution_Review_System_Demo_old.png >
 
-
-| **支持录入**         | **自动生成**         |
+| **Input Supported** | **Generated Automatically** |
 | ---------------- | ---------------- |
-| 基准物质质量     | 实际滴定体积     |
-| 滴定液消耗体积   | 单人四平行浓度         |
-| 滴定管校正值     | 双人八平行浓度   |
-| 温度校正值       | 相对极差        |
-| 空白试验体积     | 报出浓度          |
+| Primary-standard mass | Actual titration volume |
+| Titrant consumption volume | Four parallel concentrations by one analyst |
+| Burette correction | Eight parallel concentrations by two analysts |
+| Temperature correction | Relative range |
+| Blank-test volume | Reported concentration |
+
 ---
 
-## 运行方式
+## How to Run
 
-### 发布版
+### Release Build
 
-下载 并 运行 [exe](https://github.com/weigefenxiang/StandardSolutionReviewSystem/releases)：
+Download and run the [exe](https://github.com/weigefenxiang/StandardSolutionReviewSystem/releases):
 
 ```text
 StandardSolution_ReviewSystem.exe
 ```
 
-## 源码运行
+## Run from Source
 
 <details>
-    <summary>点击展开</summary>
+    <summary>Click to expand</summary>
 
-### 开发环境
+### Development Environment
 
 - Windows 11
 - Python 3.12
 - PyQt6
 - QFluentWidgets
 - SQLite
-- Nuitka（用于打包）
+- Nuitka (for packaging)
 
-### 安装依赖
+### Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-### 运行程序
+### Run
 
 ```bash
 python Flu_Main.py
 ```
 
-## 开源协议
+## Open-Source License
 
-本项目采用 GPL-3.0 License 开源。
+This project is released under the GPL-3.0 License.
 
-使用、修改和分发本项目时，请遵守 GPL-3.0 许可证要求。
+When using, modifying, or distributing the project, please comply with the GPL-3.0 license terms.
 
-## 第三方开源组件
+## Third-Party Open-Source Components
 
-本项目使用了以下开源项目：
+This project uses the following open-source projects:
 
-- Python、PyQt6、QFluentWidgets、SQLite、Nuitka
+- Python, PyQt6, QFluentWidgets, SQLite, Nuitka
 
-感谢所有开源项目开发者的贡献。
-
-
+Thanks to all open-source developers for their contributions.
 
 </details>

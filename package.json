@@ -3,10 +3,20 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "build": "hexo generate",
+    "build": "node tools/build-multilang.js",
     "clean": "hexo clean",
     "deploy": "hexo deploy",
-    "server": "hexo server"
+    "server": "hexo server",
+    "build:en": "node tools/build-multilang.js en",
+    "build:zh-CN": "node tools/build-multilang.js zh-CN",
+    "build:zh-TW": "node tools/build-multilang.js zh-TW",
+    "build:ja": "node tools/build-multilang.js ja",
+    "build:ko": "node tools/build-multilang.js ko",
+    "build:de": "node tools/build-multilang.js de",
+    "build:fr": "node tools/build-multilang.js fr",
+    "build:es": "node tools/build-multilang.js es",
+    "build:pt": "node tools/build-multilang.js pt",
+    "build:ru": "node tools/build-multilang.js ru"
   },
   "hexo": {
     "version": "7.3.0"

@@ -1,0 +1,32 @@
+language: es
+root: /es/
+source_dir: source-i18n/es
+public_dir: public/es
+
+description: Experiencias sobre Cloudflare, AI, Python, Linux y creación de sitios
+
+theme_config:
+  menu:
+    Inicio: / || fas fa-home
+    Archivo: /archives/ || fas fa-archive
+    Categorías: /categories/ || fas fa-folder-open
+    Etiquetas: /tags/ || fas fa-tags
+    Acerca de mí: /about/ || fas fa-user
+    Configurador de firmware: https://www.weigshare.com/wrt/ || fas fa-wifi
+  subtitle:
+    sub:
+      - Compartir Cloudflare
+      - Compartir herramientas de AI
+      - Compartir Python
+  search:
+    placeholder: Buscar artículos
+  aside:
+    card_author:
+      button:
+        text: Acerca de mí
+        link: /es/about/
+    card_announcement:
+      content: Bienvenido a Wei.G Share Blog 🚀
+  giscus:
+    option:
+      data-lang: es

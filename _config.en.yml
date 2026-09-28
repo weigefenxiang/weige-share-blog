@@ -1,0 +1,32 @@
+language: en
+root: /
+source_dir: source
+public_dir: public
+
+description: Sharing Cloudflare, AI, Python, Linux, and site-building experience
+
+theme_config:
+  menu:
+    Home: / || fas fa-home
+    Archives: /archives/ || fas fa-archive
+    Categories: /categories/ || fas fa-folder-open
+    Tags: /tags/ || fas fa-tags
+    About: /about/ || fas fa-user
+    Firmware Customizer: /wrt/ || fas fa-wifi
+  subtitle:
+    sub:
+      - Sharing Cloudflare
+      - Sharing AI tools
+      - Sharing Python
+  search:
+    placeholder: Search posts
+  aside:
+    card_author:
+      button:
+        text: About Me
+        link: /about/
+    card_announcement:
+      content: Welcome to Wei.G Share Blog 🚀
+  giscus:
+    option:
+      data-lang: en

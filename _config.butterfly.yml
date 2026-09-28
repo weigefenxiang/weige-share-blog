@@ -11,17 +11,14 @@
 
 nav:
   # Navigation bar logo image
-  logo:
+  logo: /img/Wei.G-icon.png
   display_title: true
   display_post_title: true
   # Whether to fix navigation bar
-  fixed: false
+  fixed: true
 
-menu:
-  # Home: / || fas fa-home
-  # List||fas fa-list:
-  #   Music: /music/ || fas fa-music
-  #   Movie: /movies/ || fas fa-video
+# Navigation labels and language switcher are locale-specific.
+# They are defined in _config.<locale>.yml via theme_config.menu.
 
 # --------------------------------------
 # Code Blocks Settings
@@ -46,17 +43,17 @@ code_blocks:
 # Formal:
 #   icon: link || the description || color
 social:
-  # fab fa-github: https://github.com/xxxxx || Github || '#24292e'
-  # fas fa-envelope: mailto:xxxxxx@gmail.com || Email || '#4a7dbe'
+  fab fa-github: https://github.com/weigefenxiang || Github
+  fas fa-envelope: mailto:weigefenxiang@gmail.com || Email
 
 # --------------------------------------
 # Image Settings
 # --------------------------------------
 
-favicon: /img/favicon.png
+favicon: /img/Wei.G.ico
 
 avatar:
-  img: /img/butterfly-icon.png
+  img: /img/Wei.G-icon.png
   effect: false
 
 # Disable all banner images
@@ -143,28 +140,16 @@ post_meta:
 # The top_img settings of home page
 # default: top img - full screen, site info - middle
 # The position of site info, eg: 300px/300em/300rem/10%
-index_site_info_top:
+index_site_info_top: 45%
 # The height of top_img, eg: 300px/300em/300rem
-index_top_img_height:
+index_top_img_height: 480px
 
 # The subtitle on homepage
 subtitle:
-  enable: false
-  # Typewriter Effect
+  enable: true
   effect: true
-  # Customize typed.js
-  # https://github.com/mattboldt/typed.js/#customization
   typed_option:
-  # Source - Call the third-party service API (Chinese only)
-  # It will show the source first, then show the content of sub
-  # Choose: false/1/2/3
-  # false - disable the function
-  # 1 - hitokoto.cn
-  # 2 - https://api.aa1.cn/doc/yiyan.html
-  # 3 - jinrishici.com
   source: false
-  # If you close the typewriter effect, the subtitle will only show the first line of sub
-  sub:
 
 # Article layout on the homepage
 # 1: Cover on the left, info on the right
@@ -264,7 +249,7 @@ footer:
   copyright:
     enable: true
     version: true
-  custom_text:
+  custom_text: Wei.G Share Blog 🚀
 
 # --------------------------------------
 # Aside Settings
@@ -288,11 +273,11 @@ aside:
     button:
       enable: true
       icon: fab fa-github
-      text: Follow Me
-      link: https://github.com/xxxxxx
+      text:
+      link:
   card_announcement:
     enable: true
-    content: This is my Blog
+    content:
   card_recent_post:
     enable: true
     # If set 0 will show all
@@ -352,7 +337,7 @@ aside:
     # Time difference between publish date and now
     # Formal: Month/Day/Year Time or Year/Month/Day Time
     # Leave it empty if you don't enable this feature
-    runtime_date:
+    runtime_date: 2026/07/01 11:11:11
 
 # --------------------------------------
 # Bottom right button
@@ -429,7 +414,7 @@ copy:
 
 # Need to install the hexo-wordcount plugin
 wordcount:
-  enable: false
+  enable: true
   # Display the word count of the article in post meta
   post_wordcount: true
   # Display the time to read the article in post meta
@@ -474,7 +459,7 @@ math:
 search:
   # Choose: algolia_search / local_search / docsearch
   # leave it empty if you don't need search
-  use:
+  use: local_search
   placeholder:
 
   # Algolia Search
@@ -485,7 +470,7 @@ search:
   # Local Search
   local_search:
     # Preload the search data when the page loads.
-    preload: false
+    preload: true
     # Show top n results per article, show all results by setting to -1
     top_n_per_article: 1
     # Unescape html strings to the readable one.
@@ -533,7 +518,7 @@ comments:
   # Leave it empty if you don't need comments
   # Choose: Disqus/Disqusjs/Livere/Gitalk/Valine/Waline/Utterances/Facebook Comments/Twikoo/Giscus/Remark42/Artalk
   # Format of two comments system : Disqus,Waline
-  use:
+  use: Giscus
   # Display the comment name next to the button
   text: true
   # Lazyload: The comment system will be load when comment element enters the browser's viewport.
@@ -630,13 +615,19 @@ twikoo:
 # Giscus
 # https://giscus.app/
 giscus:
-  repo:
-  repo_id:
-  category_id:
+  repo: weigefenxiang/weige-share-blog
+  repo_id: R_kgDOTRJMEg
+  category_id: DIC_kwDOTRJMEs4DAvP-
   light_theme: light
   dark_theme: dark
   js:
   option:
+    data-mapping: pathname
+    data-strict: '0'
+    data-reactions-enabled: '1'
+    data-emit-metadata: '0'
+    data-input-position: bottom
+    data-loading: lazy
 
 # Remark42
 # https://remark42.com/docs/configuration/frontend/
@@ -692,13 +683,13 @@ knocket:
 baidu_analytics:
 
 # https://analytics.google.com/analytics/web/
-google_analytics:
+google_analytics: G-60EG1B85VB
 
 # https://www.cloudflare.com/zh-tw/web-analytics/
-cloudflare_analytics:
+cloudflare_analytics: 93925794bf194b4099dd1f88ca7b8adc
 
 # https://clarity.microsoft.com/
-microsoft_clarity:
+microsoft_clarity: xmqptjiur1
 
 # https://umami.is/
 umami_analytics:
@@ -748,8 +739,10 @@ ad:
 # --------------------------------------
 
 site_verification:
-  # - name: google-site-verification
-  #   content: xxxxxx
+  - name: google-site-verification
+    content: wYH7dDYAD2PpLuqx9z_5D9zj4pV5mdyuHvS4uSTWhHQ
+  - name: msvalidate.01
+    content: AAB374467B72A5D9E595708446CB7D33
   # - name: baidu-site-verification
   #   content: xxxxxxx
 
@@ -809,7 +802,7 @@ preloader:
 enter_transitions: true
 
 # Default display mode - light (default) / dark
-display_mode: light
+display_mode: dark
 
 # Configuration for beautifying the content of the article
 beautify:
@@ -913,7 +906,7 @@ clickShowText:
 # https://github.com/francoischalifour/medium-zoom
 # https://fancyapps.com/fancybox/
 # Leave it empty if you don't need lightbox
-lightbox:
+lightbox: fancybox
 
 # --------------------------------------
 # Tag Plugins settings
@@ -1057,8 +1050,11 @@ css_prefix: true
 # Insert the code to head (before '</head>' tag) and the bottom (before '</body>' tag)
 inject:
   head:
+    - <link rel="stylesheet" href="/css/custom.css">
+    - <link rel="stylesheet" href="/css/language-switcher.css">
     # - <link rel="stylesheet" href="/xxx.css">
   bottom:
+    - <script src="/js/language-switcher.js"></script>
     # - <script src="xxxx"></script>
 
 # CDN Settings

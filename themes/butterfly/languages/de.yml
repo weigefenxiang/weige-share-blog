@@ -1,0 +1,123 @@
+footer:
+  framework: Framework
+  theme: Theme
+
+copy:
+  success: Erfolgreich kopiert
+  error: Kopieren fehlgeschlagen
+  noSupport: Browser wird nicht unterstützt
+
+page:
+  articles: Alle Artikel
+  tag: Tag
+  category: Kategorie
+  archives: Archiv
+
+card_post_count: Kommentare
+
+no_title: Ohne Titel
+
+post:
+  created: Veröffentlicht
+  updated: Aktualisiert
+  wordcount: Wortzahl
+  min2read: Lesezeit
+  min2read_unit: Min.
+  page_pv: Aufrufe
+  comments: Kommentare
+  copyright:
+    author: Autor
+    link: Link
+    copyright_notice: Urheberrechtshinweis
+    copyright_content: 'Sofern nicht anders angegeben, stehen alle Artikel dieses Blogs unter <a href="%s">%s</a>.'
+  recommend: Ähnliche Artikel
+  edit: Bearbeiten
+  back_to_home: Zur Startseite
+
+search:
+  title: Suche
+  load_data: Datenbank wird geladen
+  input_placeholder: Beiträge durchsuchen
+  algolia_search:
+    hits_empty: 'Keine Ergebnisse für: ${query}'
+    hits_stats: '${hits} Ergebnisse in ${time} ms'
+  local_search:
+    hits_empty: 'Keine Ergebnisse für: ${query}'
+    hits_stats: '${hits} Artikel gefunden'
+
+pagination:
+  prev: Zurück
+  next: Weiter
+  page_info: 'Seite ${current} von ${total}'
+
+comment: Kommentare
+
+aside:
+  articles: Artikel
+  tags: Tags
+  categories: Kategorien
+  card_announcement: Ankündigung
+  card_categories: Kategorien
+  card_tags: Tags
+  card_archives: Archiv
+  card_recent_post: Neueste Beiträge
+  card_webinfo:
+    headline: Website-Info
+    article_name: Artikelanzahl
+    runtime:
+      name: Laufzeit
+      unit: Tage
+    last_push_date:
+      name: Letzte Aktualisierung
+    site_wordcount: Gesamtwortzahl
+    site_uv_name: Eindeutige Besucher
+    site_pv_name: Seitenaufrufe
+  more_button: Mehr anzeigen
+  card_newest_comments:
+    headline: Neueste Kommentare
+    loading_text: Wird geladen...
+    error: Kommentare konnten nicht geladen werden. Bitte Konfiguration prüfen.
+    zero: Keine Kommentare
+    image: Bild
+    link: Link
+    code: Code
+  card_toc: Inhalt
+  card_post_series: Artikelserie
+
+date_suffix:
+  just: Gerade eben
+  min: Minuten zuvor
+  hour: Stunden zuvor
+  day: Tage zuvor
+  month: Monate zuvor
+
+donate: Unterstützen
+share: Teilen
+
+rightside:
+  readmode_title: Lesemodus
+  translate_title: Zwischen traditionellem und vereinfachtem Chinesisch wechseln
+  night_mode_title: Zwischen hellem und dunklem Modus wechseln
+  back_to_top: Nach oben
+  toc: Inhaltsverzeichnis
+  scroll_to_comment: Zu den Kommentaren
+  setting: Einstellungen
+  aside: Zwischen ein- und zweispaltigem Layout wechseln
+  chat: Chat
+
+copy_copyright:
+  author: Autor
+  link: Link
+  source: Quelle
+  info: Das Urheberrecht liegt beim Autor. Für kommerzielle Nutzung bitte den Autor kontaktieren. Bei nichtkommerzieller Nutzung bitte die Quelle angeben.
+
+Snackbar:
+  chs_to_cht: Auf traditionelles Chinesisch umgeschaltet
+  cht_to_chs: Auf vereinfachtes Chinesisch umgeschaltet
+  day_to_night: Dunkler Modus aktiviert
+  night_to_day: Heller Modus aktiviert
+
+loading: Wird geladen...
+load_more: Mehr laden
+
+error404: Seite nicht gefunden
