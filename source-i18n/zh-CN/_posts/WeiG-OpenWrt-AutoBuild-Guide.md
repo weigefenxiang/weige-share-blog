@@ -107,13 +107,6 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 <img src=https://img.weigshare.com/img/003.006.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
-#### 在自己仓库进行编译
- [Fork 本项目](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild/fork)，按页面提示提交到自己的仓库运行。就不会受到排队限制。
- 
-<details>
-<summary><b>查看详细步骤</b></summary>
-
-</details>
 
 ### 下载固件
 
@@ -127,6 +120,46 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 <img src=https://img.weigshare.com/img/003.007.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 <img src=https://img.weigshare.com/img/003.008.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
+
+### 在自己仓库进行编译
+ [Fork 本项目](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild/fork)，按页面提示提交到自己的仓库运行。就不会受到排队限制。
+ 
+<details>
+<summary><b>查看详细步骤</b></summary>
+
+#### 图文教程（主要步骤）
+- 登录 Github，克隆仓库
+- 开启 Issues
+- 启用 Actions
+- 上传配置
+
+#### Flok 仓库（克隆仓库）
+- 打开 **[Wei.G 在线定制](https://www.weigshare.com/wrt)** 
+- 网页底部 → **【我自己的 flok】** → 输入自己的 **【Github 用户名】** → 单击 下方的  **【[Fork 本项目](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild/fork)】**
+- 然后取消勾选 **【☐ Copy the main branch only】**，以后如果用开发版 dev，也能正常运行
+<div style="display:flex; gap:10px;">
+<img src=https://img.weigshare.com/img/003.012.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigshare.com/img/003.013.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+</div>
+
+#### 启用 Issues 和 Actions
+- 进入刚刚克隆好的仓库 （例如： Github 用户名/weigefenxiaWeiG-OpenWrt-AutoBuild ）
+- 点击 **Settings**→ 勾选 **☑ Issues**
+- 点击 **Actions**→ 点击绿色按钮 **I understand my workflows, go ahead and enable them**
+<div style="display:flex; gap:10px;">
+<img src=https://img.weigshare.com/img/003.014.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigshare.com/img/003.015.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+</div>
+
+#### 上传配置
+- 回到刚刚打开的 **[Wei.G 在线定制](https://www.weigshare.com/wrt)** 
+- 点击 **提交云编辑** → 点击 **下载请求并打开 Github** → 将下载的 json 拖拽到 对话框（只能从刚刚打开的网页提交）
+<div style="display:flex; gap:10px;">
+<img src=https://img.weigshare.com/img/003.016.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigshare.com/img/003.017.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+<img src=https://img.weigshare.com/img/003.018.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
+</div>
+</details>
 
 ## 常见问题
 
