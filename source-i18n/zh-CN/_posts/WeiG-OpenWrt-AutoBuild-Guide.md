@@ -68,7 +68,7 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 
 <!-- 截图 1：网页首页，展示 Source、Branch、Target 与插件区域 -->
 
-## 1. 选择参数
+### 选择参数
 
 - 选择源后，在搜索框搜索相应机型或环境。也可加载config
 - **Source → Branch → Target System → Subtarget → Target Profile**。
@@ -88,12 +88,12 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 
 </div>
 
-### 已有配置
+#### 已有配置
 已有 `.config`、`config.buildinfo` 或以前下载的请求文件，可点底部“加载配置”，在确认框核对源码、分支、Target Profile、插件和固件设置。
 
-## 2. 提交构建
+### 提交构建
 
-点击右下角 **提交云编译**，
+点击右下角 **提交云编译**
 
 选择 **下载请求并打开 GitHub**：浏览器会下载一个 JSON 文件，并自动打开 GitHub 的新 Issue 页面。
 
@@ -107,8 +107,15 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 <img src=https://img.weigshare.com/img/003.006.WeiG-OpenWrt-AutoBuild-Guide.png height="150">
 </div>
 
+#### 在自己仓库进行编译
+ [Fork 本项目](https://github.com/weigefenxiang/WeiG-OpenWrt-AutoBuild/fork)，按页面提示提交到自己的仓库运行。就不会受到排队限制。
+ 
+<details>
+<summary><b>查看详细步骤</b></summary>
 
-## 3. 下载固件
+</details>
+
+### 下载固件
 
 编译通常需要2~4小时。完成后进入 Actions 页面，在底部 **Artifacts** 下载：
 
