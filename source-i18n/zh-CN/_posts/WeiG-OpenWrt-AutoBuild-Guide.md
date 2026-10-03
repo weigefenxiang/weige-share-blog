@@ -128,10 +128,9 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 <summary><b>查看详细步骤</b></summary>
 
 #### 图文教程（主要步骤）
-- 登录 Github，克隆仓库
-- 开启 Issues
-- 启用 Actions
-- 上传配置
+1. 登录 Github，克隆仓库
+2. 启用 Issues 和 Actions
+3. 上传配置
 
 #### Flok 仓库（克隆仓库）
 - 打开 **[Wei.G 在线定制](https://www.weigshare.com/wrt)** 
