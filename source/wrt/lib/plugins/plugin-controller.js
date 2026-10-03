@@ -16,11 +16,11 @@ function pluginState(p) {
   if (p.catalogOnly) {
     if (state.device?.id !== 'catalog-target' || !MENU_CATALOG) return 'unavailable';
     const option = curatedMenuOption(p);
-    return option && optionVisible(option) ? 'ok' : 'unavailable';
+    return option && catalogPackageRecordForSymbol(option.symbol) && optionVisible(option) ? 'ok' : 'unavailable';
   }
   if (state.device?.id === 'catalog-target' && MENU_CATALOG) {
     const option = curatedMenuOption(p);
-    return option && optionVisible(option) ? 'ok' : 'unavailable';
+    return option && catalogPackageRecordForSymbol(option.symbol) && optionVisible(option) ? 'ok' : 'unavailable';
   }
   if (state.source.append) return 'ok';   // append 模式产线:所有插件按追加方式可勾 / append-mode source: every plugin is selectable by appending
   if (!p.pkgs?.[state.source.id] && !p.pkg) return 'unavailable';
@@ -283,9 +283,9 @@ function renderPlugin(p) {
       ? `\n${t('runtime.463daf3dbfcf')}: ${catalogOrigin.label}` : '') +
     (p.warn ? '\n' + t(p.warn) : '');
   const pkg = p.pkgs?.[state.source.id] || p.pkg || p.catalogCandidates?.[0] || p.id;
-  const size = p.sizeBytes === null ? t('runtime.7b4f86f4a586')
-    : t('drawer.size', { n: fmtSize(p.sizeBytes) });
-  const tooltipBody = displayText(detail) + '\n' + displayText(pkg) + ' · ' + size;
+  const size = Number.isSafeInteger(p.sizeBytes) && p.sizeBytes >= 0
+    ? t('drawer.size', { n: fmtSize(p.sizeBytes) }) : '';
+  const tooltipBody = displayText(detail) + '\n' + displayText(pkg) + (size ? ' · ' + size : '');
   bindUiTooltipContent(item, { title: pName(p), body: tooltipBody });
   bindUiTooltipContent(nameBtn, { title: pName(p), body: tooltipBody });
   nameBtn.removeAttribute('title');
@@ -361,6 +361,14 @@ function effectiveSelection() {
   }
   return { normal, forced, removed, all: normal.concat(forced) };
 }
+function effectiveEnabledPlugins() {
+  if (state.device?.id !== 'catalog-target' || !MENU_CATALOG) return effectiveSelection().all;
+  const values = catalogEngineValues();
+  return PLUGINS.plugins.filter((plugin) => {
+    const option = curatedMenuOption(plugin);
+    return option && ['y', 'm'].includes(values.get(option.symbol));
+  });
+}
 
 function updateLegend() {
   let ok = 0, builtin = 0, off = 0;
@@ -392,27 +400,39 @@ function rootfsPartitionInfo() {
 }
 function packageSizeEstimate() {
   if (state.device?.id !== 'catalog-target' || !MENU_CATALOG || !catalogPackageSizesDocument) return null;
-  const sizes = catalogPackageSizeMap(catalogPackageSizesDocument);
+  const sizes = catalogObservedPackageSizes();
+  if (![...sizes.values()].some((row) => Number.isSafeInteger(row.installedBytes))) return null;
+  const values = catalogEngineValues();
   const direct = new Set();
   for (const [symbol, value] of catalogUserOverrides) {
-    if (symbol.startsWith('PACKAGE_') && value !== 'n') direct.add(symbol.slice('PACKAGE_'.length));
+    const record = catalogPackageRecordForSymbol(symbol);
+    if (record && value === 'y' && values.get(symbol) === 'y') direct.add(record.package);
   }
   const total = new Set();
-  for (const [symbol, value] of catalogEngineValues()) {
-    if (symbol.startsWith('PACKAGE_') && value !== 'n') total.add(symbol.slice('PACKAGE_'.length));
+  for (const [symbol, value] of values) {
+    const record = catalogPackageRecordForSymbol(symbol);
+    if (record && value === 'y') total.add(record.package);
   }
   const summarize = (names) => {
     let knownBytes = 0;
     let unknown = 0;
     for (const name of names) {
       const row = sizes.get(name);
-      const value = row?.installedBytes ?? row?.archiveBytes;
+      const value = row?.installedBytes;
       if (Number.isSafeInteger(value) && value >= 0) knownBytes += value;
       else unknown++;
     }
     return { packages: names.size, knownBytes, unknown };
   };
-  return { direct: summarize(direct), total: summarize(total) };
+  const summary = { direct: summarize(direct), total: summarize(total) };
+  return summary.total.packages > 0 && summary.total.unknown === summary.total.packages ? null : summary;
+}
+function packageSizeCapacityStatus(summary, capacityMiB) {
+  const bytes = summary?.total?.knownBytes;
+  if (!Number.isFinite(bytes) || summary.total.unknown > 0 || !Number.isFinite(capacityMiB) || capacityMiB <= 0) return null;
+  const percent = bytes / (capacityMiB * 1024 * 1024) * 100;
+  return { percent: Math.round(percent), level: percent >= 80 ? 'danger' : percent >= 50 ? 'warning' : '',
+    partial: summary.total.unknown > 0 };
 }
 function packageSizeSummaryValue(summary, formatted) {
   if (!summary?.packages || !summary.unknown) return formatted;
@@ -506,6 +526,7 @@ function openRootfsCapacityGuidance() {
   edit.type = 'button';
   edit.className = 'btn btn-primary';
   edit.textContent = t('runtime.2195ea1653d1');
+  edit.disabled = info.option.userSettable === false || info.option.hidden === true;
   edit.onclick = async () => {
     closeModal();
     try {
@@ -519,22 +540,39 @@ function openRootfsCapacityGuidance() {
 }
 
 function updateStats() {
+  void ensureCatalogPackageSizes();
   const sel = effectiveSelection();
-  const n = sel.all.length;
-  $('selCount').textContent = t('bar.selected', { n });
+  const n = effectiveEnabledPlugins().length;
+  $('selCount').textContent = state.device?.id === 'catalog-target'
+    ? t('bar.selectionSummary', { n, direct: sel.all.length }) : t('bar.selected', { n });
   const rootfs = rootfsPartitionInfo();
   const packageSizes = packageSizeEstimate();
+  const sizeState = state.device?.id === 'catalog-target' ? catalogPackageSizesStatus.state : 'unavailable';
+  const sizeMessage = t(sizeState === 'loading' || sizeState === 'idle' ? 'size.summary.loading'
+    : sizeState === 'error' ? 'size.summary.error'
+      : sizeState === 'ready' ? 'size.summary.noSelectedCoverage' : 'size.summary.unavailable');
+  const sizeRetry = $('sizeRetryBtn');
+  sizeRetry.hidden = sizeState !== 'error';
+  const sizeTooltip = packageSizes ? packageSizeEstimateTooltip(packageSizes)
+    : [sizeMessage, catalogPackageSizesStatus.architecture || '', catalogPackageSizesStatus.reason || ''].filter(Boolean).join('\n');
   const capText = $('capText');
+  const capacity = packageSizeCapacityStatus(packageSizes, rootfs?.value);
+  capText.classList.toggle('capacity-warning', capacity?.level === 'warning');
+  capText.classList.toggle('capacity-danger', capacity?.level === 'danger');
   if (rootfs) {
     $('capBox').hidden = true;
     capText.disabled = false;
     capText.classList.add('rootfs-capacity');
     capText.textContent = packageSizes
       ? `${rootfs.value} MiB · ${packageSizeEstimateText(packageSizes)}`
-      : `${rootfs.value} MiB`;
+      : `${rootfs.value} MiB · ${sizeMessage}`;
+    if (capacity?.level) capText.textContent += ' · ' + t('size.capacity.short', {
+      percent: `${capacity.partial ? '≥' : ''}${capacity.percent}`,
+    });
     bindUiTooltipContent(capText, { body: [
       t('runtime.2b2a5917809a'),
-      packageSizeEstimateTooltip(packageSizes),
+      sizeTooltip,
+      capacity?.level ? t(capacity.partial ? 'size.capacity.partial' : 'size.capacity.warning', { percent: capacity.percent }) : '',
     ].filter(Boolean).join('\n') });
   } else if (packageSizes) {
     $('capBox').hidden = true;
@@ -543,19 +581,13 @@ function updateStats() {
     capText.textContent = packageSizeEstimateText(packageSizes);
     bindUiTooltipContent(capText, { body: packageSizeEstimateTooltip(packageSizes) });
   } else {
-    $('capBox').hidden = false;
+    $('capBox').hidden = true;
     capText.disabled = true;
     capText.classList.remove('rootfs-capacity');
-    const knownBytes = sel.all.reduce((sum, plugin) => sum + (plugin.sizeBytes || 0), 0);
-    const unknownCount = sel.all.filter((plugin) => !plugin.sizeBytes).length;
     $('capFill').style.width = '0';
     $('capFill').className = 'cap-fill';
-    capText.textContent = knownBytes
-      ? `${t('runtime.5d97d13c4b9d')} ${fmtSize(knownBytes)}`
-      : t('runtime.df187d1a812b');
-    bindUiTooltipContent(capText, { body: unknownCount
-      ? t('runtime.9fa9e63322ab', { value1: unknownCount })
-      : t('runtime.a6286fdab37d') });
+    capText.textContent = sizeMessage;
+    bindUiTooltipContent(capText, { body: sizeTooltip });
   }
   updateGroupBadges();
   renderBuildContract();
@@ -564,7 +596,9 @@ function updateStats() {
 /* ============ 已选清单 / Selected list ============ */
 function openSelectedDrawer() {
   const sel = effectiveSelection();
-  const rows = sel.normal.concat(sel.forced).map((p) => ({ p, kind: sel.forced.includes(p) ? 'force' : '' }))
+  const enabled = effectiveEnabledPlugins();
+  const rows = [...new Set(enabled.concat(sel.all))].map((p) => ({ p,
+    kind: sel.forced.includes(p) ? 'force' : '', inherited: !sel.all.includes(p) }))
     .concat(sel.removed.map((p) => ({ p, kind: 'remove' })));
   openModal(t('drawer.title'));
   const mb = $('modalBody');
@@ -577,38 +611,52 @@ function openSelectedDrawer() {
   }
   const list = document.createElement('div');
   list.className = 'sel-list';
-  for (const { p, kind } of rows) {
+  for (const { p, kind, inherited } of rows) {
     const row = document.createElement('div');
     row.className = 'sel-row';
     const name = document.createElement('span');
     name.textContent = pName(p);
+    if (inherited) {
+      const flag = document.createElement('span');
+      flag.className = 'flag';
+      const value = catalogEngineValues().get(curatedMenuOption(p)?.symbol) || '';
+      flag.textContent = t('drawer.effective', { value: value.toUpperCase() });
+      name.appendChild(flag);
+    }
     if (kind) {
       const f = document.createElement('span');
       f.className = 'flag ' + (kind === 'force' ? 'flag-force' : 'flag-remove');
       f.textContent = kind === 'force' ? t('adv.forced') : t('adv.removed');
       name.appendChild(f);
     }
-    const sz = document.createElement('span');
-    sz.className = 'sel-size';
-    sz.textContent = p.sizeBytes === null ? t('runtime.7b4f86f4a586')
-      : t('drawer.size', { n: fmtSize(p.sizeBytes) });
+    const sz = Number.isSafeInteger(p.sizeBytes) && p.sizeBytes >= 0 ? document.createElement('span') : null;
+    if (sz) {
+      sz.className = 'sel-size';
+      sz.textContent = t('drawer.size', { n: fmtSize(p.sizeBytes) });
+    }
     const rm = document.createElement('button');
     rm.type = 'button';
     rm.className = 'sel-rm';
-    rm.textContent = '✕';
-    rm.setAttribute('aria-label', t('drawer.remove', { name: pName(p) }));
+    rm.textContent = inherited ? '↗' : '✕';
+    rm.setAttribute('aria-label', t(inherited ? 'drawer.edit' : 'drawer.remove', { name: pName(p) }));
     rm.addEventListener('click', () => {
       const catalogOption = state.device?.id === 'catalog-target' ? curatedMenuOption(p) : null;
+      if (inherited && catalogOption) {
+        closeModal();
+        focusMenuconfigSymbol(catalogOption.symbol).catch((error) => showToast(error.message));
+        return;
+      }
       if (catalogOption) restoreCatalogDefault(catalogOption);
       else if (kind === 'remove') state.removed.delete(p.id);
       else state.sel.delete(p.id);
       const cb = document.querySelector('input[data-pid="' + p.id + '"]');
       if (cb && !catalogOption) cb.checked = kind === 'remove';
       updateStats();
-      row.remove();
-      if (!list.children.length) closeModal();
+      // Restoring intent may leave an inherited/default-Y plugin enabled.
+      // Reconcile the drawer from the same effective state as the counter.
+      openSelectedDrawer();
     });
-    row.appendChild(name); row.appendChild(sz); row.appendChild(rm);
+    row.appendChild(name); if (sz) row.appendChild(sz); row.appendChild(rm);
     list.appendChild(row);
   }
   mb.appendChild(list);
@@ -621,5 +669,6 @@ function openSelectedDrawer() {
   }
 }
 $('selCount').addEventListener('click', openSelectedDrawer);
+$('sizeRetryBtn').addEventListener('click', () => { void ensureCatalogPackageSizes(true); });
 
 /* ============ 生成 .config / Generate the .config ============ */

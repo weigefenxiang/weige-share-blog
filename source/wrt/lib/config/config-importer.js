@@ -503,7 +503,9 @@ function prepareSchema6SafeOverrides(overrides) {
     }
     let value;
     try {
-      value = rawValue === null ? null : normalizeKconfigValueByType(rawValue, option.type, symbol);
+      // Schema-6 overrides carry .config wire values, not editor strings.
+      // Decode at the same boundary as .config imports; export encodes once.
+      value = rawValue === null ? null : normalizeImportedKconfigValue({ value: rawValue }, option.type);
     } catch (error) {
       throw new Error(`Invalid value for ${symbol}: ${error.message}`);
     }
@@ -979,6 +981,11 @@ async function importConfigFile(file) {
     if (seq !== configImportSeq) return;
     await operation.checkpoint(t('busy.processing'));
     await restoreSelections(state.importedConfig, payload, operation);
+    // Optional observations must not block importing an otherwise valid
+    // configuration. A new import may retry a prior failed size request once.
+    void ensureCatalogPackageSizes(catalogPackageSizesStatus.state === 'error');
+    importLogStep('package-sizes-after-import', { ...catalogPackageSizesStatus,
+      assetRef: MENU_INDEX?.assetRef || '' });
     finishImportLog('success');
     showToast(legacyJsonRecovered
       ? t('runtime.8527b3686481')

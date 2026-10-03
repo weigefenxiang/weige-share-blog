@@ -3935,7 +3935,9 @@ export function evaluateNormalizedCompatibilityRules(model, normalized, inputVal
       return record;
     }).filter((record) => record?.configSymbol);
     if (missingPackages.length) {
-      if (ifPresent && records.length === 0) continue;
+      // Availability is an applicability condition for the complete rule,
+      // not permission to drop an operand from an all-* conjunction.
+      if (ifPresent) continue;
       if (!ifPresent) {
         if (mismatches.length) continue;
         throw compatibilityError(`${rule.id} references a package missing from the active Catalog: ${missingPackages[0]}`);
@@ -4773,16 +4775,26 @@ export function deriveCompatibilityPlans(model, inputValues, warning, intent = {
       candidate.steps.map((step) => [step.symbol, step.value]),
       candidate.changes.map((change) => [change.symbol, change.to]).sort(([a], [b]) => a.localeCompare(b)),
     ]);
-    if (!distinct.has(key)) distinct.set(key, candidate);
+    const equivalent = distinct.get(key);
+    if (equivalent) {
+      equivalent.resolvedPackages = unique([...equivalent.resolvedPackages, candidate.package]);
+    } else {
+      distinct.set(key, { ...candidate, resolvedPackages: [candidate.package] });
+    }
   }
   const normalized = [...distinct.values()];
   const minimum = normalized[0]?.cost;
   const cheapest = normalized.filter((candidate) => candidate.cost === minimum);
   // A reviewed rule preference chooses among executable plans, never invents
   // an operation or bypasses a selector/protected-symbol constraint.
-  const preferred = (rule.preferredDisable || []).map((name) =>
-    normalized.find((candidate) => candidate.package === name)).find(Boolean);
-  return { candidates: normalized, recommended: preferred || (cheapest.length === 1 ? cheapest[0] : null) };
+  const preferredName = (rule.preferredDisable || []).find((name) =>
+    normalized.some((candidate) => candidate.resolvedPackages.includes(name)));
+  const preferredPlan = normalized.find((candidate) => candidate.resolvedPackages.includes(preferredName));
+  const preferred = preferredPlan ? {
+    ...preferredPlan, package: preferredName, symbol: model.byPackage.get(preferredName)?.configSymbol || preferredPlan.symbol,
+  } : null;
+  return { candidates: normalized, preferredUnavailable: Boolean(rule.preferredDisable?.length && !preferred),
+    recommended: rule.preferredDisable?.length ? preferred || null : (cheapest.length === 1 ? cheapest[0] : null) };
 }
 
 export function compatibilityAcknowledgementKey({ sha256, dataRef, sourceId, branchName, sourceCommit = '', targetKey = '', revision, ruleIds } = {}) {

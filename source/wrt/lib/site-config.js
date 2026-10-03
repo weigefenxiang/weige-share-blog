@@ -10,8 +10,9 @@
 export const SITE_CONFIG_SCHEMA = 1;
 
 const SITE_TOP_LEVEL_KEYS = ['project', 'catalog', 'ui', 'firmware', 'build'];
-const PROJECT_KEYS = ['displayName', 'shortName', 'repository', 'blogUrl'];
-const CATALOG_KEYS = ['repository', 'releaseTag', 'selection', 'loading'];
+const PROJECT_REQUIRED_KEYS = ['displayName', 'shortName', 'repository', 'blogUrl'];
+const PROJECT_KEYS = [...PROJECT_REQUIRED_KEYS, 'guideUrl'];
+const CATALOG_KEYS = ['repository', 'selection', 'loading'];
 const SELECTION_KEYS = ['sourcePriority', 'defaultSource', 'developmentBranches', 'preferredTarget'];
 const TARGET_KEYS = ['selectors'];
 const SELECTOR_KEYS = ['system', 'subtarget', 'profile'];
@@ -48,13 +49,13 @@ function pathName(path, key = '') {
   return key ? `${path}.${key}` : path;
 }
 
-function addUnknownAndMissing(value, path, keys, errors) {
+function addUnknownAndMissing(value, path, keys, errors, requiredKeys = keys) {
   if (!isRecord(value)) return;
   const allowed = new Set(keys);
   for (const key of Object.keys(value)) {
     if (!allowed.has(key)) errors.push(`${pathName(path, key)}: unknown key`);
   }
-  for (const key of keys) {
+  for (const key of requiredKeys) {
     if (!Object.hasOwn(value, key)) errors.push(`${pathName(path, key)}: required`);
   }
 }
@@ -132,12 +133,13 @@ function validatePrivateIpv4(value, path, errors) {
 function validateProject(value, errors) {
   const path = 'site.project';
   if (!isRecord(value)) { errors.push(`${path}: must be an object`); return; }
-  addUnknownAndMissing(value, path, PROJECT_KEYS, errors);
+  addUnknownAndMissing(value, path, PROJECT_KEYS, errors, PROJECT_REQUIRED_KEYS);
   stringError(value.displayName, `${path}.displayName`, errors, { min: 1, max: 96 });
   const shortName = typeof value.shortName === 'string' ? value.shortName.trim() : value.shortName;
   stringError(shortName, `${path}.shortName`, errors, { max: 64, pattern: SHORT_NAME_RE, trim: false });
   validateRepository(value.repository, `${path}.repository`, errors);
   validateHttpsUrl(value.blogUrl, `${path}.blogUrl`, errors);
+  if (Object.hasOwn(value, 'guideUrl')) validateHttpsUrl(value.guideUrl, `${path}.guideUrl`, errors);
 }
 
 function validateCatalog(value, errors) {
@@ -145,7 +147,6 @@ function validateCatalog(value, errors) {
   if (!isRecord(value)) { errors.push(`${path}: must be an object`); return; }
   addUnknownAndMissing(value, path, CATALOG_KEYS, errors);
   validateRepository(value.repository, `${path}.repository`, errors);
-  stringError(value.releaseTag, `${path}.releaseTag`, errors, { pattern: /^[A-Za-z0-9][A-Za-z0-9._-]{0,95}$/ });
 
   const selection = value.selection;
   if (!isRecord(selection)) errors.push(`${path}.selection: must be an object`);
@@ -288,13 +289,13 @@ export function siteRuntimeConfig(value) {
     catalogRepository: site.catalog.repository,
     catalogUrl,
     blogUrl: site.project.blogUrl,
-    catalogReleaseTag: site.catalog.releaseTag,
     catalogSelectionPolicy: clone(site.catalog.selection),
     catalogLoadPolicy: clone(site.catalog.loading),
     links: {
       repository: repositoryUrl,
       actions: actionsUrl,
       blog: site.project.blogUrl,
+      guide: site.project.guideUrl || `${repositoryUrl}#fork-自建`,
       catalog: catalogUrl,
     },
     customization: {
