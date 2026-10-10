@@ -8,23 +8,28 @@ tags:
   - Docker
 categories:
   - qBittorrent
-cover: https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview-v1.1.0.gif
+cover: https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview.gif
 description: 从下载、解压到 qBittorrent 启用备选 WebUI，一步一步安装 WeiG qB WebUI，并说明 Windows、Linux、NAS 与 Docker 的路径区别。
 ---
 
 如果你平时通过浏览器管理 qBittorrent，尤其是在 **NAS、Docker、手机端** 使用，第三方 WebUI 可以让日常操作更方便。<strong><a href="https://weigefenxiang.github.io/WeiG-qB-WebUI/">在线预览</a></strong>
 
-玩 PT 的小伙伴 NAS 服务器可能挂着几年的 qB，没有更新过版本，主要是太麻烦了，数据也容易在迁移时发生问题，所以很少更新。能用就行，但是手机操作很不方便，尤其是深夜，强光刺眼，看久了很不舒服；很多第三方 WebUI 老版本不兼容，或者某些版本会异常，为了解决这些问题，才做的这个项目。几乎支持 4.1.0 至 5.2.3（当前最新） 的所有稳定版。如果你的版本不支持欢迎留言。
+大约 7 年前，我加入了 PT 站点。当时 NAS 上安装的是最新的 qB 4.1.9，没想到一直用到了今天。
 
-**WeiG qB WebUI** 是一套面向桌面和手机端的 qBittorrent Alternate WebUI，
+曾经尝试过跨版本升级（印象中是 4.2.5），结果导致客户端里的种子任务丢失，无法正常保种。由于积累的种子太多，恢复起来非常麻烦，所以后来只要运行稳定，我就一直没有再升级。
+
+不过现在手机使用越来越普遍。毕业参加工作之后，使用桌面端的时间越来越少，平时更多的是通过手机管理 NAS。原版 WebUI 在手机上的操作体验确实不太理想。我也尝试过一些其他的 Alternative WebUI，但很多对老版本 qB 的兼容性并不好。
+
+为了解决这些问题，才做的这个项目。目前覆盖 qBittorrent 4.1.x 至 5.2.x 的多个稳定版本。如果遇到兼容性问题或有改进建议，也欢迎留言反馈。 *[项目地址](https://github.com/weigefenxiang/WeiG-qB-WebUI)*
+
+**WeiG qB WebUI** 是一套面向桌面和手机端的 qBittorrent Alternate WebUI：
 
 - 📱 手机端自适应
 - 🌙 暗夜模式
 - 🧱 兼容较老版本的 qBittorrent
-- ✅ 支持 **qBittorrent 4.1.0 → 5.2.x**
+- ✅ 支持 **qBittorrent 4.1.x → 5.2.x**
 - 🐳 适用于 Windows、Linux、Docker、NAS
 
-*[项目地址](https://github.com/weigefenxiang/WeiG-qB-WebUI)*
 
 <div align="left" style="display:flex;gap:10px;flex-wrap:wrap;justify-content:left;">
   <img src="https://img.shields.io/badge/-JavaScript-F7DF1E?logo=javascript&logoColor=black" alt="JavaScript">
@@ -39,22 +44,60 @@ description: 从下载、解压到 qBittorrent 启用备选 WebUI，一步一步
 ### 桌面端
 
 <p align="center">
-  <img src="https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview-v1.1.0.gif" alt="WeiG qB WebUI 桌面端界面" style="display:block;width:100%;max-width:900px;height:auto;margin:0 auto;">
+  <img src="https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview.gif" alt="WeiG qB WebUI 桌面端界面" style="display:block;width:100%;max-width:900px;height:auto;margin:0 auto;">
 </p>
 
 ### 手机端
 
-#### 动态演示
+<style>
+/* 只作用于本文的手机预览，不影响其它图片 */
+.weig-qb-mobile-preview {
+  width: 100%;
+  container-type: inline-size;
+}
 
-<p align="center">
-  <img src="https://img.weigshare.com/img/004.002.weig-qb-webui-mobile-overview-v1.1.0.gif" alt="WeiG qB WebUI 手机端动态演示" style="display:block;width:20%;height:auto;margin:0 auto;">
-</p>
+.weig-qb-mobile-preview-images {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+  width: 100%;
+}
 
-#### 界面截图
+.weig-qb-mobile-preview-images img {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  height: min(341px, 38cqw);
+  max-width: 100%;
+  object-fit: contain;
+}
 
-<p align="center">
-  <img src="https://img.weigshare.com/img/004.003.weig-qb-webui-mobile-overview-v1.1.0.png" alt="WeiG qB WebUI 手机端界面" style="display:block;width:auto;max-width:100%;height:auto;margin:0 auto;">
-</p>
+/* 以文章正文宽度判断，狭窄布局下改为上下排列 */
+@container (max-width: 640px) {
+  .weig-qb-mobile-preview-images {
+    flex-direction: column;
+  }
+
+  .weig-qb-mobile-preview-images img {
+    flex: none;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 341px;
+  }
+}
+</style>
+
+<div class="weig-qb-mobile-preview">
+  <div class="weig-qb-mobile-preview-images">
+    <img src="https://img.weigshare.com/img/004.002.weig-qb-webui-mobile-overview.gif" alt="WeiG qB WebUI 手机端动态演示">
+    <img src="https://img.weigshare.com/img/004.003.weig-qb-webui-mobile-overview.png" alt="WeiG qB WebUI 手机端多画面预览">
+  </div>
+</div>
+
 ## 新手安装
 
 <details>
@@ -62,25 +105,25 @@ description: 从下载、解压到 qBittorrent 启用备选 WebUI，一步一步
 
 ### 1. 解压
 
-下载并解压 **[WeiG-qB-WebUI.zip](https://github.com/weigefenxiang/WeiG-qB-WebUI/releases/latest/download/WeiG-qB-WebUI.zip)**，再将解压得到的 `WeiG-qB-WebUI` 重命名为 `WeiG_qB-WebUI`，最终得到：
+下载最新正式版 [**weig-qb-webui.zip**](https://github.com/weigefenxiang/WeiG-qB-WebUI/releases/latest/download/weig-qb-webui.zip)，解压后会直接得到统一目录：
 
 ```text
-WeiG_qB-WebUI/
+weig-qb-webui/
 ├── public/
 ├── private/
 ├── VERSION
 └── GIT_SHA
 ```
 
-整个 **`WeiG_qB-WebUI` 文件夹**就是 WebUI 根目录，不要只复制 `public` 或 `private`。
+整个 **`weig-qb-webui` 文件夹**就是 WebUI 根目录，不要只复制 `public` 或 `private`。
 
 ### 2. 放到一个固定位置
 
-把整个 `WeiG_qB-WebUI` 文件夹移动到一个以后不会随便删除的位置，例如：
+把整个 `weig-qb-webui` 文件夹移动到一个以后不会随便删除的位置，例如：
 
 ```text
-Windows：D:\WeiG_qB-WebUI
-Linux：  /opt/WeiG_qB-WebUI
+Windows：D:\weig-qb-webui
+Linux：  /opt/weig-qb-webui
 ```
 
 后面 qBittorrent 要填写的就是这个目录。
@@ -91,28 +134,25 @@ Linux：  /opt/WeiG_qB-WebUI
 
 **工具 → 选项... → WebUI**
 
-这是 qBittorrent 当前简体中文官方用语。然后：
-
 1. 勾选 **使用备选 WebUI**。
 2. 找到 **文件位置：**。
-3. 填入刚才保存的 `WeiG_qB-WebUI` 文件夹路径。
+3. 填入刚才保存的 `weig-qb-webui` 文件夹路径。
+4. 点击 **确定** 保存设置。
+5. 刷新 qBittorrent WebUI 页面。如果浏览器仍显示旧页面，可再按一次 `Ctrl + F5` 强制刷新。
 
 Windows 示例：
 
 ```text
-D:\WeiG_qB-WebUI
+D:\weig-qb-webui
 ```
 
 普通 Linux 示例：
 
 ```text
-/opt/WeiG_qB-WebUI
+/opt/weig-qb-webui
 ```
 
-4. 点击 **确定** 保存设置。
-5. 刷新 qBittorrent WebUI 页面。如果浏览器仍显示旧页面，可再按一次 `Ctrl + F5` 强制刷新。
-
-> **怎么判断路径填对了？** 你填写的目录里面应该能直接看到 `public`、`private`、`VERSION` 等文件/目录。如果还要再进入一层 `WeiG_qB-WebUI` 才能看到这些内容，说明路径多填或少填了一层。
+> **怎么判断路径填对了？** 你填写的目录里面应该能直接看到 `public`、`private`、`VERSION` 等文件/目录。如果还要再进入一层 `weig-qb-webui` 才能看到这些内容，说明路径多填或少填了一层。
 
 > **Docker 用户注意：** qBittorrent 运行在容器里面，因此这里通常不能填写宿主机上的真实路径。Docker 的“宿主机 / 容器”区别和正确路径写法见下面 **Docker** 折叠教程。
 
@@ -120,31 +160,31 @@ D:\WeiG_qB-WebUI
 
 ## 一键安装
 
-Linux / NAS 一键脚本统一从下面的 Dev Pages 固定入口下载。**脚本地址不决定安装通道：** 不加 `-dev`：安装最新稳定版；加 `-dev`：安装当前 `dev` 分支的最新开发版。安装脚本会保存在当前目录，方便以后更新或回滚。
+Linux / NAS 一键脚本统一从下面的 Dev Pages 固定入口下载。**脚本地址不决定安装通道：** 不加 `-dev` 默认安装稳定 `main`（使用最新且经过校验的 GitHub Release）；加 `-dev` 才安装当前 `dev` exact-SHA。安装脚本会保存在当前目录，方便以后更新或回滚。
 
 ### Linux / NAS
 
 ```sh
-curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o weig_qb-webui_install.sh && sh weig_qb-webui_install.sh -configure
+curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o install.sh && sh install.sh -configure
 ```
 
 <details>
 <summary><b>查看脚本位置和 WebUI 默认安装目录</b></summary>
 
 ```text
-./weig_qb-webui_install.sh
+./install.sh
 ```
 
 WebUI 本体默认安装到：
 
 ```text
-~/.local/share/weig_qb-webui
+~/.local/share/weig-qb-webui
 ```
 
 例如使用 `root` 用户运行时，通常就是：
 
 ```text
-/root/.local/share/weig_qb-webui
+/root/.local/share/weig-qb-webui
 ```
 
 </details>
@@ -181,23 +221,23 @@ volumes:
 如果 WeiG qB WebUI 实际安装到了：
 
 ```text
-宿主机：/root/qbittorrent/config/weig_qb-webui
+宿主机：/root/qbittorrent/config/weig-qb-webui
 ```
 
 那么 qBittorrent 的 **文件位置：** 应填写：
 
 ```text
-/config/weig_qb-webui
+/config/weig-qb-webui
 ```
 
-**不要填写 `/root/qbittorrent/config/weig_qb-webui`**，因为 qBittorrent 容器通常看不到这个宿主机路径。
+**不要填写 `/root/qbittorrent/config/weig-qb-webui`**，因为 qBittorrent 容器通常看不到这个宿主机路径。
 
 #### 情况 1：只有一个 qBittorrent Docker 容器
 
 最简单，直接运行：
 
 ```sh
-curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o weig_qb-webui_install.sh && sh weig_qb-webui_install.sh -configure
+curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o install.sh && sh install.sh -configure
 ```
 
 安装器会尝试自动找到正在运行的 qBittorrent 容器、识别它的 `/config` 映射，把 WebUI 安装到合适的位置，并自动设置 qBittorrent。
@@ -207,7 +247,7 @@ curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.s
 如果不确定容器叫什么：
 
 ```sh
-sh weig_qb-webui_install.sh --list-containers
+sh install.sh --list-containers
 ```
 
 也可以先用 Docker 自己的命令查看正在运行的容器：
@@ -225,7 +265,7 @@ qbittorrent
 就可以明确指定它：
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -configure
+sh install.sh --container=qbittorrent -configure
 ```
 
 #### 情况 3：机器上有多个 qBittorrent 容器
@@ -240,19 +280,19 @@ qbittorrent-test
 先运行：
 
 ```sh
-sh weig_qb-webui_install.sh --list-containers
+sh install.sh --list-containers
 ```
 
 安装正式使用的 `qbittorrent`：
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -configure
+sh install.sh --container=qbittorrent -configure
 ```
 
 安装测试容器 `qbittorrent-test`：
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent-test -configure
+sh install.sh --container=qbittorrent-test -configure
 ```
 
 安装器不会在多个 qBittorrent 容器之间随便猜一个。
@@ -268,19 +308,19 @@ sh weig_qb-webui_install.sh --container=qbittorrent-test -configure
 可以直接指定：
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/root/qbittorrent/config -configure
+sh install.sh --config-root=/root/qbittorrent/config -configure
 ```
 
 群晖上可能类似：
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/volume1/docker/qbittorrent -configure
+sh install.sh --config-root=/volume1/docker/qbittorrent -configure
 ```
 
 其他 NAS 可能类似：
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/share/Container/qbittorrent -configure
+sh install.sh --config-root=/share/Container/qbittorrent -configure
 ```
 
 这些只是示例，**请换成你自己的真实 qBittorrent `/config` 宿主机目录**。
@@ -290,30 +330,30 @@ sh weig_qb-webui_install.sh --config-root=/share/Container/qbittorrent -configur
 已经指定容器时，也可以指定容器里希望使用的 WebUI 路径：
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -o /config/weig_qb-webui -configure
+sh install.sh --container=qbittorrent -o /config/weig-qb-webui -configure
 ```
 
 安装器会根据 Docker `/config` 映射换算成宿主机上的实际安装目录。
 
 #### 情况 6：一次更新多个现有 WebUI 目录
 
-有多个 qBittorrent 实例时，可以重复写 `-o`。安装包只下载和校验一次，全部目标准备完成后才开始切换；每个目标都在 `~/.config/weig_qb-webui/backups/` 下独立保留最近 3 份备份。
+有多个 qBittorrent 实例时，可以重复写 `-o`。安装包只下载和校验一次，全部目标准备完成后才开始切换；每个目标都在 `~/.config/weig-qb-webui/backups/` 下独立保留最近 3 份备份。
 
 ```sh
-sh weig_qb-webui_install.sh -dev \
-  -o /root/qbittorrent/config/weig_qb-webui \
-  -o /root/qbittorrent3/config/weig_qb-webui
+sh install.sh -dev \
+  -o /root/qbittorrent/config/weig-qb-webui \
+  -o /root/qbittorrent3/config/weig-qb-webui
 ```
 
-多目标模式不要加 `-configure`，各个 qBittorrent 实例继续使用自己已经配置好的备选 WebUI 路径。查看当前参数可运行 `sh weig_qb-webui_install.sh -help`。
+多目标模式不要加 `-configure`，各个 qBittorrent 实例继续使用自己已经配置好的备选 WebUI 路径。查看当前参数可运行 `sh install.sh -help`。
 
 #### 安装后应该看到什么
 
 安装成功时脚本会输出类似：
 
 ```text
-Host install path: /root/qbittorrent/config/weig_qb-webui
-qBittorrent Root Folder: /config/weig_qb-webui
+Host install path: /root/qbittorrent/config/weig-qb-webui
+qBittorrent Root Folder: /config/weig-qb-webui
 ```
 
 含义是：
@@ -321,35 +361,37 @@ qBittorrent Root Folder: /config/weig_qb-webui
 - `Host install path`：文件真正保存到宿主机哪里；
 - `qBittorrent Root Folder`：**你在 qBittorrent 的“文件位置：”中应该填写的容器内路径**。
 
-如果用了 `--configure` 并成功找到 qBittorrent 配置，安装器会自动启用 **使用备选 WebUI** 并设置路径；否则按照上面的“新手安装 → 在 qBittorrent 中启用”手动填写即可。
+如果用了 `-configure` 并成功找到 qBittorrent 配置，安装器会自动启用 **使用备选 WebUI** 并设置路径；否则按照上面的“新手安装 → 在 qBittorrent 中启用”手动填写即可。
 
 </details>
 
 ### Windows PowerShell
 
 ```powershell
-Invoke-WebRequest https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.ps1 -OutFile .\weig_qb-webui_install.ps1; powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -configure
+Invoke-WebRequest https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.ps1 -OutFile .\install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1 -configure
 ```
 
 <details>
 <summary><b>查看安装目录</b></summary>
 
 ```text
-C:\Users\<你的用户名>\AppData\Local\WeiG_qB-WebUI
+C:\Users\<你的用户名>\AppData\Local\weig-qb-webui
 ```
 
 </details>
 
 ## 常用参数
 
-Linux 和 Windows 使用相同的参数名称，文档统一使用小写；PowerShell 参数本身不区分大小写。
+<details>
+<summary><b>Linux 和 Windows 使用相同的参数名称，文档统一使用小写</b><b>（点击展开）</b></summary>
 
 | 用途 | Linux / Docker / NAS | Windows PowerShell |
 |---|---|---|
 | 稳定 main | 默认，无需参数 | 默认，无需参数 |
-| 指定正式版本 | `-version 1.0.0` | `-version 1.0.0` |
+| 指定正式版本 | `-version 1.2.0` | `-version 1.2.0` |
 | 开发版 | `-dev` | `-dev` |
 | 指定安装目录 | `-o /path`（Linux 可重复） | `-o D:\path` 或 `-output D:\path` |
+| 指定自定义 qBittorrent 配置文件 | — | `-qbconfig D:\path\qBittorrent.ini` |
 | 自动配置 qBittorrent | `-configure` | `-configure` |
 | 回滚上一次安装 | `-rollback` | `-rollback` |
 | 彻底卸载（不保留安装器备份） | `-uninstall -purge` | `-uninstall -purge` |
@@ -358,18 +400,20 @@ Linux 和 Windows 使用相同的参数名称，文档统一使用小写；Power
 | 列出 Docker 容器 | `--list-containers` | — |
 | 指定 Docker `/config` 宿主机目录 | `--config-root=/path` | — |
 
+</details>
+
 <details>
 <summary><b>说明：</b> <b>（点击展开）</b></summary>
 
-- 不加 `-dev`：安装最新稳定版；加 `-dev`：安装当前 `dev` 分支的最新开发版。
+- 不加 `-dev` 默认安装稳定 `main`（使用最新且经过校验的 GitHub Release）；加 `-dev` 才安装当前 `dev` exact-SHA。
 - `-o` 中的 `o` 表示 **output**。Linux 可以重复写多个 `-o`，一次下载并更新多个现有 WebUI 目录。
-- 安装器备份始终放在 `~/.config/weig_qb-webui/backups/`，并且**每个安装目标独立只保留最近 3 份**。
+- 安装器备份始终放在 `~/.config/weig-qb-webui/backups/`，并且**每个安装目标独立只保留最近 3 份**。
 - `-configure` 会在安装后自动启用 qBittorrent 的 **使用备选 WebUI / Use alternative WebUI** 并设置 **文件位置 / Files location**；它只允许单目标使用。
 - `-rollback` 会恢复所选目标最近一次由安装器创建的备份；也可以重复 `-o` 一次回滚多个明确目标。
-- 推荐卸载使用 `-uninstall -purge`：按 installer-owned 安全流程卸载 WebUI 后，清理**当前目标所属的安装器备份和 rollback 状态**；不会删除其它安装目标的备份。共享状态目录为空时，Linux 的 `~/.config/weig_qb-webui`（root 即 `/root/.config/weig_qb-webui`）或 Windows 的 `%APPDATA%\WeiG_qB-WebUI` 也会自动清空。
+- 推荐卸载使用 `-uninstall -purge`：按 installer-owned 安全流程卸载 WebUI 后，清理**当前目标所属的安装器备份和 rollback 状态**；不会删除其它安装目标的备份。共享状态目录为空时，Linux 的 `~/.config/weig-qb-webui`（root 即 `/root/.config/weig-qb-webui`）或 Windows 的 `%APPDATA%\weig-qb-webui` 也会自动清空。
 - 如果希望保留安装器备份以后使用 `-rollback`，卸载时去掉 `-purge` 即可。
-- `-version` 安装指定 GitHub Release，例如 `1.0.0`；指定版本不存在时直接报错，**不会自动退回 latest 或 dev**。
-- `-help` 显示当前 Linux 参数；旧的 `--...` 长参数继续作为兼容别名保留。
+- `-version` 安装指定 GitHub Release，例如 `1.2.0`；指定版本不存在时直接报错，**不会自动退回 latest 或 dev**。
+- `-help` 显示当前安装脚本支持的参数。
 - Docker 有多个 qBittorrent 容器时，用 `--list-containers` 查看，再用 `--container=NAME` 明确指定；也可以用 `--config-root=/path` 直接指定宿主机上的 qBittorrent 配置目录。
 
 ### 指定版本和安装目录
@@ -377,13 +421,13 @@ Linux 和 Windows 使用相同的参数名称，文档统一使用小写；Power
 Linux：
 
 ```sh
-sh weig_qb-webui_install.sh -version 1.0.0 -o /opt/weig_qb-webui -configure
+sh install.sh -version 1.2.0 -o /opt/weig-qb-webui -configure
 ```
 
 Windows：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -version 1.0.0 -o D:\WeiG_qB-WebUI -configure
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -version 1.2.0 -o D:\weig-qb-webui -configure
 ```
 
 ### 回滚
@@ -391,13 +435,13 @@ powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -version 1.
 Linux：
 
 ```sh
-sh weig_qb-webui_install.sh -rollback
+sh install.sh -rollback
 ```
 
 Windows：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -rollback
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -rollback
 ```
 
 </details>
@@ -405,49 +449,49 @@ powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -rollback
 ## 一键卸载
 
 <details>
-<summary><b>Linux / NAS、Docker、Windows PowerShell 一键彻底卸载</b></summary>
+<summary><b>Linux / NAS、Docker、Windows PowerShell 一键彻底卸载</b><b>（点击展开）</b></summary>
 
 默认推荐**不保留安装器备份**：卸载 WebUI、关闭当前目标的备选 WebUI、清理该目标的 installer-owned backups / rollback 状态，并删除下载到当前目录的安装脚本。
 
 ### Linux / NAS
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge && rm -f -- ./install.sh
 ```
 
-自定义安装目录继续加 `-o /你的/weig_qb-webui`。
+自定义安装目录继续加 `-o /你的/weig-qb-webui`。
 
 ### Docker
 
 单容器自动识别：
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge && rm -f -- ./install.sh
 ```
 
 多容器：
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge --container=qbittorrent && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge --container=qbittorrent && rm -f -- ./install.sh
 ```
 
 使用 `--config-root` 时：
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge --config-root=/path/to/qbittorrent/config && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge --config-root=/path/to/qbittorrent/config && rm -f -- ./install.sh
 ```
 
 ### Windows PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -uninstall -configure -purge; if ($LASTEXITCODE -eq 0) { Remove-Item .\weig_qb-webui_install.ps1 -Force }
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -uninstall -configure -purge; if ($LASTEXITCODE -eq 0) { Remove-Item .\install.ps1 -Force }
 ```
 
-自定义安装目录继续加 `-o D:\WeiG_qB-WebUI`。
+自定义安装目录继续加 `-o D:\weig-qb-webui`。
 
-`-purge` 只清当前卸载目标的备份，不会误删其它安装实例。共享状态目录没有其它内容时，Linux 的 `~/.config/weig_qb-webui`（root 即 `/root/.config/weig_qb-webui`）或 Windows 的 `%APPDATA%\WeiG_qB-WebUI` 也会随之清空。
+`-purge` 只清当前卸载目标的备份，不会误删其它安装实例。共享状态目录没有其它内容时，Linux 的 `~/.config/weig-qb-webui`（root 即 `/root/.config/weig-qb-webui`）或 Windows 的 `%APPDATA%\weig-qb-webui` 也会随之清空。
 
-如需保留备份以后 `-rollback`，只要去掉 `-purge`。
+如需保留备份以后使用 `-rollback`，只要去掉 `-purge`。
 
 </details>
 
