@@ -8,20 +8,26 @@ tags:
   - Docker
 categories:
   - qBittorrent
-cover: https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview-v1.1.0.gif
+cover: https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview.gif
 description: "Guia para instalar o WeiG qB WebUI e utilizá-lo como WebUI alternativa do qBittorrent em Windows, Linux, NAS e Docker."
 ---
 
 Se costuma administrar o qBittorrent pelo navegador — sobretudo num **NAS, em Docker ou no telemóvel** — o WeiG qB WebUI torna a utilização diária muito mais confortável. <strong><a href="https://weigefenxiang.github.io/WeiG-qB-WebUI/">Pré-visualização online</a></strong>
 
-Em ambientes de trackers privados, a estabilidade costuma ser mais importante do que atualizar a cada nova versão. Uma instalação do qBittorrent num NAS pode ficar anos a fazer seeding sem problemas, e atualizar apenas por causa da interface acrescenta trabalho e possíveis riscos de migração. Ao mesmo tempo, a WebUI original não é especialmente confortável no telemóvel e uma interface muito clara é cansativa à noite. O WeiG qB WebUI foi criado precisamente com estas necessidades em mente: boa utilização em dispositivos móveis, modo escuro e ampla compatibilidade com versões antigas do qBittorrent. Atualmente suporta versões estáveis de **4.1.0 a 5.2.x**. Se encontrar algum problema com uma versão, deixe um comentário.
+Há cerca de sete anos, entrei em alguns trackers privados. Na altura instalei o qBittorrent 4.1.9 no meu NAS, que era então a versão mais recente. Nunca pensei que ainda o estaria a usar tantos anos depois.
+
+Cheguei a tentar uma atualização importante (penso que para a 4.2.5), mas as tarefas de torrents desapareceram do cliente e deixei de conseguir fazer seeding. Já tinha tantos torrents acumulados que recuperá-los foi uma trabalheira. Desde então, se uma versão está estável, prefiro não mexer.
+
+Depois de acabar os estudos e começar a trabalhar, passei a ter muito menos tempo ao computador. Hoje em dia, quase sempre administro o NAS pelo telemóvel. Só que a WebUI original não é prática num ecrã pequeno. Também experimentei algumas alternativas, mas muitas tinham problemas com versões antigas do qBittorrent.
+
+Foi por isso que comecei a desenvolver o WeiG qB WebUI. O projeto abrange várias versões estáveis do qBittorrent, da 4.1.x à 5.2.x. Se encontrar algum problema de compatibilidade ou tiver sugestões, deixe um comentário.
 
 **WeiG qB WebUI** é uma **WebUI alternativa** para qBittorrent, concebida para desktop e dispositivos móveis:
 
 - 📱 Interface responsiva em telemóveis
 - 🌙 Modo escuro
 - 🧱 Compatível com versões antigas do qBittorrent
-- ✅ Suporta **qBittorrent 4.1.0 → 5.2.x**
+- ✅ Suporta **qBittorrent 4.1.x → 5.2.x**
 - 🐳 Funciona em Windows, Linux, Docker e NAS
 
 [Projeto](https://github.com/weigefenxiang/WeiG-qB-WebUI)
@@ -39,22 +45,61 @@ Em ambientes de trackers privados, a estabilidade costuma ser mais importante do
 ### Desktop
 
 <p align="center">
-  <img src="https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview-v1.1.0.gif" alt="Interface de desktop do WeiG qB WebUI" style="display:block;width:100%;max-width:900px;height:auto;margin:0 auto;">
+  <img src="https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview.gif" alt="Interface de desktop do WeiG qB WebUI" style="display:block;width:100%;max-width:900px;height:auto;margin:0 auto;">
 </p>
+
 
 ### Mobile
 
-#### Demonstração animada
+<style>
+/* Scoped to the mobile preview in this article */
+.weig-qb-mobile-preview {
+  width: 100%;
+  container-type: inline-size;
+}
 
-<p align="center">
-  <img src="https://img.weigshare.com/img/004.002.weig-qb-webui-mobile-overview-v1.1.0.gif" alt="Animação mobile do WeiG qB WebUI" style="display:block;width:20%;height:auto;margin:0 auto;">
-</p>
+.weig-qb-mobile-preview-images {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+  width: 100%;
+}
 
-#### Captura da interface
+.weig-qb-mobile-preview-images img {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  height: min(341px, 38cqw);
+  max-width: 100%;
+  object-fit: contain;
+}
 
-<p align="center">
-  <img src="https://img.weigshare.com/img/004.003.weig-qb-webui-mobile-overview-v1.1.0.png" alt="Interface mobile do WeiG qB WebUI" style="display:block;width:auto;max-width:100%;height:auto;margin:0 auto;">
-</p>
+/* Stack when the article column is narrow */
+@container (max-width: 640px) {
+  .weig-qb-mobile-preview-images {
+    flex-direction: column;
+  }
+
+  .weig-qb-mobile-preview-images img {
+    flex: none;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 341px;
+  }
+}
+</style>
+
+<div class="weig-qb-mobile-preview">
+  <div class="weig-qb-mobile-preview-images">
+    <img src="https://img.weigshare.com/img/004.002.weig-qb-webui-mobile-overview.gif" alt="Demonstração da utilização móvel do WeiG qB WebUI">
+    <img src="https://img.weigshare.com/img/004.003.weig-qb-webui-mobile-overview.png" alt="Ecrãs do WeiG qB WebUI no telemóvel">
+  </div>
+</div>
+
 ## Instalação para iniciantes
 
 <details>
@@ -62,23 +107,23 @@ Em ambientes de trackers privados, a estabilidade costuma ser mais importante do
 
 ### 1. Extrair o ZIP
 
-Transfira `WeiG-qB-WebUI.zip`, extraia-o e depois mude o nome da pasta extraída `WeiG-qB-WebUI` para `WeiG_qB-WebUI`. A estrutura final deve ser:
+Transfira a versão estável mais recente [**weig-qb-webui.zip**](https://github.com/weigefenxiang/WeiG-qB-WebUI/releases/latest/download/weig-qb-webui.zip) e extraia o ficheiro. A pasta principal já tem o nome correto:
 
 ```text
-WeiG_qB-WebUI/
+weig-qb-webui/
 ├── public/
 ├── private/
 ├── VERSION
 └── GIT_SHA
 ```
 
-A pasta **`WeiG_qB-WebUI` completa** é a raiz da WebUI. Não copie apenas `public` ou `private`.
+A pasta **`weig-qb-webui` completa** é a raiz da WebUI. Não copie apenas `public` ou `private`.
 
 ### 2. Mover para uma localização permanente
 
 ```text
-Windows: D:\WeiG_qB-WebUI
-Linux:   /opt/WeiG_qB-WebUI
+Windows: D:\weig-qb-webui
+Linux:   /opt/weig-qb-webui
 ```
 
 Este é o diretório que deverá indicar no qBittorrent.
@@ -93,18 +138,18 @@ Estes são os termos atuais da tradução oficial portuguesa do qBittorrent. Dep
 
 1. Ative **Usar interface web alternativa**.
 2. Procure **Localização dos ficheiros:**.
-3. Introduza o caminho para a pasta `WeiG_qB-WebUI`.
+3. Introduza o caminho para a pasta `weig-qb-webui`.
 
 Exemplo Windows:
 
 ```text
-D:\WeiG_qB-WebUI
+D:\weig-qb-webui
 ```
 
 Exemplo Linux:
 
 ```text
-/opt/WeiG_qB-WebUI
+/opt/weig-qb-webui
 ```
 
 4. Clique em **OK** para guardar.
@@ -118,31 +163,31 @@ Exemplo Linux:
 
 ## Instalação com um comando
 
-O instalador para Linux/NAS é sempre descarregado pelo endereço fixo do Dev Pages abaixo. **O endereço do script não escolhe o canal de instalação:** sem `-dev`, instala a versão estável mais recente; com `-dev`, instala a versão de desenvolvimento mais recente da branch `dev` atual. O script de instalação fica guardado no diretório atual para futuras atualizações ou rollback.
+O instalador para Linux / NAS é obtido no endereço fixo de Dev Pages abaixo. **O endereço não determina a versão instalada:** sem `-dev`, é usada a versão estável e verificada do GitHub Release de `main`; com `-dev`, a versão atual de `dev` identificada pelo SHA Git exato. O script fica no diretório atual para futuras atualizações ou restauros.
 
 ### Linux / NAS
 
 ```sh
-curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o weig_qb-webui_install.sh && sh weig_qb-webui_install.sh -configure
+curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o install.sh && sh install.sh -configure
 ```
 
 <details>
 <summary><b>Mostrar localização do script e diretório de instalação predefinido</b></summary>
 
 ```text
-./weig_qb-webui_install.sh
+./install.sh
 ```
 
 Diretório predefinido da WebUI:
 
 ```text
-~/.local/share/weig_qb-webui
+~/.local/share/weig-qb-webui
 ```
 
 Ao executar como `root`:
 
 ```text
-/root/.local/share/weig_qb-webui
+/root/.local/share/weig-qb-webui
 ```
 
 </details>
@@ -175,19 +220,19 @@ volumes:
 Se a WebUI estiver instalada no anfitrião em:
 
 ```text
-/root/qbittorrent/config/weig_qb-webui
+/root/qbittorrent/config/weig-qb-webui
 ```
 
 então **Localização dos ficheiros:** no qBittorrent deve ser:
 
 ```text
-/config/weig_qb-webui
+/config/weig-qb-webui
 ```
 
 #### Apenas um contentor qBittorrent
 
 ```sh
-curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o weig_qb-webui_install.sh && sh weig_qb-webui_install.sh -configure
+curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o install.sh && sh install.sh -configure
 ```
 
 O instalador tenta detetar automaticamente o contentor e a montagem `/config`.
@@ -195,7 +240,7 @@ O instalador tenta detetar automaticamente o contentor e a montagem `/config`.
 #### Listar contentores
 
 ```sh
-sh weig_qb-webui_install.sh --list-containers
+sh install.sh --list-containers
 ```
 
 Ou:
@@ -207,33 +252,64 @@ docker ps
 Selecionar explicitamente um contentor:
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -configure
+sh install.sh --container=qbittorrent -configure
 ```
 
 Se existirem vários contentores qBittorrent, o instalador não escolhe um ao acaso.
 
+#### Caso 3: vários contentores qBittorrent
+
+Se existirem `qbittorrent` e `qbittorrent-test`, liste os contentores e indique qual pretende configurar. O instalador não escolhe por adivinhação:
+
+```sh
+sh install.sh --list-containers
+sh install.sh --container=qbittorrent -configure
+sh install.sh --container=qbittorrent-test -configure
+```
+
 #### Indicar a pasta do anfitrião montada como `/config`
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/root/qbittorrent/config -configure
+sh install.sh --config-root=/root/qbittorrent/config -configure
 ```
 
 Synology:
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/volume1/docker/qbittorrent -configure
+sh install.sh --config-root=/volume1/docker/qbittorrent -configure
 ```
 
 Outro NAS:
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/share/Container/qbittorrent -configure
+sh install.sh --config-root=/share/Container/qbittorrent -configure
 ```
 
 #### Escolher o caminho da WebUI
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -o /config/weig_qb-webui -configure
+sh install.sh --container=qbittorrent -o /config/weig-qb-webui -configure
+```
+
+#### Caso 6: atualizar várias pastas WebUI existentes
+
+Com várias instâncias do qBittorrent, pode repetir `-o` para indicar os destinos. O pacote é transferido e verificado uma única vez; a mudança começa depois de todos os destinos estarem preparados. Cada um guarda as três últimas cópias separadamente em `~/.config/weig-qb-webui/backups/`.
+
+```sh
+sh install.sh -dev \
+  -o /root/qbittorrent/config/weig-qb-webui \
+  -o /root/qbittorrent3/config/weig-qb-webui
+```
+
+Não junte `-configure` à instalação de vários destinos. Cada instância mantém o caminho WebUI já configurado. Consulte `sh install.sh -help` para as opções.
+
+#### Verificar os caminhos após a instalação
+
+No fim, o instalador apresenta caminhos semelhantes aos seguintes. O primeiro é a pasta real no anfitrião; o segundo é o caminho dentro do contentor que deve introduzir em **Files location** no qBittorrent.
+
+```text
+Host install path: /root/qbittorrent/config/weig-qb-webui
+qBittorrent Root Folder: /config/weig-qb-webui
 ```
 
 </details>
@@ -241,27 +317,32 @@ sh weig_qb-webui_install.sh --container=qbittorrent -o /config/weig_qb-webui -co
 ### Windows PowerShell
 
 ```powershell
-Invoke-WebRequest https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.ps1 -OutFile .\weig_qb-webui_install.ps1; powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -configure
+Invoke-WebRequest https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.ps1 -OutFile .\install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1 -configure
 ```
 
 <details>
 <summary><b>Mostrar diretório de instalação</b></summary>
 
 ```text
-C:\Users\<nome-do-utilizador>\AppData\Local\WeiG_qB-WebUI
+C:\Users\<nome-do-utilizador>\AppData\Local\weig-qb-webui
 ```
 
 </details>
 
 ## Opções comuns
+
+<details>
+<summary><b>Linux e Windows usam as mesmas opções; no PowerShell, os nomes não distinguem maiúsculas e minúsculas (expandir)</b></summary>
+
 Os nomes dos parâmetros PowerShell não distinguem maiúsculas de minúsculas.
 
 | Utilização | Linux / Docker / NAS | Windows PowerShell |
 |---|---|---|
 | Release estável mais recente | Predefinição | Predefinição |
-| Release específica | `-version 1.0.0` | `-version 1.0.0` |
+| Release específica | `-version 1.2.0` | `-version 1.2.0` |
 | Versão de desenvolvimento | `-dev` | `-dev` |
-| Diretório de instalação | `-o /path` ou `-o /path` | `-o D:\path` ou `-output D:\path` |
+| Diretório de instalação | `-o /path` (pode repetir no Linux) | `-o D:\path` ou `-output D:\path` |
+| Ficheiro de configuração personalizado do qBittorrent | — | `-qbconfig D:\path\qBittorrent.ini` |
 | Configurar o qBittorrent | `-configure` | `-configure` |
 | Restaurar a instalação anterior | `-rollback` | `-rollback` |
 | Desinstalação completa (sem cópias do instalador) | `-uninstall -purge` | `-uninstall -purge` |
@@ -270,24 +351,34 @@ Os nomes dos parâmetros PowerShell não distinguem maiúsculas de minúsculas.
 | Listar contentores Docker | `--list-containers` | — |
 | Caminho do anfitrião montado como `/config` | `--config-root=/path` | — |
 
+</details>
+
 <details>
 <summary><b>Notas: (clique para expandir)</b></summary>
 
-- Uma versão inexistente não muda automaticamente para latest ou dev.
-- Sem `-dev`: instalar a versão estável mais recente; com `-dev`: instalar a versão de desenvolvimento mais recente da branch `dev` atual.
+- Sem `-dev`, é usado o GitHub Release estável e verificado de `main`; com `-dev`, a versão atual de `dev` identificada pelo SHA Git exato.
+- `-o` significa **output**. No Linux pode repeti-lo para atualizar várias pastas WebUI existentes com uma única transferência verificada.
+- As cópias de segurança ficam em `~/.config/weig-qb-webui/backups/`, guardando as três mais recentes por destino.
+- `-configure` ativa **Use alternative WebUI** e define **Files location** no qBittorrent. Só funciona com um destino de cada vez.
+- `-rollback` restaura a última cópia do instalador para o destino escolhido. Pode repetir `-o` para repor vários destinos específicos.
+- `-uninstall -purge` remove a WebUI e as cópias / o estado de restauro do destino, sem afetar outras instalações. A pasta partilhada é apagada quando fica vazia.
+- Para guardar as cópias e poder usar `-rollback` mais tarde, retire `-purge` ao desinstalar.
+- `-version 1.2.0` instala um GitHub Release específico. Se não existir, dá erro e **não muda automaticamente para latest ou dev**.
+- `-help` mostra as opções suportadas.
+- Se houver vários contentores Docker, use `--list-containers` e `--container=NAME`, ou `--config-root=/path` para o diretório de configuração no anfitrião.
 
 ### Versão específica e diretório de instalação
 
 Linux:
 
 ```sh
-sh weig_qb-webui_install.sh -version 1.0.0 -o /opt/weig_qb-webui -configure
+sh install.sh -version 1.2.0 -o /opt/weig-qb-webui -configure
 ```
 
 Windows:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -version 1.0.0 -o D:\WeiG_qB-WebUI -configure
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -version 1.2.0 -o D:\weig-qb-webui -configure
 ```
 
 ### Restauro
@@ -295,11 +386,11 @@ powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -version 1.
 Restauro:
 
 ```sh
-sh weig_qb-webui_install.sh -rollback
+sh install.sh -rollback
 ```
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -rollback
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -rollback
 ```
 
 </details>
@@ -314,40 +405,40 @@ Por predefinição, recomendamos a **desinstalação completa sem manter cópias
 ### Linux / NAS
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge && rm -f -- ./install.sh
 ```
 
-Para um caminho personalizado, acrescente `-o /path/to/weig_qb-webui`.
+Para um caminho personalizado, acrescente `-o /path/to/weig-qb-webui`.
 
 ### Docker
 
 Um contentor / deteção automática:
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge && rm -f -- ./install.sh
 ```
 
 Vários contentores:
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge --container=qbittorrent && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge --container=qbittorrent && rm -f -- ./install.sh
 ```
 
 Ao usar `--config-root`:
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge --config-root=/path/to/qbittorrent/config && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge --config-root=/path/to/qbittorrent/config && rm -f -- ./install.sh
 ```
 
 ### Windows PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -uninstall -configure -purge; if ($LASTEXITCODE -eq 0) { Remove-Item .\weig_qb-webui_install.ps1 -Force }
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -uninstall -configure -purge; if ($LASTEXITCODE -eq 0) { Remove-Item .\install.ps1 -Force }
 ```
 
-Para um caminho personalizado, acrescente `-o D:\WeiG_qB-WebUI`.
+Para um caminho personalizado, acrescente `-o D:\weig-qb-webui`.
 
-`-purge` elimina apenas as cópias pertencentes ao destino que está a ser desinstalado e não afeta outras instalações. Se o diretório de estado partilhado ficar vazio, `~/.config/weig_qb-webui` no Linux (root: `/root/.config/weig_qb-webui`) ou `%APPDATA%\WeiG_qB-WebUI` no Windows também é removido.
+`-purge` elimina apenas as cópias pertencentes ao destino que está a ser desinstalado e não afeta outras instalações. Se o diretório de estado partilhado ficar vazio, `~/.config/weig-qb-webui` no Linux (root: `/root/.config/weig-qb-webui`) ou `%APPDATA%\weig-qb-webui` no Windows também é removido.
 
 Para manter as cópias e poder usar `-rollback` mais tarde, basta omitir `-purge`.
 

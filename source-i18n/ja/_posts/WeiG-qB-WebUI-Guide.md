@@ -8,20 +8,26 @@ tags:
   - Docker
 categories:
   - qBittorrent
-cover: https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview-v1.1.0.gif
+cover: https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview.gif
 description: "qBittorrent の「別のWebUI」として WeiG qB WebUI を導入する手順を、Windows・Linux・NAS・Docker のパスの違いも含めて初心者向けに説明します。"
 ---
 
 qBittorrent を普段ブラウザーから管理しているなら、特に **NAS、Docker、スマートフォン** で使う場面では、WeiG qB WebUI にすると日常の操作がかなり楽になります。<strong><a href="https://weigefenxiang.github.io/WeiG-qB-WebUI/">オンラインプレビュー</a></strong>
 
-プライベートトラッカーで長期シードしている環境では、頻繁に qBittorrent を更新するより、安定したバージョンをそのまま使い続けたいことが多いと思います。NAS では同じバージョンが何年も動き続けることもあり、UI のためだけに更新して移行リスクを増やす必要はありません。一方、標準の WebUI はスマートフォンでは扱いにくく、夜間は明るい画面も気になります。WeiG qB WebUI は、モバイル操作、ダークモード、古い qBittorrent との幅広い互換性を重視して作っています。現在は **4.1.0 ～ 5.2.x** の安定版を対象にしています。動かないバージョンがあればコメントで知らせてください。
+約7年前、いくつかのプライベートトラッカーに参加しました。当時 NAS にインストールした qBittorrent 4.1.9 は、その時点での最新版。まさか今でも使っているとは思いませんでした。
+
+一度だけ大きなアップグレードを試したことがあります（たしか 4.2.5 だったはずです）。ところがクライアントから torrent のジョブが消えてしまい、シードを続けられなくなりました。長年ため込んだジョブの復旧は大変で、それ以来、安定した環境をむやみに更新しなくなりました。
+
+卒業して働き始めてからは、PC に向かう時間が減り、NAS の管理もほとんどスマートフォンです。ただ、標準の WebUI は小さな画面では使いづらいもの。ほかの代替 WebUI も試しましたが、古い qBittorrent ではうまく動かないものが少なくありませんでした。
+
+そんな経験から作り始めたのが WeiG qB WebUI です。qBittorrent 4.1.x～5.2.x の幅広い安定版を対象にしています。互換性の問題や改善案があれば、ぜひコメントで教えてください。
 
 **WeiG qB WebUI** は qBittorrent の **「別のWebUI」** として使える、デスクトップ・モバイル両対応のインターフェースです。
 
 - 📱 スマートフォン向けレスポンシブ表示
 - 🌙 ダークモード
 - 🧱 古い qBittorrent バージョンにも対応
-- ✅ **qBittorrent 4.1.0 → 5.2.x** をサポート
+- ✅ **qBittorrent 4.1.x → 5.2.x** をサポート
 - 🐳 Windows、Linux、Docker、NAS に対応
 
 [プロジェクト](https://github.com/weigefenxiang/WeiG-qB-WebUI)
@@ -39,22 +45,61 @@ qBittorrent を普段ブラウザーから管理しているなら、特に **NA
 ### デスクトップ
 
 <p align="center">
-  <img src="https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview-v1.1.0.gif" alt="WeiG qB WebUI デスクトップ画面" style="display:block;width:100%;max-width:900px;height:auto;margin:0 auto;">
+  <img src="https://img.weigshare.com/img/004.001.weig-qb-webui-desktop-overview.gif" alt="WeiG qB WebUI デスクトップ画面" style="display:block;width:100%;max-width:900px;height:auto;margin:0 auto;">
 </p>
+
 
 ### モバイル
 
-#### 動作デモ
+<style>
+/* Scoped to the mobile preview in this article */
+.weig-qb-mobile-preview {
+  width: 100%;
+  container-type: inline-size;
+}
 
-<p align="center">
-  <img src="https://img.weigshare.com/img/004.002.weig-qb-webui-mobile-overview-v1.1.0.gif" alt="WeiG qB WebUI モバイル動画" style="display:block;width:20%;height:auto;margin:0 auto;">
-</p>
+.weig-qb-mobile-preview-images {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-wrap: nowrap;
+  gap: 10px;
+  width: 100%;
+}
 
-#### 画面スクリーンショット
+.weig-qb-mobile-preview-images img {
+  display: block;
+  flex: 0 1 auto;
+  min-width: 0;
+  width: auto;
+  height: min(341px, 38cqw);
+  max-width: 100%;
+  object-fit: contain;
+}
 
-<p align="center">
-  <img src="https://img.weigshare.com/img/004.003.weig-qb-webui-mobile-overview-v1.1.0.png" alt="WeiG qB WebUI モバイル画面" style="display:block;width:auto;max-width:100%;height:auto;margin:0 auto;">
-</p>
+/* Stack when the article column is narrow */
+@container (max-width: 640px) {
+  .weig-qb-mobile-preview-images {
+    flex-direction: column;
+  }
+
+  .weig-qb-mobile-preview-images img {
+    flex: none;
+    width: auto;
+    height: auto;
+    max-width: 100%;
+    max-height: 341px;
+  }
+}
+</style>
+
+<div class="weig-qb-mobile-preview">
+  <div class="weig-qb-mobile-preview-images">
+    <img src="https://img.weigshare.com/img/004.002.weig-qb-webui-mobile-overview.gif" alt="WeiG qB WebUI スマートフォンでの操作デモ">
+    <img src="https://img.weigshare.com/img/004.003.weig-qb-webui-mobile-overview.png" alt="WeiG qB WebUI スマートフォンの画面プレビュー">
+  </div>
+</div>
+
 ## 初心者向けインストール
 
 <details>
@@ -62,25 +107,25 @@ qBittorrent を普段ブラウザーから管理しているなら、特に **NA
 
 ### 1. ZIP を展開
 
-`WeiG-qB-WebUI.zip` をダウンロードして展開し、展開された `WeiG-qB-WebUI` フォルダーを `WeiG_qB-WebUI` に変更します。最終的な構成は次のようになります。
+最新の正式版 [**weig-qb-webui.zip**](https://github.com/weigefenxiang/WeiG-qB-WebUI/releases/latest/download/weig-qb-webui.zip) をダウンロードして展開します。最初から次のフォルダー構成になっているので、名前の変更は不要です。
 
 ```text
-WeiG_qB-WebUI/
+weig-qb-webui/
 ├── public/
 ├── private/
 ├── VERSION
 └── GIT_SHA
 ```
 
-**`WeiG_qB-WebUI` フォルダー全体**が WebUI のルートです。`public` や `private` だけをコピーしないでください。
+**`weig-qb-webui` フォルダー全体**が WebUI のルートです。`public` や `private` だけをコピーしないでください。
 
 ### 2. 固定した場所へ移動
 
-`WeiG_qB-WebUI` フォルダー全体を、あとで誤って削除しない場所へ移動します。例：
+`weig-qb-webui` フォルダー全体を、あとで誤って削除しない場所へ移動します。例：
 
 ```text
-Windows：D:\WeiG_qB-WebUI
-Linux：  /opt/WeiG_qB-WebUI
+Windows：D:\weig-qb-webui
+Linux：  /opt/weig-qb-webui
 ```
 
 このディレクトリを qBittorrent に指定します。
@@ -95,24 +140,24 @@ qBittorrent を開きます。
 
 1. **別のWebUIを使用する** を有効にします。
 2. **ファイルの場所:** を探します。
-3. 保存した `WeiG_qB-WebUI` フォルダーのパスを入力します。
+3. 保存した `weig-qb-webui` フォルダーのパスを入力します。
 
 Windows の例：
 
 ```text
-D:\WeiG_qB-WebUI
+D:\weig-qb-webui
 ```
 
 通常の Linux の例：
 
 ```text
-/opt/WeiG_qB-WebUI
+/opt/weig-qb-webui
 ```
 
 4. **OK** を押して保存します。
 5. qBittorrent WebUI のページを再読み込みします。古い画面が残る場合は `Ctrl + F5` を試してください。
 
-> **パスが正しいか確認する方法：** 指定したディレクトリの直下に `public`、`private`、`VERSION` などが見える必要があります。さらにもう一つ `WeiG_qB-WebUI` フォルダーへ入らないと見えない場合は、パスの階層がずれています。
+> **パスが正しいか確認する方法：** 指定したディレクトリの直下に `public`、`private`、`VERSION` などが見える必要があります。さらにもう一つ `weig-qb-webui` フォルダーへ入らないと見えない場合は、パスの階層がずれています。
 
 > **Docker ユーザー：** qBittorrent はコンテナー内で動作するため、通常はホスト側の実パスをそのまま指定できません。下の **Docker** ガイドを参照してください。
 
@@ -120,31 +165,31 @@ D:\WeiG_qB-WebUI
 
 ## ワンクリックインストール
 
-Linux / NAS 用のワンクリックインストーラーは、下の固定 Dev Pages URL から取得します。**スクリプトの URL はインストール先を決めません：** `-dev` を付けない場合は最新の安定版を、`-dev` を付ける場合は現在の `dev` ブランチの最新開発版をインストールします。インストーラースクリプトは現在のディレクトリに残るため、後の更新やロールバックにも使えます。
+Linux / NAS 用のインストーラーは下の固定 Dev Pages URL から取得します。**URL 自体はインストールする版を決めません。** `-dev` なしなら `main` の検証済み GitHub Release、`-dev` 付きなら現在の `dev` の exact-SHA 版を使用します。スクリプトは現在のディレクトリに残り、更新やロールバックにも使えます。
 
 ### Linux / NAS
 
 ```sh
-curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o weig_qb-webui_install.sh && sh weig_qb-webui_install.sh -configure
+curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o install.sh && sh install.sh -configure
 ```
 
 <details>
 <summary><b>スクリプトの場所と既定の WebUI インストール先を表示</b></summary>
 
 ```text
-./weig_qb-webui_install.sh
+./install.sh
 ```
 
 WebUI 本体の既定インストール先：
 
 ```text
-~/.local/share/weig_qb-webui
+~/.local/share/weig-qb-webui
 ```
 
 `root` ユーザーで実行する場合は通常：
 
 ```text
-/root/.local/share/weig_qb-webui
+/root/.local/share/weig-qb-webui
 ```
 
 </details>
@@ -181,13 +226,13 @@ volumes:
 WebUI がホスト側の：
 
 ```text
-/root/qbittorrent/config/weig_qb-webui
+/root/qbittorrent/config/weig-qb-webui
 ```
 
 にある場合、qBittorrent の **ファイルの場所:** には：
 
 ```text
-/config/weig_qb-webui
+/config/weig-qb-webui
 ```
 
 を指定します。ホストパスをそのまま指定しないでください。
@@ -195,7 +240,7 @@ WebUI がホスト側の：
 #### 1つだけ qBittorrent コンテナーがある場合
 
 ```sh
-curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o weig_qb-webui_install.sh && sh weig_qb-webui_install.sh -configure
+curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.sh -o install.sh && sh install.sh -configure
 ```
 
 インストーラーが実行中の qBittorrent コンテナーと `/config` マウントを検出し、適切なホスト側の場所へ WebUI を配置して設定を行います。
@@ -203,7 +248,7 @@ curl -fsSL https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.s
 #### コンテナー名を確認する
 
 ```sh
-sh weig_qb-webui_install.sh --list-containers
+sh install.sh --list-containers
 ```
 
 Docker 自体でも確認できます。
@@ -215,7 +260,7 @@ docker ps
 名前が `qbittorrent` の場合：
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -configure
+sh install.sh --container=qbittorrent -configure
 ```
 
 #### 複数の qBittorrent コンテナーがある場合
@@ -228,19 +273,19 @@ qbittorrent-test
 まず一覧を表示：
 
 ```sh
-sh weig_qb-webui_install.sh --list-containers
+sh install.sh --list-containers
 ```
 
 使用するコンテナーを明示します。
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -configure
+sh install.sh --container=qbittorrent -configure
 ```
 
 テスト用なら：
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent-test -configure
+sh install.sh --container=qbittorrent-test -configure
 ```
 
 複数ある場合、インストーラーは勝手に選択しません。
@@ -248,19 +293,19 @@ sh weig_qb-webui_install.sh --container=qbittorrent-test -configure
 #### ホスト側の `/config` ディレクトリが分かっている場合
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/root/qbittorrent/config -configure
+sh install.sh --config-root=/root/qbittorrent/config -configure
 ```
 
 Synology の例：
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/volume1/docker/qbittorrent -configure
+sh install.sh --config-root=/volume1/docker/qbittorrent -configure
 ```
 
 その他の NAS の例：
 
 ```sh
-sh weig_qb-webui_install.sh --config-root=/share/Container/qbittorrent -configure
+sh install.sh --config-root=/share/Container/qbittorrent -configure
 ```
 
 実際の環境のパスへ置き換えてください。
@@ -268,37 +313,63 @@ sh weig_qb-webui_install.sh --config-root=/share/Container/qbittorrent -configur
 #### WebUI のパスを指定する
 
 ```sh
-sh weig_qb-webui_install.sh --container=qbittorrent -o /config/weig_qb-webui -configure
+sh install.sh --container=qbittorrent -o /config/weig-qb-webui -configure
 ```
 
 インストーラーが `/config/...` を対応するホスト側パスへ変換します。
+
+#### ケース 6：既存の WebUI を複数まとめて更新
+
+qBittorrent を複数運用している場合は `-o` を繰り返し指定できます。パッケージのダウンロードと検証は一度だけ行い、すべてのターゲットを準備してから切り替えます。バックアップは `~/.config/weig-qb-webui/backups/` に対象ごとに直近 3 件ずつ保存します。
+
+```sh
+sh install.sh -dev \
+  -o /root/qbittorrent/config/weig-qb-webui \
+  -o /root/qbittorrent3/config/weig-qb-webui
+```
+
+複数ターゲットの場合は `-configure` を付けないでください。各インスタンスは既存の WebUI パスを使い続けます。詳しくは `sh install.sh -help` をご覧ください。
+
+#### インストール後の確認
+
+成功すると、次のようなパスが表示されます。前者はホストの保存先、後者は qBittorrent の「Files location」に指定するコンテナー内のパスです。
+
+```text
+Host install path: /root/qbittorrent/config/weig-qb-webui
+qBittorrent Root Folder: /config/weig-qb-webui
+```
 
 </details>
 
 ### Windows PowerShell
 
 ```powershell
-Invoke-WebRequest https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.ps1 -OutFile .\weig_qb-webui_install.ps1; powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -configure
+Invoke-WebRequest https://weigefenxiang.github.io/WeiG-qB-WebUI/downloads/dev/install.ps1 -OutFile .\install.ps1; powershell -ExecutionPolicy Bypass -File .\install.ps1 -configure
 ```
 
 <details>
 <summary><b>インストール先を表示</b></summary>
 
 ```text
-C:\Users\<ユーザー名>\AppData\Local\WeiG_qB-WebUI
+C:\Users\<ユーザー名>\AppData\Local\weig-qb-webui
 ```
 
 </details>
 
 ## よく使うオプション
+
+<details>
+<summary><b>Linux と Windows でオプション名は共通です。PowerShell は大文字・小文字を区別しません（クリックして展開）</b></summary>
+
 PowerShell のパラメーター名は大文字・小文字を区別しません。
 
 | 用途 | Linux / Docker / NAS | Windows PowerShell |
 |---|---|---|
 | 最新正式版 | 既定、引数不要 | 既定、引数不要 |
-| 正式版を指定 | `-version 1.0.0` | `-version 1.0.0` |
+| 正式版を指定 | `-version 1.2.0` | `-version 1.2.0` |
 | 開発版 | `-dev` | `-dev` |
-| インストール先を指定 | `-o /path` または `-o /path` | `-o D:\path` または `-output D:\path` |
+| インストール先を指定 | `-o /path` （Linux では複数指定可） | `-o D:\path` または `-output D:\path` |
+| qBittorrent の設定ファイルを指定 | — | `-qbconfig D:\path\qBittorrent.ini` |
 | qBittorrent を自動設定 | `-configure` | `-configure` |
 | 前回のインストールへ戻す | `-rollback` | `-rollback` |
 | 完全アンインストール（バックアップを残さない） | `-uninstall -purge` | `-uninstall -purge` |
@@ -307,25 +378,34 @@ PowerShell のパラメーター名は大文字・小文字を区別しません
 | Docker コンテナー一覧 | `--list-containers` | — |
 | Docker `/config` のホストパス指定 | `--config-root=/path` | — |
 
+</details>
+
 <details>
 <summary><b>説明：（クリックして展開）</b></summary>
 
-- `-version` で存在しない Release を指定した場合、latest や dev へ自動フォールバックしません。
-- `-dev` なし：最新の安定版をインストール。`-dev` あり：現在の `dev` ブランチの最新開発版をインストール。
-- `-configure` はインストール前の qBittorrent 設定をバックアップしてから Alternate WebUI を設定します。
+- `-dev` がなければ `main` の検証済み GitHub Release、あれば現在の `dev` を exact SHA で指定した開発版をインストールします。
+- `-o` は **output** の略。Linux では繰り返し指定でき、複数の既存 WebUI を一度のダウンロードで更新できます。
+- バックアップは `~/.config/weig-qb-webui/backups/` に保存され、インストール先ごとに直近 3 件のみ保持します。
+- `-configure` は qBittorrent の **Use alternative WebUI** と **Files location** を設定します。複数ターゲットとの併用はできません。
+- `-rollback` で選択先の最新バックアップに戻せます。`-o` を繰り返せば複数の明示した対象もまとめてロールバックできます。
+- `-uninstall -purge` は対象の WebUI、バックアップ、ロールバック情報を削除します。ほかのインストール先には影響せず、共有状態ディレクトリも空になれば削除します。
+- 後で `-rollback` する可能性があるなら、アンインストール時は `-purge` を外してください。
+- `-version 1.2.0` のように GitHub Release を指定できます。存在しなければエラーとなり、**latest や dev には自動的に切り替わりません**。
+- `-help` で現在利用できるオプションを確認できます。
+- Docker コンテナーが複数なら `--list-containers` で確認し、`--container=NAME` で選択します。ホスト側の設定ディレクトリが分かれば `--config-root=/path` も使えます。
 
 ### バージョンと保存先を同時指定
 
 Linux：
 
 ```sh
-sh weig_qb-webui_install.sh -version 1.0.0 -o /opt/weig_qb-webui -configure
+sh install.sh -version 1.2.0 -o /opt/weig-qb-webui -configure
 ```
 
 Windows：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -version 1.0.0 -o D:\WeiG_qB-WebUI -configure
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -version 1.2.0 -o D:\weig-qb-webui -configure
 ```
 
 ### ロールバック
@@ -333,13 +413,13 @@ powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -version 1.
 Linux：
 
 ```sh
-sh weig_qb-webui_install.sh -rollback
+sh install.sh -rollback
 ```
 
 Windows：
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -rollback
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -rollback
 ```
 
 </details>
@@ -354,40 +434,40 @@ powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -rollback
 ### Linux / NAS
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge && rm -f -- ./install.sh
 ```
 
-カスタムインストール先では `-o /path/to/weig_qb-webui` を追加してください。
+カスタムインストール先では `-o /path/to/weig-qb-webui` を追加してください。
 
 ### Docker
 
 単一コンテナを自動検出：
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge && rm -f -- ./install.sh
 ```
 
 複数コンテナ：
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge --container=qbittorrent && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge --container=qbittorrent && rm -f -- ./install.sh
 ```
 
 `--config-root` を使う場合：
 
 ```sh
-sh weig_qb-webui_install.sh -uninstall -configure -purge --config-root=/path/to/qbittorrent/config && rm -f -- ./weig_qb-webui_install.sh
+sh install.sh -uninstall -configure -purge --config-root=/path/to/qbittorrent/config && rm -f -- ./install.sh
 ```
 
 ### Windows PowerShell
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\weig_qb-webui_install.ps1 -uninstall -configure -purge; if ($LASTEXITCODE -eq 0) { Remove-Item .\weig_qb-webui_install.ps1 -Force }
+powershell -ExecutionPolicy Bypass -File .\install.ps1 -uninstall -configure -purge; if ($LASTEXITCODE -eq 0) { Remove-Item .\install.ps1 -Force }
 ```
 
-カスタムインストール先では `-o D:\WeiG_qB-WebUI` を追加してください。
+カスタムインストール先では `-o D:\weig-qb-webui` を追加してください。
 
-`-purge` は現在のアンインストール対象に属するバックアップだけを削除し、他のインストールには触れません。共有状態ディレクトリが空になれば、Linux の `~/.config/weig_qb-webui`（root は `/root/.config/weig_qb-webui`）または Windows の `%APPDATA%\WeiG_qB-WebUI` も削除されます。
+`-purge` は現在のアンインストール対象に属するバックアップだけを削除し、他のインストールには触れません。共有状態ディレクトリが空になれば、Linux の `~/.config/weig-qb-webui`（root は `/root/.config/weig-qb-webui`）または Windows の `%APPDATA%\weig-qb-webui` も削除されます。
 
 後で `-rollback` できるようバックアップを残す場合は、`-purge` を外してください。
 
