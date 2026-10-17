@@ -14,36 +14,43 @@ The mapping term is the **existing language-neutral route** (for example,
 - giscus `data-lang` and the existing language switcher are unchanged.
 - No database, third-party script, or second locale/slug registry is needed.
 
-## Migration required **before** deploying
+## Rollout and historical comment preservation
 
-Changing the mapping alone **does not move comments**. GitHub Discussions
-are the source of truth and existing replies must not be deleted.
+Changing giscus mapping does **not** move or delete GitHub comments. The
+matching Discussion must be verified, and existing replies must be preserved.
 
-1. Review [GitHub Discussions](https://github.com/weigefenxiang/weige-share-blog/discussions).
-   The user supplied a screenshot verifying
-   [Discussion #10](https://github.com/weigefenxiang/weige-share-blog/discussions/10):
-   title `zh-CN/posts/WeiG-OpenWrt-AutoBuild-Guide/`, category `Comments`,
-   1 comment from GXLCLC and 1 reply from the maintainer.
-   Preserve this exact Discussion ID, its body and all replies.
-   Before switching mapping, review other-language Discussions for this
-   same article; if any contain comments, preserve and cross-link them.
-   Record the discussion URL/number, title, and reply count for every
-   article and language. The prior giscus setting was `pathname`, so the
-   Chinese discussion for the guide is likely titled
-   `zh-CN/posts/WeiG-OpenWrt-AutoBuild-Guide/` (verify the actual title).
-2. For each article, choose the **existing** Discussion that contains the
-   historical conversation. Back up its URL and current title, then edit its
-   title to the exact neutral term, e.g.
-   `posts/WeiG-OpenWrt-AutoBuild-Guide/`. Keep the same Discussion number
-   and all its replies. Do not create a new Discussion as a substitute.
-3. If multiple localized Discussions already contain replies, **stop** and
-   decide how to preserve them. GitHub does not merge Discussion comments
-   automatically; do not delete any. Consider cross-linking old threads.
-4. Keep `data-strict: '0'` initially. Enabling strict matching may require
-   updating discussion-body SHA-1 markers; it is a separate migration.
-5. Only deploy the code after titles have been reconciled. On the live site,
-   verify that the same Discussion URL and existing replies appear from
-   `/posts/...`, `/zh-CN/posts/...`, `/ja/posts/...` and the other locales.
+1. The owner confirmed [Discussion #10](https://github.com/weigefenxiang/weige-share-blog/discussions/10)
+   in a screenshot. Its title is
+   `zh-CN/posts/WeiG-OpenWrt-AutoBuild-Guide/`, category `Comments`;
+   it contains **1 comment from GXLCLC and 1 maintainer reply**.
+   Keep the exact Discussion number, body, replies and authors.
+2. Before rollout, inspect the [Discussions listing](https://github.com/weigefenxiang/weige-share-blog/discussions)
+   for discussions about the same article in other languages. If any already
+   contain replies, preserve them; do not silently merge/delete them.
+3. **Do not rename #10 yet.** With `data-strict: '0'`, giscus searches
+   Discussion titles using `in:title` and the specified term. The existing
+   Chinese title already **contains** the neutral term
+   `posts/WeiG-OpenWrt-AutoBuild-Guide/`, so a non-strict search may find
+   #10 without any rename. GitHub search behavior is fuzzy, and collisions
+   from other discussions are possible: this is a hypothesis to validate,
+   not a guarantee.
+4. Prepare the rollout in a quiet window. Deploy the change and immediately
+   verify on the live English, Chinese and Japanese URLs that the giscus
+   widget opens **the existing Discussion #10** and shows GXLCLC's
+   comment and the maintainer reply. Inspect other translated posts as well.
+   Do not submit test comments or reactions until existing identity is checked.
+5. If the existing discussion is **not** selected, pause; avoid creating new
+   discussions. Coordinate a brief fix/rollback. If necessary, **rename**
+   the existing Discussion #10 title to the exact neutral term
+   `posts/WeiG-OpenWrt-AutoBuild-Guide/` while preserving its ID/body/replies,
+   then verify live again. Renaming is optional if #10 already resolves.
+6. Keep `data-strict: '0'` during the rollout. Switching to strict matching
+   additionally requires ensuring the Discussion body contains the correct
+   SHA-1 marker, and should be a separate change.
+
+The original Chinese backlink in #10's body can remain; new discussions get
+the canonical-language backlink automatically. No Discussion titles or
+comments are changed by this code-only PR.
 
 ## Validation
 
