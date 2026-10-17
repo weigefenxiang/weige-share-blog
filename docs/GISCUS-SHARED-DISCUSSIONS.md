@@ -20,10 +20,13 @@ Changing the mapping alone **does not move comments**. GitHub Discussions
 are the source of truth and existing replies must not be deleted.
 
 1. Review [GitHub Discussions](https://github.com/weigefenxiang/weige-share-blog/discussions).
-   The user supplied [Discussion #10](https://github.com/weigefenxiang/weige-share-blog/discussions/10)
-   as a candidate existing Chinese thread. **Its title, article identity, and replies
-   are not yet verified** because the available connector does not support
-   reading Discussions. Do not rename it until visually confirmed.
+   The user supplied a screenshot verifying
+   [Discussion #10](https://github.com/weigefenxiang/weige-share-blog/discussions/10):
+   title `zh-CN/posts/WeiG-OpenWrt-AutoBuild-Guide/`, category `Comments`,
+   1 comment from GXLCLC and 1 reply from the maintainer.
+   Preserve this exact Discussion ID, its body and all replies.
+   Before switching mapping, review other-language Discussions for this
+   same article; if any contain comments, preserve and cross-link them.
    Record the discussion URL/number, title, and reply count for every
    article and language. The prior giscus setting was `pathname`, so the
    Chinese discussion for the guide is likely titled
