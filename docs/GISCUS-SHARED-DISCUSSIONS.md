@@ -20,6 +20,10 @@ Changing the mapping alone **does not move comments**. GitHub Discussions
 are the source of truth and existing replies must not be deleted.
 
 1. Review [GitHub Discussions](https://github.com/weigefenxiang/weige-share-blog/discussions).
+   The user supplied [Discussion #10](https://github.com/weigefenxiang/weige-share-blog/discussions/10)
+   as a candidate existing Chinese thread. **Its title, article identity, and replies
+   are not yet verified** because the available connector does not support
+   reading Discussions. Do not rename it until visually confirmed.
    Record the discussion URL/number, title, and reply count for every
    article and language. The prior giscus setting was `pathname`, so the
    Chinese discussion for the guide is likely titled
