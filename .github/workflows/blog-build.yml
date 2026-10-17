@@ -1,0 +1,30 @@
+name: Validate multilingual blog
+
+on:
+  pull_request:
+    paths:
+      - 'themes/butterfly/layout/includes/third-party/comments/giscus.pug'
+      - 'scripts/hreflang.js'
+      - 'tools/build-multilang.js'
+      - 'docs/GISCUS-SHARED-DISCUSSIONS.md'
+      - '.github/workflows/blog-build.yml'
+      - 'source/**'
+      - 'source-i18n/**'
+      - '_config*.yml'
+      - 'package*.json'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build

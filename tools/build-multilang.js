@@ -239,6 +239,17 @@ function validateBuild (build, meta, englishTitles) {
       throw new Error('Wrong article html lang in ' + build.name + ': ' + slug)
     }
 
+    // The giscus component reuses x-default instead of maintaining a second
+    // locale/slug mapping. Assert the route and backlink in every built locale.
+    const canonical = articleHtml.match(/<link rel="alternate" hreflang="x-default" href="([^"]+)">/)
+    const backlink = articleHtml.match(/<meta name="giscus:backlink" content="([^"]+)">/)
+    const expectedPath = '/posts/' + slug + '/'
+    if (!canonical || !backlink ||
+        new URL(canonical[1]).pathname !== expectedPath ||
+        backlink[1] !== canonical[1]) {
+      throw new Error('Wrong shared giscus identity for ' + build.name + ': ' + slug)
+    }
+
     if (build.code !== 'en' && englishTitles[slug] &&
         localizedTitle !== englishTitles[slug] &&
         (homeHtml.includes(englishTitles[slug]) || articleHtml.includes(englishTitles[slug]))) {

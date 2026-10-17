@@ -54,5 +54,10 @@ hexo.extend.filter.register('after_render:html', function (html, data) {
   }
   links.push(`<link rel="alternate" hreflang="x-default" href="${base}${route}">`)
 
+  // New giscus discussions should point back to the language-neutral article.
+  if (route.startsWith('/posts/')) {
+    links.push(`<meta name="giscus:backlink" content="${base}${route}">`)
+  }
+
   return html.replace('</head>', links.join('\n') + '\n</head>')
 })
