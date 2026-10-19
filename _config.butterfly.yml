@@ -1055,7 +1055,6 @@ inject:
     # - <link rel="stylesheet" href="/xxx.css">
   bottom:
     - <script src="/js/language-switcher.js"></script>
-    - <script src="/js/giscus-layout-stability.js" defer></script>
     # - <script src="xxxx"></script>
 
 # CDN Settings

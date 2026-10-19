@@ -31,6 +31,5 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-      - run: node --test tools/test-giscus-layout-stability.cjs
       - run: npm ci
       - run: npm run build
