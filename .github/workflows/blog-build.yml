@@ -1,8 +1,13 @@
 name: Validate multilingual blog
 
 on:
+  push:
+    branches: [dev]
   pull_request:
     paths:
+      - 'giscus.json'
+      - 'themes/butterfly/layout/includes/third-party/comments/index.pug'
+      - 'themes/butterfly/source/css/_layout/comments.styl'
       - 'themes/butterfly/layout/includes/third-party/comments/giscus.pug'
       - 'scripts/hreflang.js'
       - 'tools/build-multilang.js'

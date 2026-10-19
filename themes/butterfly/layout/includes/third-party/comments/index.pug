@@ -1,12 +1,13 @@
 - let defaultComment = theme.comments.use[0]
 hr.custom-hr
-#post-comment
-  .comment-head
+details#post-comment(open)
+  summary.comment-head
     .comment-headline
       i.fas.fa-comments.fa-fw
       span= ' ' + _p('comment')
 
-    if theme.comments.use.length > 1
+  if theme.comments.use.length > 1
+    .comment-head
       .comment-switch
         span.first-comment=defaultComment
         span#switch-btn

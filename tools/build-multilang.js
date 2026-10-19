@@ -250,6 +250,14 @@ function validateBuild (build, meta, englishTitles) {
       throw new Error('Wrong shared giscus identity for ' + build.name + ': ' + slug)
     }
 
+    // Native disclosure must preserve one giscus host for every localized article.
+    const commentDisclosure = articleHtml.match(/<details\b[^>]*\bid="post-comment"[^>]*>/)
+    if (!commentDisclosure || !/\bopen(?:\s|=|>)/.test(commentDisclosure[0]) ||
+        !/<summary\b[^>]*\bclass="comment-head"/.test(articleHtml) ||
+        (articleHtml.match(/\bid="giscus-wrap"/g) || []).length !== 1) {
+      throw new Error('Broken native giscus disclosure for ' + build.name + ': ' + slug)
+    }
+
     if (build.code !== 'en' && englishTitles[slug] &&
         localizedTitle !== englishTitles[slug] &&
         (homeHtml.includes(englishTitles[slug]) || articleHtml.includes(englishTitles[slug]))) {
@@ -281,6 +289,11 @@ const selected = requested ? builds.filter(item => item.code === requested) : bu
 if (requested && selected.length === 0) {
   console.error('Unknown locale: ' + requested)
   process.exit(2)
+}
+
+const giscusConfig = JSON.parse(fs.readFileSync(path.join(root, 'giscus.json'), 'utf8'))
+if (giscusConfig.defaultCommentOrder !== 'newest') {
+  throw new Error('giscus.json must configure newest-first comments')
 }
 
 for (const build of selected) {
