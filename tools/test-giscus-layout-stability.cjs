@@ -98,7 +98,16 @@ test('page unload detaches listeners and pending state', () => {
   const page = setup()
   page.message(1000)
   page.message(100)
-  page.listeners.get('pagehide')?.()
+  page.listeners.get('pagehide')?.({ persisted: false })
   assert.equal(page.listeners.has('message'), false)
   assert.equal(page.pending(), 0)
+})
+
+test('back-forward cache navigation preserves live resize handling', () => {
+  const page = setup()
+  page.message(4897)
+  page.listeners.get('pagehide')?.({ persisted: true })
+  assert.equal(page.listeners.has('message'), true)
+  page.message(2648)
+  assert.equal(page.host.style.minHeight, '4897px')
 })

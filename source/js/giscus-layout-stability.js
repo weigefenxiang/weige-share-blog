@@ -41,7 +41,9 @@
   }
 
   window.addEventListener('message', onGiscusMessage)
-  window.addEventListener('pagehide', () => {
+  window.addEventListener('pagehide', event => {
+    // A bfcache page resumes without rerunning scripts; keep its listener.
+    if (event.persisted) return
     window.removeEventListener('message', onGiscusMessage)
     if (settleTimer !== null) clearTimeout(settleTimer)
   }, { once: true })

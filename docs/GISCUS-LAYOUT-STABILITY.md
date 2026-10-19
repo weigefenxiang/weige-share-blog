@@ -8,8 +8,8 @@ its image-heavy GitHub Discussions thread revalidates after returning to a tab).
 Only messages sent from the actual `iframe.giscus-frame` and the origin
 of that iframe are used; there is no cross-origin DOM access. Temporary
 decreases are held for 3 seconds after the last decrease, while increases are
-applied immediately. Sustained decreases are eventually applied. Page unload
-removes the listener and timer.
+applied immediately. Sustained decreases are eventually applied. Full page unload
+removes the listener and timer; back-forward cache suspensions retain them.
 
 The script is attached through Butterfly's existing `inject.bottom` setting.
 It does not fork or modify the theme or Giscus, change comment fetching or
