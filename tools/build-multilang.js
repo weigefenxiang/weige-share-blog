@@ -258,6 +258,10 @@ function validateBuild (build, meta, englishTitles) {
       throw new Error('Broken native giscus disclosure for ' + build.name + ': ' + slug)
     }
 
+    if (!articleHtml.includes('/js/giscus-layout-stability.js')) {
+      throw new Error('Missing giscus layout stability script for ' + build.name + ': ' + slug)
+    }
+
     if (build.code !== 'en' && englishTitles[slug] &&
         localizedTitle !== englishTitles[slug] &&
         (homeHtml.includes(englishTitles[slug]) || articleHtml.includes(englishTitles[slug]))) {
@@ -359,6 +363,7 @@ try {
   if (!process.exitCode && (!requested || selected[0].code === 'en')) {
     assertFile(path.join(publicDir, 'css', 'language-switcher.css'), 'Missing language switcher CSS')
     assertFile(path.join(publicDir, 'js', 'language-switcher.js'), 'Missing language switcher JS')
+    assertFile(path.join(publicDir, 'js', 'giscus-layout-stability.js'), 'Missing giscus layout stability JS')
   }
 } finally {
   cleanHexoState()
