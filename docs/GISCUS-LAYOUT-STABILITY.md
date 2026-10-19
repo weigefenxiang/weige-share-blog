@@ -1,9 +1,14 @@
 # Giscus layout stability on the blog
 
 ## Scope
-`giscus-layout-stability.js` reserves the height of `#giscus-wrap` while
+`giscus-layout-stability.js` reserves the actual `iframe.giscus-frame` height inside `#giscus-wrap` while
 Giscus temporarily reports a smaller cross-origin iframe height (e.g. when
 its image-heavy GitHub Discussions thread revalidates after returning to a tab).
+
+The parent container alone is not enough: Giscus also writes the iframe's
+inline `height`. A CSS `min-height` on the iframe itself prevents its rendered
+box from shrinking during temporary revalidation. This stabilizes the host
+layout but cannot prevent re-fetching or repainting the image content.
 
 Only messages sent from the actual `iframe.giscus-frame` and the origin
 of that iframe are used; there is no cross-origin DOM access. Temporary

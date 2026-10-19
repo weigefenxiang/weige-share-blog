@@ -11,7 +11,7 @@ function setup ({ hasHost = true } = {}) {
   const listeners = new Map()
   let id = 0
   let pending = new Map()
-  const frame = { src: 'https://giscus.app/zh-CN/widget', contentWindow: {} }
+  const frame = { src: 'https://giscus.app/zh-CN/widget', contentWindow: {}, style: {} }
   const host = { style: {}, querySelector: () => frame }
   const window = {
     addEventListener: (type, fn) => listeners.set(type, fn),
@@ -32,6 +32,7 @@ function setup ({ hasHost = true } = {}) {
   })
   return {
     host,
+    frame,
     listeners,
     message: (height, options = {}) => listeners.get('message')?.({
       source: options.source || frame.contentWindow,
@@ -50,22 +51,22 @@ function setup ({ hasHost = true } = {}) {
 test('normal growth reserves the complete comment height', () => {
   const page = setup()
   page.message(2969.3)
-  assert.equal(page.host.style.minHeight, '2970px')
+  assert.equal(page.frame.style.minHeight, '2970px')
   page.message(4897)
-  assert.equal(page.host.style.minHeight, '4897px')
+  assert.equal(page.frame.style.minHeight, '4897px')
 })
 
 test('focus revalidation cannot collapse the host while images reload', () => {
   const page = setup()
   page.message(4897)
   page.message(2648)
-  assert.equal(page.host.style.minHeight, '4897px')
+  assert.equal(page.frame.style.minHeight, '4897px')
   page.message(2969)
   page.message(3933)
-  assert.equal(page.host.style.minHeight, '4897px')
+  assert.equal(page.frame.style.minHeight, '4897px')
   page.message(4897)
   page.settle()
-  assert.equal(page.host.style.minHeight, '4897px')
+  assert.equal(page.frame.style.minHeight, '4897px')
   assert.equal(page.pending(), 0)
 })
 
@@ -74,9 +75,9 @@ test('sustained genuine shrinking is applied after settling', () => {
   page.message(5000)
   page.message(4000)
   page.message(3600)
-  assert.equal(page.host.style.minHeight, '5000px')
+  assert.equal(page.frame.style.minHeight, '5000px')
   page.settle()
-  assert.equal(page.host.style.minHeight, '3600px')
+  assert.equal(page.frame.style.minHeight, '3600px')
 })
 
 test('untrusted messages and invalid dimensions are ignored', () => {
@@ -86,7 +87,7 @@ test('untrusted messages and invalid dimensions are ignored', () => {
   page.message(3000, { source: {} })
   page.message(Number.NaN)
   page.message(-100)
-  assert.equal(page.host.style.minHeight, '1000px')
+  assert.equal(page.frame.style.minHeight, '1000px')
 })
 
 test('no comment container means no listener', () => {
@@ -103,11 +104,19 @@ test('page unload detaches listeners and pending state', () => {
   assert.equal(page.pending(), 0)
 })
 
+test('clamp is applied to actual iframe, not empty padding in its parent', () => {
+  const page = setup()
+  page.message(4850)
+  page.message(2601)
+  assert.equal(page.frame.style.minHeight, '4850px')
+  assert.equal(page.host.style.minHeight, undefined)
+})
+
 test('back-forward cache navigation preserves live resize handling', () => {
   const page = setup()
   page.message(4897)
   page.listeners.get('pagehide')?.({ persisted: true })
   assert.equal(page.listeners.has('message'), true)
   page.message(2648)
-  assert.equal(page.host.style.minHeight, '4897px')
+  assert.equal(page.frame.style.minHeight, '4897px')
 })

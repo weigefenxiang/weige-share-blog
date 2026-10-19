@@ -1,6 +1,8 @@
 /*
- * Keep the host document stable while giscus revalidates image-heavy comments.
+ * Keep the giscus iframe itself at its last stable height during image revalidation.
  * Giscus is cross-origin: listen to its resize message, never inspect the iframe.
+ * Giscus controls iframe.style.height; clamping the containing div alone does
+ * not prevent the iframe from shrinking and moving its content.
  * A sustained resize is applied after a short settle window so genuine changes
  * (e.g. hiding replies) remain possible; temporary collapses do not move the page.
  */
@@ -29,13 +31,13 @@
 
     if (latestHeight >= reservedHeight) {
       reservedHeight = latestHeight
-      host.style.minHeight = `${reservedHeight}px`
+      frame.style.minHeight = `${reservedHeight}px`
       return
     }
 
     settleTimer = setTimeout(() => {
       reservedHeight = latestHeight
-      host.style.minHeight = `${reservedHeight}px`
+      frame.style.minHeight = `${reservedHeight}px`
       settleTimer = null
     }, settleDelayMs)
   }
