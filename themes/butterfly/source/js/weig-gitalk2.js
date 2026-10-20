@@ -108,8 +108,7 @@
     const parentButton = parent && topLevelReplyButton(parent);
     if (!parentButton) return;
 
-    const login = button.dataset.weigReplyLogin;
-    if (!login) return;
+    const login = button.dataset.weigReplyLogin || '';
     const request = ++nestedReplyRequest;
 
     // Clicking an already-open parent reply button would CLOSE that editor.
@@ -125,6 +124,7 @@
         if (remainingFrames > 0) requestAnimationFrame(() => insertMention(remainingFrames - 1));
         return;
       }
+      if (!login) { editor.focus({ preventScroll: true }); return; }
       const mention = '@' + login + ' ';
       const current = editor.value;
       if (!current.includes(mention)) {
@@ -149,6 +149,46 @@
     nestedReplyObserver?.disconnect();
     nestedReplyHost = host;
 
+    // Gitalk beta builds do not all produce an action bar for nested replies.
+    // Detect nesting from the reply list, not from an optional child class,
+    // and create the row's action bar ourselves when it is missing.
+    function addNestedButtons() {
+      if (nestedReplyHost !== host || !host.isConnected) return;
+      const nestedRows = host.querySelectorAll('.gt-comment-replies .gt-comment');
+      for (const row of nestedRows) {
+        const replyList = row.closest('.gt-comment-replies');
+        const parent = replyList?.closest('.gt-comment');
+        if (!parent || row === parent || row.querySelector('.weig-gitalk2-nested-reply')) continue;
+
+        const parentButton = topLevelReplyButton(parent) ||
+          parent.querySelector('.gt-comment-actions .gt-comment-reply:not(.weig-gitalk2-nested-reply)');
+        if (!parentButton) continue;
+
+        const content = row.querySelector('.gt-comment-main .gt-comment-content') ||
+          row.querySelector('.gt-comment-content');
+        if (!content) continue;
+
+        let actions = content.querySelector('.gt-comment-actions');
+        if (!actions) {
+          actions = document.createElement('div');
+          actions.className = 'gt-comment-actions c-acts';
+          content.appendChild(actions);
+        }
+
+        const author = row.querySelector('.gt-comment-header .gt-comment-username');
+        const login = githubLogin(author);
+        const label = parentButton.textContent.trim() || '回复';
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'gt-comment-reply act weig-gitalk2-nested-reply';
+        button.textContent = label;
+        button.title = login ? label + ' @' + login : label;
+        button.setAttribute('aria-label', button.title);
+        if (login) button.dataset.weigReplyLogin = login;
+        actions.appendChild(button);
+      }
+    }
+
     host.addEventListener('click', (event) => {
       const button = event.target.closest?.('.weig-gitalk2-nested-reply');
       if (!button || !host.contains(button)) return;
@@ -156,34 +196,6 @@
       event.stopPropagation();
       replyToNestedComment(button);
     });
-
-    function addNestedButtons() {
-      if (nestedReplyHost !== host || !host.isConnected) return;
-      const nestedRows = host.querySelectorAll('.gt-comment-reply-item');
-      for (const row of nestedRows) {
-        const parent = row.closest('.gt-comment-replies')?.closest('.gt-comment');
-        const parentButton = parent && topLevelReplyButton(parent);
-        const actions = row.querySelector(
-          ':scope > .gt-comment-main > .gt-comment-content > .gt-comment-actions'
-        );
-        if (!parentButton || !actions || actions.querySelector('.weig-gitalk2-nested-reply')) continue;
-        const author = row.querySelector(
-          ':scope > .gt-comment-main > .gt-comment-content > .gt-comment-header > .gt-comment-username'
-        );
-        const login = githubLogin(author);
-        const label = parentButton.textContent.trim() || '回复';
-        const button = document.createElement('button');
-        button.type = 'button';
-        // Reuse the upstream Gitalk control styling (including dark mode).
-        button.className = 'gt-comment-reply act weig-gitalk2-nested-reply';
-        button.textContent = label;
-        button.title = label + ' @' + (login || author?.textContent?.trim() || '');
-        button.setAttribute('aria-label', button.title);
-        if (login) button.dataset.weigReplyLogin = login;
-        else button.disabled = true;
-        actions.appendChild(button);
-      }
-    }
 
     const schedule = () => {
       if (nestedReplyScanPending) return;
@@ -195,7 +207,7 @@
     };
     nestedReplyObserver = new MutationObserver(schedule);
     nestedReplyObserver.observe(host, { childList: true, subtree: true });
-    schedule();
+    addNestedButtons();
   }
 
   // Event delegation: Gitalk re-renders comments asynchronously, so never
