@@ -183,26 +183,30 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 
 - **每一位**参与的小伙伴
 
-
-<!-- WeiG experimental Gitalk 2.x comparison; ONLY on dev-gitalk2-eval branch. -->
-<section id="wg-gitalk2-eval" aria-label="Gitalk 2.x 实验评论区">
-  <h2>评论交流 · Gitalk 2.x 实验版</h2>
-  <p class="wg-gt-notice">测试环境：读取原有 <a href="https://github.com/weigefenxiang/weige-share-blog/discussions/10" rel="noopener noreferrer" target="_blank">GitHub Discussion #10</a>。当前只读，不支持登录或发表新评论。正式博客仍使用 giscus。</p>
-  <div class="wg-gt-status" id="wg-gt-status" role="status" aria-live="polite">正在载入 Gitalk 2.x ……</div>
-  <div class="wg-gt-metrics">
-    <span>切回标签 <b id="wg-gt-focus">0</b></span>
-    <span>顶层评论 <b id="wg-gt-top">0</b></span>
-    <span>回复 <b id="wg-gt-replies">0</b></span>
-    <span>正文图片 <b id="wg-gt-images">0</b></span>
-    <span>图片重建 <b id="wg-gt-rebuild">0</b></span>
-  </div>
-  <div class="wg-gt-actions">
-    <button type="button" id="wg-gt-export">导出测试 JSON</button>
-    <button type="button" id="wg-gt-reset">开始新一轮统计</button>
-  </div>
+<!-- Gitalk 2.x pilot — isolated dev-gitalk2-eval branch only; no upstream discussion writes until OAuth. -->
+<section id="wg-gitalk2-eval" aria-label="文章评论">
+  <h2>评论交流</h2>
+  <div id="wg-gt-auth-state" role="status" aria-live="polite">正在准备 GitHub 评论区……</div>
   <div id="gitalk-container"><p>正在加载 GitHub Discussions……</p></div>
+  <details class="wg-gt-diagnostics" id="wg-gt-diagnostics">
+    <summary>开发诊断（仅测试分支）</summary>
+    <p>当前使用原有 <a href="https://github.com/weigefenxiang/weige-share-blog/discussions/10" rel="noopener noreferrer" target="_blank">Discussion #10</a>。测试日志不包含评论文字、图片签名参数或登录凭据。</p>
+    <div class="wg-gt-status" id="wg-gt-status" role="status" aria-live="polite">正在初始化诊断……</div>
+    <div class="wg-gt-metrics">
+      <span>切回标签 <b id="wg-gt-focus">0</b></span>
+      <span>顶层评论 <b id="wg-gt-top">0</b></span>
+      <span>回复 <b id="wg-gt-replies">0</b></span>
+      <span>正文图片 <b id="wg-gt-images">0</b></span>
+      <span>图片重建 <b id="wg-gt-rebuild">0</b></span>
+    </div>
+    <div class="wg-gt-actions">
+      <button type="button" id="wg-gt-export">导出测试 JSON</button>
+      <button type="button" id="wg-gt-reset">开始新一轮统计</button>
+    </div>
+  </details>
 </section>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.css">
 <link rel="stylesheet" href="/zh-CN/gitalk2-eval/article-eval.css">
+<script defer src="/zh-CN/gitalk2-eval/runtime-config.js"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.js" onerror="window.__wgGitalkArticleBundleFailed = true"></script>
 <script defer src="/zh-CN/gitalk2-eval/article-eval.js"></script>

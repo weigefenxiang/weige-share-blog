@@ -16,7 +16,8 @@
     "build:fr": "node tools/build-multilang.js fr",
     "build:es": "node tools/build-multilang.js es",
     "build:pt": "node tools/build-multilang.js pt",
-    "build:ru": "node tools/build-multilang.js ru"
+    "build:ru": "node tools/build-multilang.js ru",
+    "postbuild": "node tools/render-gitalk2-auth-config.cjs"
   },
   "hexo": {
     "version": "7.3.0"

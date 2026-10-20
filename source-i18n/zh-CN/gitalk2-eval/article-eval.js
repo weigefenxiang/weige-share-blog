@@ -71,19 +71,52 @@
     records.length = 0; totals.returns = 0; totals.added = 0; totals.removed = 0
     add('reset', counts()); update()
   })
+  // Only public parameters are injected at build time. App secret, private key
+  // and session encryption key MUST stay in the Gitalk Cloudflare Worker.
+  const publicConfig = window.__WEIG_GITALK_PUBLIC_CONFIG__ || {}
+  const authReady = publicConfig.enabled === true &&
+    typeof publicConfig.clientID === 'string' &&
+    /^Iv[a-z0-9_-]{4,128}$/i.test(publicConfig.clientID) &&
+    typeof publicConfig.proxy === 'string' &&
+    /^https:\/\/[^/]+\/?$/.test(publicConfig.proxy)
+  const authState = el('wg-gt-auth-state')
+  if (authReady) {
+    authState.textContent = ''
+    authState.hidden = true
+    add('auth-configured', { enabled: true })
+  } else {
+    authState.textContent = '当前为评论预览：GitHub 登录尚待管理员部署并授权 GitHub App，暂不能发评论。历史评论与图片正常可读。'
+    authState.hidden = false
+    add('auth-configured', { enabled: false })
+  }
   if (window.__wgGitalkArticleBundleFailed || typeof window.Gitalk !== 'function') {
     status('无法加载 Gitalk 2.x beta 组件。请勿将页面无闪烁视为测试成功。', 'fail')
+    authState.hidden = false
+    authState.textContent = '评论组件加载失败，请刷新重试或反馈。'
     update(); return
   }
   try {
-    new window.Gitalk({ clientID: '', owner: 'weigefenxiang', repo: 'weige-share-blog',
-      admin: [], number: 10, backend: 'discussions', language: 'zh-CN',
-      perPage: 10, sortDirection: 'last', createIssueManually: true,
-      reactions: false }).render('gitalk-container')
+    new window.Gitalk({
+      clientID: authReady ? publicConfig.clientID : '',
+      proxy: authReady ? publicConfig.proxy : undefined,
+      owner: 'weigefenxiang',
+      repo: 'weige-share-blog',
+      admin: authReady ? ['weigefenxiang'] : [],
+      number: 10,
+      backend: 'discussions',
+      language: 'zh-CN',
+      perPage: 10,
+      sortDirection: 'last',
+      createIssueManually: true,
+      reactions: authReady
+    }).render('gitalk-container')
     status('Gitalk 已初始化，正在等待完整评论和图片……', 'pending')
-    add('widget-initialized')
+    add('widget-initialized', { authReady })
   } catch(error) {
-    status('初始化失败：' + error.message, 'fail'); update(); return
+    status('初始化失败：' + error.message, 'fail')
+    authState.hidden = false
+    authState.textContent = '评论区初始化失败，请展开开发诊断检查。'
+    update(); return
   }
   update()
   setTimeout(() => {

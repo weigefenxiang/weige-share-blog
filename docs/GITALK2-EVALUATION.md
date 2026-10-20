@@ -40,3 +40,56 @@ rotation still produces DOM replacement, the migration has NOT passed.
 
 Use `/zh-CN/gitalk2-eval/` as the independent comparison fixture. No GitHub App,
 OAuth client secret, posting permissions, or worker is configured for these tests.
+
+
+## Phase 3: clean article UI + complete OAuth integration wiring (branch only)
+
+After the user's visual test (1 top-level comment, **6 replies**, **7/7 images**
+loaded, **0 image DOM removals** after switching tabs), the noisy diagnostic
+panel is folded by default under **开发诊断**. These counters are developer
+instrumentation, not a Gitalk bug or end-user UI. This experiment still reads
+the same Discussion #10 and never modifies `main` or the existing `dev`.
+
+GitHub login is a separate capability: Gitalk 2.x **requires a GitHub App**
+with Discussions read/write installed on the comments repository AND a
+self-deployed OAuth proxy. The independent comparison page stays read-only.
+
+All source and article wiring is ready. In Cloudflare **Pages Preview**
+environment variables, configure BOTH:
+
+- `WEIG_GITALK_CLIENT_ID` — the **public** GitHub App client ID (looks like `Iv...`)
+- `WEIG_GITALK_PROXY_ORIGIN` — the **public** HTTPS origin of your deployed
+  Gitalk OAuth Cloudflare Worker (no path)
+
+The `postbuild` step emits only those two public values to
+`/zh-CN/gitalk2-eval/runtime-config.js`. Neither credential is a secret.
+If missing, the page remains openly readable but explicitly explains that
+GitHub login is not configured; it does not show a misleading broken login
+button. If only one is set, the build correctly fails rather than silently
+deploying a broken auth flow.
+
+**Never** enter the GitHub App's client secret, PEM private key, Cloudflare
+API token or session encryption key into ChatGPT, GitHub tracked files, or
+Cloudflare Pages public environment variables. They belong to the separate
+Cloudflare Worker **secrets** only. Use the upstream gitalk-deploy CLI, whose
+source of truth is
+`https://github.com/gitalk/gitalk/blob/main/packages/gitalk-deploy/README-CN.md`.
+
+Requirements before claiming OAuth PASS:
+1. GitHub App owned by `weigefenxiang`; **Discussions: Read and write**,
+   **Metadata: Read**; installed only on `weige-share-blog`.
+2. Worker deployed with server-side App ID, client ID/secret, PEM private key,
+   session encryption secret, and **exact allowed origins** for the
+   testing Preview URL. Cloudflare's branch alias can be used when verified.
+3. GitHub App callback URL exactly `https://<worker-origin>/oauth/callback`.
+4. Preview public client ID and worker origin configured, redeployed. Verify
+   login, logout, adding/editing replies on a designated test Discussion,
+   permissions, token refresh, reactions, and preview-to-article redirect.
+   Do **not** post test comments into the original Discussion #10 without
+   explicit approval.
+5. New uploads are not automatically supported: Gitalk's image-upload button
+   requires a separately configured `onUploadImage` handler. Document the
+   parity gap instead of claiming full migration until tested.
+
+Status: browser image-stability **HUMAN_PASS (visual)**, authentication
+**BLOCKED_ON_USER_GITHUB_APP_AND_WORKER**, migration **NOT_RELEASED**.

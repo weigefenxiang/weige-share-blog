@@ -10,3 +10,11 @@
 #wg-gitalk2-eval .wg-gt-actions { display: flex; flex-wrap: wrap; gap: 10px; margin: 15px 0; }
 #wg-gitalk2-eval .wg-gt-actions button { cursor: pointer; padding: 8px 12px; border: 1px solid var(--theme-color, #49b1f5); border-radius: 7px; background: transparent; color: var(--font-color, inherit); }
 #wg-gitalk2-eval #gitalk-container { overflow-wrap: anywhere; min-height: 180px; }
+
+/* User-facing comments should look like a normal comment area. Debugging UI is collapsed. */
+#wg-gitalk2-eval > h2 { margin-bottom: 16px; }
+#wg-gitalk2-eval #wg-gt-auth-state { margin: 10px 0 16px; padding: 8px 12px; border-left: 3px solid var(--theme-color, #49b1f5); font-size: .9rem; }
+#wg-gitalk2-eval #wg-gt-auth-state[hidden] { display: none; }
+#wg-gitalk2-eval .wg-gt-diagnostics { margin-top: 24px; border-top: 1px solid var(--hr-border, #ddd); padding: 12px 0; font-size: .87rem; }
+#wg-gitalk2-eval .wg-gt-diagnostics > summary { cursor: pointer; color: var(--font-color, inherit); opacity: .7; user-select: none; }
+#wg-gitalk2-eval .wg-gt-diagnostics:not([open]) > :not(summary) { display: none; }
