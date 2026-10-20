@@ -54,11 +54,148 @@
     host.dataset.weigGitalk2Ready = '1';
     try {
       new window.Gitalk(options).render('gitalk-container');
+      setupNestedReplies(host);
     } catch (err) {
       delete host.dataset.weigGitalk2Ready;
       host.textContent = '评论加载失败，请刷新重试。';
       console.error('[WeiG Gitalk 2.x] initialization failed:', err);
     }
+  }
+
+  // Gitalk 2.x renders reply actions on top-level comments only. Add a
+  // native-looking action to each existing nested reply without rewriting the
+  // comment body, touching image nodes or patching Gitalk internals.
+  let nestedReplyHost = null;
+  let nestedReplyObserver = null;
+  let nestedReplyScanPending = false;
+  let nestedReplyRequest = 0;
+
+  function githubLogin(author) {
+    if (!author) return '';
+    const link = author.closest('a[href]') || author.querySelector('a[href]');
+    if (link) {
+      try {
+        const url = new URL(link.href, location.href);
+        const match = url.pathname.match(/^\\/([A-Za-z0-9-]{1,39})\\/?$/);
+        if ((url.hostname === 'github.com' || url.hostname === 'www.github.com') && match) {
+          return match[1];
+        }
+      } catch (_) {}
+    }
+    // Upstream renders a GitHub login in the accessible author label even
+    // when the visible name is a human-friendly display name.
+    const label = [author.getAttribute('aria-label'), author.getAttribute('title')]
+      .filter(Boolean).join(' ');
+    const match = label.match(/@([A-Za-z0-9-]{1,39})\\b/);
+    return match ? match[1] : '';
+  }
+
+  function topLevelReplyButton(parent) {
+    return parent.querySelector(
+      ':scope > .gt-comment-main > .gt-comment-content > .gt-comment-actions > .gt-comment-reply'
+    );
+  }
+
+  function nativeReplyEditor(parent) {
+    return parent.querySelector(
+      ':scope > .gt-comment-main > .gt-comment-content > .gt-reply-box .gt-reply-textarea'
+    );
+  }
+
+  function replyToNestedComment(button) {
+    const nested = button.closest('.gt-comment-reply-item');
+    const parent = nested?.closest('.gt-comment-replies')?.closest('.gt-comment');
+    const parentButton = parent && topLevelReplyButton(parent);
+    if (!parentButton) return;
+
+    const login = button.dataset.weigReplyLogin;
+    if (!login) return;
+    const request = ++nestedReplyRequest;
+
+    // Clicking an already-open parent reply button would CLOSE that editor.
+    // If it is open, preserve any existing draft instead of toggling it away.
+    if (!nativeReplyEditor(parent)) parentButton.click();
+
+    function insertMention(remainingFrames) {
+      if (request !== nestedReplyRequest || !parent.isConnected) return;
+      const editor = nativeReplyEditor(parent);
+      if (!editor) {
+        // When signed out, Gitalk's original button handles the OAuth flow.
+        // A signed-in editor normally appears on the next Preact render.
+        if (remainingFrames > 0) requestAnimationFrame(() => insertMention(remainingFrames - 1));
+        return;
+      }
+      const mention = '@' + login + ' ';
+      const current = editor.value;
+      if (!current.includes(mention)) {
+        const glue = current && !/\\s$/.test(current) ? '\\n' : '';
+        const next = current + glue + mention;
+        editor.value = next;
+        // MentionTextarea is controlled by Preact. Its onInput callback must
+        // update Gitalk's replyDraft; setting DOM value alone is not enough.
+        editor.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+      editor.focus({ preventScroll: true });
+      const end = editor.value.length;
+      editor.setSelectionRange(end, end);
+      editor.scrollIntoView?.({ block: 'nearest' });
+    }
+
+    requestAnimationFrame(() => insertMention(8));
+  }
+
+  function setupNestedReplies(host) {
+    if (nestedReplyHost === host) return;
+    nestedReplyObserver?.disconnect();
+    nestedReplyHost = host;
+
+    host.addEventListener('click', (event) => {
+      const button = event.target.closest?.('.weig-gitalk2-nested-reply');
+      if (!button || !host.contains(button)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      replyToNestedComment(button);
+    });
+
+    function addNestedButtons() {
+      if (nestedReplyHost !== host || !host.isConnected) return;
+      const nestedRows = host.querySelectorAll('.gt-comment-reply-item');
+      for (const row of nestedRows) {
+        const parent = row.closest('.gt-comment-replies')?.closest('.gt-comment');
+        const parentButton = parent && topLevelReplyButton(parent);
+        const actions = row.querySelector(
+          ':scope > .gt-comment-main > .gt-comment-content > .gt-comment-actions'
+        );
+        if (!parentButton || !actions || actions.querySelector('.weig-gitalk2-nested-reply')) continue;
+        const author = row.querySelector(
+          ':scope > .gt-comment-main > .gt-comment-content > .gt-comment-header > .gt-comment-username'
+        );
+        const login = githubLogin(author);
+        const label = parentButton.textContent.trim() || '回复';
+        const button = document.createElement('button');
+        button.type = 'button';
+        // Reuse the upstream Gitalk control styling (including dark mode).
+        button.className = 'gt-comment-reply act weig-gitalk2-nested-reply';
+        button.textContent = label;
+        button.title = label + ' @' + (login || author?.textContent?.trim() || '');
+        button.setAttribute('aria-label', button.title);
+        if (login) button.dataset.weigReplyLogin = login;
+        else button.disabled = true;
+        actions.appendChild(button);
+      }
+    }
+
+    const schedule = () => {
+      if (nestedReplyScanPending) return;
+      nestedReplyScanPending = true;
+      requestAnimationFrame(() => {
+        nestedReplyScanPending = false;
+        addNestedButtons();
+      });
+    };
+    nestedReplyObserver = new MutationObserver(schedule);
+    nestedReplyObserver.observe(host, { childList: true, subtree: true });
+    schedule();
   }
 
   // Event delegation: Gitalk re-renders comments asynchronously, so never
