@@ -24,6 +24,16 @@
       return;
     }
     const term = articleTerm();
+    // Gitalk 2.x resolves Discussions by their title, not by the page id alone.
+    // The first qB discussion was created on the English page using
+    // document.title; keep that exact title for all locales to reuse it.
+    // For other guides, the language-neutral path is a stable Discussion title,
+    // preserving old giscus discussion terms and preventing per-locale splits.
+    const existingEnglishTitles = {
+      'posts/WeiG-qB-WebUI-Guide/':
+        'WeiG qB WebUI: A Beginner’s Guide to qBittorrent’s Alternative WebUI | Wei.G Share Blog'
+    };
+    const sharedTitle = existingEnglishTitles[term] || term;
     const options = {
       clientID: cfg.clientID,
       proxy: cfg.proxy,
@@ -32,6 +42,7 @@
       admin: cfg.admin,
       backend: 'discussions',
       id: term,
+      title: sharedTitle,
       language: document.documentElement.lang || 'en',
       perPage: 10,
       sortDirection: 'last',
