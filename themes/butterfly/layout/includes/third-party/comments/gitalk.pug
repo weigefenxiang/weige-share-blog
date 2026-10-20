@@ -1,9 +1,9 @@
 //- Gitalk 2.x for all posts; public app client ID/proxy only.
 //- Keep the historical Discussions backend and canonical multilingual thread mapping.
 - const gitalk2Config = { clientID: theme.gitalk.client_id, proxy: theme.gitalk.option && theme.gitalk.option.proxy, owner: theme.gitalk.owner, repo: theme.gitalk.repo, admin: String(theme.gitalk.admin || '').split(',').map(v => v.trim()).filter(Boolean) }
-link(rel='stylesheet' href='https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.css')
+link(rel='stylesheet' href=url_for('/css/weig-gitalk2-vendor.css'))
 link(rel='stylesheet' href=url_for('/css/weig-gitalk2.css'))
 script.
   window.WEIG_GITALK2_CONFIG = !{JSON.stringify(gitalk2Config)};
-script(src='https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.js')
+script(src=url_for('/js/weig-gitalk2-vendor.js'))
 script(src=url_for('/js/weig-gitalk2.js'))

@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
+    "prebuild": "node tools/build-gitalk2-local.cjs",
     "build": "node tools/build-multilang.js",
     "clean": "hexo clean",
     "deploy": "hexo deploy",
