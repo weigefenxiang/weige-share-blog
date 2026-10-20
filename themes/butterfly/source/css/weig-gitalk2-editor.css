@@ -240,6 +240,18 @@ html[data-theme='dark'] #post-comment {
   margin: 0 0 8px;
   z-index: 2;
 }
+/* Butterfly's comment-wrap and its inner tab div sit BETWEEN #post-comment
+   and #gitalk-container. Both must stretch in native fullscreen. */
+#post-comment.weig-editor-native-full:fullscreen .comment-wrap,
+#post-comment.weig-editor-native-full:fullscreen .comment-wrap > div {
+  display: flex !important;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
 #post-comment.weig-editor-native-full:fullscreen #gitalk-container {
   display: flex;
   flex: 1 1 auto;
