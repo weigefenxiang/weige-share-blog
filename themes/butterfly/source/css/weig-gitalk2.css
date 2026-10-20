@@ -1,3 +1,147 @@
+/*
+ * WeiG Gitalk 2.x visual skin.
+ * Approximate the old Giscus GitHub-dark/light look while keeping Gitalk
+ * behavior, OAuth, discussion mapping and image DOM completely unchanged.
+ * All rules are scoped to this blog's Gitalk host.
+ */
+#gitalk-container .gt-container {
+  /* Giscus-like neutral GitHub surfaces and one green submit button.
+     Gitalk uses these public CSS variables throughout its v3 UI. */
+  --gt-color-main: #238636;
+  --gt-color-btn: #fff;
+  --gt-color-btn-hover: #2ea043;
+  --gt-color-brand-grad-a: #238636;
+  --gt-color-brand-grad-b: #238636;
+  --gt-color-accent: #0969da;
+  --gt-color-accent-hover: #0550ae;
+  --gt-color-main-soft: rgba(9, 105, 218, 0.06);
+  --gt-color-main-border: #d0d7de;
+  --gt-color-reply-line: #d0d7de;
+  --gt-color-glow: transparent;
+  --gt-shadow-glow: none;
+  --gt-shadow-panel: none;
+  --gt-shadow-card: none;
+  --gt-shadow-float: 0 12px 32px rgba(0, 0, 0, 0.16);
+  --gt-shadow-focus: 0 0 0 2px rgba(35, 134, 54, 0.23);
+  --gt-radius-card: 7px;
+  --gt-radius-control: 6px;
+  --gt-size-border-radius: 6px;
+  --gt-color-panel: #fff;
+  --gt-color-panel-solid: #fff;
+  --gt-color-composer: #f6f8fa;
+  --gt-color-surface: #fff;
+  --gt-color-surface-soft: #f6f8fa;
+  --gt-color-input-bg: #fff;
+  --gt-color-input-border: #d0d7de;
+  --gt-color-border: #d0d7de;
+  --gt-color-inline-line: #d0d7de;
+  --gt-color-panel-line: #d8dee4;
+  --gt-color-panel-line-strong: #d0d7de;
+  --gt-color-wash: rgba(175, 184, 193, 0.10);
+  --gt-color-wash-strong: rgba(175, 184, 193, 0.20);
+  --gt-color-row-hover: rgba(175, 184, 193, 0.06);
+  --gt-color-text: #24292f;
+  --gt-color-text-2: #57606a;
+  --gt-color-text-3: #6e7781;
+  --gt-color-body: #24292f;
+  --gt-color-comment-txt: #24292f;
+  --gt-color-comment-adminbg: transparent;
+  --gt-color-sort-active-bg: #fff;
+  --gt-color-sort-active-fg: #24292f;
+  --gt-color-popbg: #fff;
+  --gt-color-code-bg: #f6f8fa;
+  --gt-color-hr: #d8dee4;
+  background-image: none;
+}
+
+/* Butterfly marks its active theme on <html>. Prefer GitHub/Giscus neutrals
+   over upstream Gitalk's navy glass and blue glows in the dark theme. */
+html[data-theme='dark'] #gitalk-container .gt-container,
+#gitalk-container .gt-container[data-theme='dark'] {
+  --gt-color-main: #238636;
+  --gt-color-btn-hover: #2ea043;
+  --gt-color-brand-grad-a: #238636;
+  --gt-color-brand-grad-b: #238636;
+  --gt-color-accent: #8ab4e5;
+  --gt-color-accent-hover: #a5c8f1;
+  --gt-color-main-soft: rgba(139, 148, 158, 0.10);
+  --gt-color-main-border: #3d444d;
+  --gt-color-reply-line: #30363d;
+  --gt-color-panel: #0d0f11;
+  --gt-color-panel-solid: #0d0f11;
+  --gt-color-composer: #0d0f11;
+  --gt-color-surface: #0d0f11;
+  --gt-color-surface-soft: #0d0f11;
+  --gt-color-input-bg: #0d0f11;
+  --gt-color-input-border: #30363d;
+  --gt-color-border: #30363d;
+  --gt-color-inline-line: #30363d;
+  --gt-color-panel-line: #262b31;
+  --gt-color-panel-line-strong: #30363d;
+  --gt-color-wash: rgba(139, 148, 158, 0.05);
+  --gt-color-wash-strong: rgba(139, 148, 158, 0.12);
+  --gt-color-row-hover: rgba(139, 148, 158, 0.055);
+  --gt-color-text: #e6edf3;
+  --gt-color-text-2: #a6adb5;
+  --gt-color-text-3: #8b949e;
+  --gt-color-body: #c9d1d9;
+  --gt-color-comment-txt: #c9d1d9;
+  --gt-color-comment-adminbg: transparent;
+  --gt-color-sort-active-bg: #161b22;
+  --gt-color-sort-active-fg: #e6edf3;
+  --gt-color-popbg: #161b22;
+  --gt-color-code-bg: #161b22;
+  --gt-color-hr: #30363d;
+  --gt-shadow-panel: none;
+  --gt-shadow-card: none;
+  --gt-shadow-glow: none;
+  --gt-shadow-float: 0 12px 34px rgba(0, 0, 0, 0.42);
+  --gt-shadow-focus: 0 0 0 2px rgba(35, 134, 54, 0.34);
+  color-scheme: dark;
+}
+
+/* Flat, quiet Giscus-like borders, no glossy background or gradient. */
+#gitalk-container .gt-container {
+  border-radius: 7px;
+  box-shadow: none;
+  background-image: none;
+}
+#gitalk-container .gt-container::before {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+#gitalk-container .gt-container .gt-header,
+#gitalk-container .gt-container .gt-comments {
+  box-shadow: none;
+}
+#gitalk-container .gt-container .gt-comment-main {
+  transform: none !important;
+  will-change: auto;
+}
+#gitalk-container .gt-container .gt-comment-glow { display: none; }
+#gitalk-container .gt-container .gt-header-controls :is(.gt-btn-public, .gt-btn-send) {
+  background: #238636;
+  box-shadow: none;
+  color: #fff;
+  border-color: #238636;
+}
+#gitalk-container .gt-container .gt-header-controls :is(.gt-btn-public, .gt-btn-send):hover {
+  background: #2ea043;
+  border-color: #2ea043;
+  box-shadow: none;
+}
+#gitalk-container .gt-container .gt-header-controls :is(.gt-btn-public, .gt-btn-send):focus-visible,
+#gitalk-container .gt-container .gt-btn:focus-visible {
+  outline: 2px solid #3fb950;
+  outline-offset: 2px;
+}
+#gitalk-container .gt-container .gt-comment-badge {
+  background: #30363d;
+  color: #e6edf3;
+}
+
+/* Keep existing viewer behavior. Its toolbar uses the same neutral palette. */
+
 /* Scoped only to Gitalk comments and its image viewer. */
 #gitalk-container .gt-comment-body img { cursor: zoom-in; }
 body.weig-gitalk2-zoom-open { overflow: hidden !important; }
@@ -9,14 +153,14 @@ body.weig-gitalk2-zoom-open { overflow: hidden !important; }
 #weig-gitalk2-lightbox .weig-gt2-toolbar {
   position: absolute; z-index: 2; top: max(12px, env(safe-area-inset-top)); right: 12px;
   display: flex; align-items: center; gap: 7px;
-  padding: 6px; border-radius: 10px; background: rgba(28, 34, 46, .9);
+  padding: 6px; border-radius: 10px; background: rgba(22, 27, 34, .94);
 }
 #weig-gitalk2-lightbox button {
   min-width: 38px; min-height: 38px; border: 1px solid rgba(255,255,255,.3);
-  border-radius: 7px; background: #293241; color: #fff; cursor: pointer;
+  border-radius: 7px; background: #21262d; color: #fff; cursor: pointer;
   font: inherit; line-height: 1;
 }
-#weig-gitalk2-lightbox button:focus-visible { outline: 2px solid #8cbaff; }
+#weig-gitalk2-lightbox button:focus-visible { outline: 2px solid #3fb950; }
 #weig-gitalk2-lightbox output {
   min-width: 52px; text-align: center; color: #fff; font: 13px/1.2 sans-serif;
 }
