@@ -1,0 +1,19 @@
+name: Evaluate Gitalk 2.x on isolated preview branch
+on:
+  push:
+    branches: [dev-gitalk2-eval]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  build-and-contract:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: node tools/test-gitalk2-eval.cjs

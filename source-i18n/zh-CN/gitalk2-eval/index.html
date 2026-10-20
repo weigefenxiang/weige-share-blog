@@ -1,0 +1,45 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>WeiG · Gitalk 2.x 只读对照实验</title>
+  <link rel="stylesheet" href="./eval.css">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.css">
+  <script defer src="https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.js" onerror="window.__gitalkBundleFailed = true"></script>
+  <script defer src="./eval.js"></script>
+</head>
+<body>
+<main>
+  <header>
+    <p class="eyebrow">隔离实验 / Experimental · 基于博客 main</p>
+    <h1>Gitalk 2.x · GitHub Discussions 对照测试</h1>
+    <p>只读读取现有 <a href="https://github.com/weigefenxiang/weige-share-blog/discussions/10" rel="noopener noreferrer" target="_blank">Discussion #10</a>，不创建帖子、不提交回复、不修改原博客。</p>
+    <p class="warning">Gitalk 2.x 目前为 beta。未配置 GitHub App 或鉴权代理；本页只验证匿名读取、图片节点稳定性，不代表登录与回复已通过。</p>
+    <p><a href="../posts/WeiG-OpenWrt-AutoBuild-Guide/">返回原文（giscus 对照）</a> · <a href="https://github.com/gitalk/gitalk/tree/main" target="_blank" rel="noopener noreferrer">Gitalk 2.x 源码</a></p>
+  </header>
+  <section class="panel">
+    <h2>加载状态</h2>
+    <p id="load-status" role="status" aria-live="polite">正在检查 Gitalk 2.x 测试组件……</p>
+  </section>
+  <section class="panel">
+    <h2>切标签页诊断</h2>
+    <p>等待 7 张评论截图出现，然后切换其他标签页并回来 10 次；无需打开 F12。导出 JSON 供进一步验证。</p>
+    <div class="stats">
+      <div><b id="focus-count">0</b><span>切回次数</span></div>
+      <div><b id="api-count">0</b><span>匿名 API GET</span></div>
+      <div><b id="image-added">0</b><span>新增正文图片节点</span></div>
+      <div><b id="image-removed">0</b><span>移除正文图片节点</span></div>
+      <div><b id="image-now">0</b><span>当前评论正文图片</span></div>
+    </div>
+    <div class="actions"><button id="export-log" type="button">导出 JSON 日志</button><button id="reset-log" type="button">清空计数并重新测试</button></div>
+    <p id="diag-note">本页不采集图片签名参数、评论文字、凭据或 Cookie，也不上传日志。</p>
+  </section>
+  <section class="panel">
+    <h2>Gitalk 2.x 评论展示 <small>匿名只读</small></h2>
+    <div id="gitalk-container"><p>正在载入测试组件……</p></div>
+  </section>
+</main>
+</body>
+</html>
