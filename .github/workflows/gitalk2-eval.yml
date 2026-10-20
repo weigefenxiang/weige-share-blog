@@ -17,3 +17,4 @@ jobs:
       - run: npm ci
       - run: npm run build
       - run: node tools/test-gitalk2-eval.cjs
+      - run: node tools/test-gitalk2-runtime-config.cjs

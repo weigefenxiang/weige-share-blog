@@ -93,3 +93,5 @@ Requirements before claiming OAuth PASS:
 
 Status: browser image-stability **HUMAN_PASS (visual)**, authentication
 **BLOCKED_ON_USER_GITHUB_APP_AND_WORKER**, migration **NOT_RELEASED**.
+
+Detailed end-user setup: [docs/GITALK2-LOGIN-SETUP.zh-CN.md](./GITALK2-LOGIN-SETUP.zh-CN.md).
