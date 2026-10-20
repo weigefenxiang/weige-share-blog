@@ -1,4 +1,6 @@
 ---
+# Preview experiment only: disable the production giscus embed on this one article.
+comments: false
 title: 从零到一云编译自己的 OpenWrt 固件
 date: 2026-08-01 20:11:00
 sticky: 100
@@ -180,3 +182,27 @@ description: 不需安装编译环境，用 Wei.G OpenWrt 在线定制器让每�
 - **LuCI 插件的作者们**
 
 - **每一位**参与的小伙伴
+
+
+<!-- WeiG experimental Gitalk 2.x comparison; ONLY on dev-gitalk2-eval branch. -->
+<section id="wg-gitalk2-eval" aria-label="Gitalk 2.x 实验评论区">
+  <h2>评论交流 · Gitalk 2.x 实验版</h2>
+  <p class="wg-gt-notice">测试环境：读取原有 <a href="https://github.com/weigefenxiang/weige-share-blog/discussions/10" rel="noopener noreferrer" target="_blank">GitHub Discussion #10</a>。当前只读，不支持登录或发表新评论。正式博客仍使用 giscus。</p>
+  <div class="wg-gt-status" id="wg-gt-status" role="status" aria-live="polite">正在载入 Gitalk 2.x ……</div>
+  <div class="wg-gt-metrics">
+    <span>切回标签 <b id="wg-gt-focus">0</b></span>
+    <span>顶层评论 <b id="wg-gt-top">0</b></span>
+    <span>回复 <b id="wg-gt-replies">0</b></span>
+    <span>正文图片 <b id="wg-gt-images">0</b></span>
+    <span>图片重建 <b id="wg-gt-rebuild">0</b></span>
+  </div>
+  <div class="wg-gt-actions">
+    <button type="button" id="wg-gt-export">导出测试 JSON</button>
+    <button type="button" id="wg-gt-reset">开始新一轮统计</button>
+  </div>
+  <div id="gitalk-container"><p>正在加载 GitHub Discussions……</p></div>
+</section>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.css">
+<link rel="stylesheet" href="/zh-CN/gitalk2-eval/article-eval.css">
+<script defer src="https://cdn.jsdelivr.net/npm/@aifire/gitalk@2.0.0-beta.0/dist/gitalk.js" onerror="window.__wgGitalkArticleBundleFailed = true"></script>
+<script defer src="/zh-CN/gitalk2-eval/article-eval.js"></script>

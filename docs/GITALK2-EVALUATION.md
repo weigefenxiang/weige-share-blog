@@ -23,3 +23,20 @@ It has no GitHub App ID and no auth proxy. `clientID: ''`, `admin: []` and the p
 - Source in `gitalk/gitalk` is presently `2.0.0-beta.0`. CDN is pinned to that candidate, not Gitalk 1.x.
 - Gitalk's read-only REST fallback may differ from authenticated GraphQL/proxy rendering. If it fails, report the failure; do not silently substitute custom rendering.
 - Pages Preview may need branch deployment enabled under Cloudflare Pages settings.
+## Phase 2: article-level integration (experimental branch only)
+
+The original Simplified Chinese OpenWrt guide on this branch has `comments: false`
+so Butterfly does not initialize its original giscus embed. A separate, clearly
+labeled, read-only Gitalk 2.x block is added at the end of the *same article*.
+This is the first layout-level A/B test comparing the same long article and
+Discussion #10. All other articles, languages, branch heads and existing
+Discussions are unchanged.
+
+Open `/zh-CN/posts/WeiG-OpenWrt-AutoBuild-Guide/` on the NEW Preview deployment,
+not the earlier `69ca83d1` build. The block must show **1 parent, 5 replies,
+7 images loaded** before results count. After 10 focus returns export the JSON.
+If the widget is empty, only some replies render, images fail or URL/query
+rotation still produces DOM replacement, the migration has NOT passed.
+
+Use `/zh-CN/gitalk2-eval/` as the independent comparison fixture. No GitHub App,
+OAuth client secret, posting permissions, or worker is configured for these tests.
