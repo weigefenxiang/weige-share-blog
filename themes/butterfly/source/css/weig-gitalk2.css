@@ -1,0 +1,36 @@
+/* Scoped only to Gitalk comments and its image viewer. */
+#gitalk-container .gt-comment-body img { cursor: zoom-in; }
+body.weig-gitalk2-zoom-open { overflow: hidden !important; }
+#weig-gitalk2-lightbox {
+  display: none; position: fixed; inset: 0; z-index: 2147483000;
+  background: rgba(8, 11, 18, .94); color: #fff;
+}
+#weig-gitalk2-lightbox.is-open { display: block; }
+#weig-gitalk2-lightbox .weig-gt2-toolbar {
+  position: absolute; z-index: 2; top: max(12px, env(safe-area-inset-top)); right: 12px;
+  display: flex; align-items: center; gap: 7px;
+  padding: 6px; border-radius: 10px; background: rgba(28, 34, 46, .9);
+}
+#weig-gitalk2-lightbox button {
+  min-width: 38px; min-height: 38px; border: 1px solid rgba(255,255,255,.3);
+  border-radius: 7px; background: #293241; color: #fff; cursor: pointer;
+  font: inherit; line-height: 1;
+}
+#weig-gitalk2-lightbox button:focus-visible { outline: 2px solid #8cbaff; }
+#weig-gitalk2-lightbox output {
+  min-width: 52px; text-align: center; color: #fff; font: 13px/1.2 sans-serif;
+}
+#weig-gitalk2-lightbox .weig-gt2-stage {
+  display: flex; align-items: center; justify-content: center;
+  width: 100%; height: 100%; touch-action: none; overflow: hidden; cursor: grab;
+}
+#weig-gitalk2-lightbox .weig-gt2-stage:active { cursor: grabbing; }
+#weig-gitalk2-lightbox .weig-gt2-stage img {
+  display: block; max-width: calc(100vw - 40px); max-height: calc(100dvh - 110px);
+  object-fit: contain; transform-origin: center center;
+  user-select: none; -webkit-user-drag: none; pointer-events: none;
+}
+@media (max-width: 480px) {
+  #weig-gitalk2-lightbox .weig-gt2-toolbar { left: 8px; right: 8px; justify-content: center; }
+  #weig-gitalk2-lightbox .weig-gt2-stage img { max-width: 96vw; max-height: calc(100dvh - 115px); }
+}
