@@ -15,8 +15,9 @@ On the WeiG OpenWrt AutoBuild guide, a read-only cross-origin diagnostic capture
    top-document navigation events or iframe `load` events in this session.
 2. Roughly 1.0-1.4 seconds later, `/api/discussions` returned HTTP 200.
 3. The giscus comment-content DOM removed **7** image elements and added **7**
-   image elements. Source URLs did not change. The comment body count did not
-   change.
+   image elements. The seven image paths did not change. Their full signed URLs
+   were not recorded in the earlier v1.0 trace; the v1.3 trace below proves
+   that URL query strings rotate. The comment body count did not change.
 4. The iframe's inner content height dropped from about **4,849px** to
    **2,600px**, then increased again as the images loaded.
 
@@ -51,12 +52,84 @@ configuration should be confirmed against the deployed SWR version.
 
 **Confirmed causal sequence:** tab focus -> discussion API request/response ->
 comment-image DOM replacement -> pending images -> reload/reflow.
-The evidence does NOT yet establish whether `bodyHTML` differs
-byte-for-byte across responses or whether React writes identical HTML again.
-To make a final, production-worthy upstream patch, capture/compare the
-comment body HTML before and after revalidation and test preservation of
-unchanged image nodes on a local giscus build. Do not substitute more iframe
-height clamps or a visibility-based skip, since both have failed real tests.
+The v1.3 comparison below resolves this open question: the HTML actually
+changes **only in URL queries**, even though the comment text and images' URL
+paths remain stable. Do not substitute more iframe height clamps or a
+visibility-based skip, since both have failed real tests.
+
+## Root cause resolved: rotating image URL queries trigger innerHTML replacement (v1.3)
+
+An independent read-only Violentmonkey v1.3 capture on 2026-10-20 00:18 UTC
+recorded 233 events, 4 tab returns with the iframe visible, and 3 successful
+focus-associated discussion API responses and seven-image replacement events.
+A page reload or subsequent iframe navigation was not seen.
+
+The `innerHTML` setter was instrumented in the actual giscus iframe at
+initialization. The image-heavy reply had three repeat writes on focus:
+`writeNumber=7,8,9`. **Each write:**
+
+- `nodeType = reply`
+- `oldMarkupLength = newMarkupLength = 12670`
+- `sameMarkup = false`
+- `sameVisibleText = true`
+- `sameImagePaths = true`
+- `sameFullImageUrls = false`
+- `sameMarkupWithoutUrlQueries = true`
+- `oldImageCount = newImageCount = 7`
+- Observed immediate `imagesRemoved = 7` and `imagesAdded = 7`
+
+The captured before/after image-heavy reply HTML hashes were different, even
+though its visible text and image paths were identical. Full image URLs varied
+only by query parameters; the diagnostic deliberately did not export the raw
+query strings, so **the exact changing parameter names and whether they are
+signed tokens remain unverified**. Do not publish signed URLs or browser data.
+
+**Specific causal chain:** focus -> SWR `/api/discussions` revalidation ->
+GitHub response changes image URL query strings in `bodyHTML` -> giscus
+`processCommentBody(bodyHTML)` yields a different HTML string ->
+Preact updates `dangerouslySetInnerHTML` by writing `dom.innerHTML` ->
+all seven existing image elements are removed/re-created ->
+image requests and layout changes -> visible flash.
+
+Preact v10.23.2 already avoids redundant writes if
+`newHtml.__html === oldHtml.__html` or `=== dom.innerHTML`; see
+`preactjs/preact/src/diff/index.js`, v10.23.2, around the
+`dangerouslySetInnerHTML` diff. The changing URL queries defeat this equality
+guard. This is **not** an unconditional DOM rewrite on every React render.
+
+### Implementation boundary / next useful change
+
+Target **giscus/giscus**, especially the HTML-rendering path of
+`components/Reply.tsx` and `components/Comment.tsx`. A suitable upstream
+implementation would retain the previously rendered HTML (and its live image
+elements) when an updated comment differs **only in known rotating,
+non-semantic, temporary query parameters on recognized GitHub image URLs**.
+
+Do **not** globally delete URL queries: GitHub private-image URLs may require
+them for authorization, other services' query parameters may be meaningful,
+and comments may intentionally edit links. The comparison must be confined
+to known GitHub image hosts and verified transient parameter names, and must
+preserve full original URLs used for actual image loading.
+
+Required upstream regression tests:
+
+1. Same comment text and image paths, but rotated non-semantic image
+   query tokens -> DOM `img` nodes retain identity, with zero image reloads.
+2. Real text edits, added/replaced/removed images, meaningful image query
+   changes -> content updates correctly.
+3. Adding new replies, reactions, authentication changes, and pagination
+   remain functional.
+4. New page load / deliberately re-created comment after a session change
+   obtains a currently valid image URL.
+5. Return to a tab repeatedly (including with multiple images and with the
+   iframe in viewport) -> stable content; human browser acceptance.
+
+There is **no official host-side giscus.json option** to disable this
+SWR/Preact rendering behavior. Do not add another blog-side timer,
+min-height override, fetch interception, or cross-origin DOM hack. A
+patched or self-hosted giscus is a separate deployment decision that
+requires validation and user approval; do not silently introduce a fork
+into the Hexo blog. Until then, `HUMAN_FAIL / NOT_FIXED`.
 
 ## Underlying source paths
 
@@ -66,8 +139,9 @@ height clamps or a visibility-based skip, since both have failed real tests.
   SWR produces updated discussion data.
 - `giscus/giscus/components/Comment.tsx` and `components/Reply.tsx`
   construct comment content through `dangerouslySetInnerHTML` with
-  `processCommentBody(...)`. On the focus-triggered updates, the observed
-  comment images are recreated even when their `src` values are unchanged.
+  `processCommentBody(...)`. On the focus-triggered updates, the observed comment images are recreated
+  because their complete `src` URLs change in query parameters while their
+  paths and visible text remain unchanged.
 - `giscus/giscus/components/Widget.tsx` sends `ResizeObserver` height
   changes to the parent; `client.ts` applies them to the iframe.
 
