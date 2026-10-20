@@ -105,43 +105,54 @@
   function replyToNestedComment(button) {
     const nested = button.closest('.gt-comment');
     const parent = nested?.closest('.gt-comment-replies')?.closest('.gt-comment');
-    const parentButton = parent && topLevelReplyButton(parent);
-    if (!parentButton) return;
+    const parentButton = parent && (
+      topLevelReplyButton(parent) ||
+      parent.querySelector('.gt-comment-actions .gt-comment-reply:not(.weig-gitalk2-nested-reply)')
+    );
+    if (!parentButton) {
+      console.warn('[WeiG Gitalk 2.x] Parent reply action not found.');
+      return;
+    }
 
     const login = button.dataset.weigReplyLogin || '';
     const request = ++nestedReplyRequest;
 
-    // Clicking an already-open parent reply button would CLOSE that editor.
-    // If it is open, preserve any existing draft instead of toggling it away.
-    if (!nativeReplyEditor(parent)) parentButton.click();
-
-    function insertMention(remainingFrames) {
+    // The cloned action isn't owned by Preact. Trigger the genuine top-level
+    // reply action *after* the nested click has completed, rather than nesting
+    // two click dispatches inside the same event. This preserves Gitalk state.
+    requestAnimationFrame(() => {
       if (request !== nestedReplyRequest || !parent.isConnected) return;
-      const editor = nativeReplyEditor(parent);
-      if (!editor) {
-        // When signed out, Gitalk's original button handles the OAuth flow.
-        // A signed-in editor normally appears on the next Preact render.
-        if (remainingFrames > 0) requestAnimationFrame(() => insertMention(remainingFrames - 1));
-        return;
-      }
-      if (!login) { editor.focus({ preventScroll: true }); return; }
-      const mention = '@' + login + ' ';
-      const current = editor.value;
-      if (!current.includes(mention)) {
-        const glue = current && !/\s$/.test(current) ? '\n' : '';
-        const next = current + glue + mention;
-        editor.value = next;
-        // MentionTextarea is controlled by Preact. Its onInput callback must
-        // update Gitalk's replyDraft; setting DOM value alone is not enough.
-        editor.dispatchEvent(new Event('input', { bubbles: true }));
-      }
-      editor.focus({ preventScroll: true });
-      const end = editor.value.length;
-      editor.setSelectionRange(end, end);
-      editor.scrollIntoView?.({ block: 'nearest' });
-    }
+      if (!nativeReplyEditor(parent)) parentButton.click();
 
-    requestAnimationFrame(() => insertMention(8));
+      function fillWhenMounted(frames) {
+        if (request !== nestedReplyRequest || !parent.isConnected) return;
+        const editor = nativeReplyEditor(parent);
+        if (!editor) {
+          // Unauthenticated users take Gitalk's normal OAuth login path.
+          if (frames > 0) requestAnimationFrame(() => fillWhenMounted(frames - 1));
+          return;
+        }
+
+        if (login) {
+          const mention = '@' + login + ' ';
+          const current = editor.value;
+          if (!current.includes(mention)) {
+            const glue = current && !/\s$/.test(current) ? '\n' : '';
+            editor.value = current + glue + mention;
+            // Keep Preact's controlled draft in sync with the visible textarea.
+            editor.dispatchEvent(new Event('input', { bubbles: true }));
+          }
+        }
+        editor.focus({ preventScroll: true });
+        const end = editor.value.length;
+        editor.setSelectionRange(end, end);
+        // The native editor sits above the child replies, so make its position
+        // visible when the visitor clicked "Reply" on a deeply nested message.
+        editor.scrollIntoView?.({ block: 'center', behavior: 'auto' });
+      }
+
+      requestAnimationFrame(() => fillWhenMounted(30));
+    });
   }
 
   function setupNestedReplies(host) {
@@ -185,17 +196,15 @@
         button.title = login ? label + ' @' + login : label;
         button.setAttribute('aria-label', button.title);
         if (login) button.dataset.weigReplyLogin = login;
+        // Direct binding avoids beta widget components swallowing bubbled clicks.
+        button.addEventListener('click', event => {
+          event.preventDefault();
+          event.stopPropagation();
+          replyToNestedComment(button);
+        });
         actions.appendChild(button);
       }
     }
-
-    host.addEventListener('click', (event) => {
-      const button = event.target.closest?.('.weig-gitalk2-nested-reply');
-      if (!button || !host.contains(button)) return;
-      event.preventDefault();
-      event.stopPropagation();
-      replyToNestedComment(button);
-    });
 
     const schedule = () => {
       if (nestedReplyScanPending) return;
