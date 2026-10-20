@@ -80,34 +80,58 @@
     tools.querySelector('[data-weig-action="smaller"]').disabled = sizes.font <= MIN_FONT;
     tools.querySelector('[data-weig-action="larger"]').disabled = sizes.font >= MAX_FONT;
   }
+  // Browser top-layer fullscreen prevents Butterfly transforms, sidebar,
+  // scroll containers and docked composers from trapping the editor.
+  // Never move an existing Preact node or create a second draft editor.
   function changeMode(next) {
     if (!section) return;
-    section.classList.remove('weig-editor-expanded', 'weig-editor-full');
-    if (next === 'expanded') section.classList.add('weig-editor-expanded');
     if (next === 'full') {
-      if (mode !== 'full') {
-        previousFocus = document.activeElement;
-        scrollY = window.scrollY;
+      if (!section.requestFullscreen) {
+        changeMode('expanded');
+        return;
       }
-      section.classList.add('weig-editor-full');
+      previousFocus = document.activeElement;
+      scrollY = window.scrollY;
+      const result = section.requestFullscreen();
+      if (result && typeof result.catch === 'function') {
+        result.catch(() => changeMode('expanded'));
+      }
+      return;
     }
-    if (mode === 'full' && next !== 'full') {
-      // Keep scroll where the author was editing, not at the top of the page.
-      window.scrollTo(0, scrollY);
+    if (document.fullscreenElement === section) {
+      const result = document.exitFullscreen();
+      if (result && typeof result.catch === 'function') result.catch(() => {});
     }
     mode = next;
-    document.body.classList.toggle('weig-editor-overlay-open', mode === 'full');
+    section.classList.toggle('weig-editor-expanded', mode === 'expanded');
+    section.classList.remove('weig-editor-full', 'weig-editor-native-full');
+    document.body.classList.remove('weig-editor-overlay-open');
     updateToolbar();
-    if (next === 'full' && tools) {
-      section.style.setProperty('--weig-editor-toolbar-height', tools.offsetHeight + 'px');
-    }
-    if (next === 'full') {
-      activeTextarea(kind)?.focus({ preventScroll: true });
-    } else if (previousFocus?.isConnected && next === 'normal') {
+    if (next === 'normal' && previousFocus?.isConnected) {
       previousFocus.focus({ preventScroll: true });
       previousFocus = null;
     }
   }
+  function fullscreenChanged() {
+    if (!section) return;
+    const active = document.fullscreenElement === section;
+    if (active) {
+      mode = 'full';
+      section.classList.remove('weig-editor-expanded', 'weig-editor-full');
+      section.classList.add('weig-editor-native-full');
+      document.body.classList.add('weig-editor-overlay-open');
+      activeTextarea(kind)?.focus({ preventScroll: true });
+    } else if (mode === 'full') {
+      mode = 'normal';
+      section.classList.remove('weig-editor-full', 'weig-editor-native-full');
+      document.body.classList.remove('weig-editor-overlay-open');
+      window.scrollTo(0, scrollY);
+      if (previousFocus?.isConnected) previousFocus.focus({ preventScroll: true });
+      previousFocus = null;
+    }
+    updateToolbar();
+  }
+  document.addEventListener('fullscreenchange', fullscreenChanged);
   function choose(type) {
     if (kind === type) return;
     // A reply can unmount on cancellation or submission. Never leave a
@@ -221,16 +245,15 @@
   }
   document.addEventListener('pointerup', recordDrag, true);
   document.addEventListener('touchend', recordDrag, true);
-  window.addEventListener('resize', () => {
-    if (mode === 'full' && tools && section) {
-      section.style.setProperty('--weig-editor-toolbar-height', tools.offsetHeight + 'px');
-    }
-  });
+  // Fullscreen toolbar belongs to the top-layer section; no overlay offsets.
+  // Capture Escape before Gitalk's reply textarea onEscape handler: browser
+  // fullscreen should close without invoking cancelReply (which clears drafts).
   document.addEventListener('keydown', event => {
-    if (event.key !== 'Escape' || mode !== 'full') return;
+    if (event.key !== 'Escape' || document.fullscreenElement !== section) return;
     event.preventDefault();
+    event.stopImmediatePropagation();
     changeMode('normal');
-  });
+  }, true);
   document.addEventListener('DOMContentLoaded', boot);
   document.addEventListener('pjax:complete', boot);
   if (document.readyState !== 'loading') boot();

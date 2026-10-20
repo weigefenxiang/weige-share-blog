@@ -100,67 +100,241 @@
   max-height: 75dvh;
 }
 
-/* CSS overlay, rather than moving the textarea outside Preact's managed DOM.
-   The controls stay accessible above it and Escape closes the overlay. */
-body.weig-editor-overlay-open { overflow: hidden !important; }
-#post-comment.weig-editor-full .weig-editor-tools {
-  position: fixed;
-  top: max(8px, env(safe-area-inset-top));
-  left: max(10px, env(safe-area-inset-left));
-  right: max(10px, env(safe-area-inset-right));
-  z-index: 2147482500;
-  margin: 0;
-  max-height: 50dvh;
+
+/* -------- Integrated comment typography --------
+   The A-/A+ preference applies to the entire conversation, not only drafts.
+   Preserve semantic hierarchy instead of making all text the same size. */
+#post-comment #gitalk-container .gt-container {
+  --weig-comment-size: var(--weig-editor-font);
+  font-size: var(--weig-comment-size);
+}
+#post-comment #gitalk-container .gt-container :is(.gt-comment-body, .gt-comment-body.markdown-body, .gt-composer-preview .preview-body, .gt-reply-preview .preview-body) {
+  font-size: var(--weig-comment-size) !important;
+  line-height: 1.75;
+}
+#post-comment #gitalk-container .gt-container .gt-comment-body :is(p, li, ul, ol, blockquote, table, td, th) {
+  font-size: inherit !important;
+}
+#post-comment #gitalk-container .gt-container .gt-comment-body h1 { font-size: 1.7em !important; }
+#post-comment #gitalk-container .gt-container .gt-comment-body h2 { font-size: 1.45em !important; }
+#post-comment #gitalk-container .gt-container .gt-comment-body h3 { font-size: 1.24em !important; }
+#post-comment #gitalk-container .gt-container .gt-comment-body :is(h4, h5, h6) { font-size: 1.07em !important; }
+#post-comment #gitalk-container .gt-container .gt-comment-body :is(pre, code),
+#post-comment #gitalk-container .gt-container .gt-reply-preview :is(pre, code),
+#post-comment #gitalk-container .gt-container .gt-composer-preview :is(pre, code) {
+  font-size: calc(var(--weig-editor-font) * .84) !important;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-comment-username, .gt-title, .gt-counts, .gt-meta-title) {
+  font-size: calc(var(--weig-editor-font) * .90) !important;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-comment-date, .gt-comment-badge, .gt-comment-actions, .gt-comment-reply, .gt-reaction-chip, .gt-reaction-trigger, .gt-reply-actions .gt-btn, .gt-header-controls .gt-btn, .gt-comments-controls .gt-btn, .gt-preview-label, .preview-label) {
+  font-size: calc(var(--weig-editor-font) * .80) !important;
+}
+#post-comment .weig-editor-tools,
+#post-comment .weig-editor-tools button {
+  font-size: calc(var(--weig-editor-font) * .81);
+}
+#post-comment #gitalk-container .gt-container .gt-composer-preview .preview-body {
+  font-size: var(--weig-editor-font) !important;
+}
+
+/* Consistent neutral borders in both Butterfly themes. The old toolbar
+   fallback was light-gray/white even when the page was almost black. */
+#post-comment {
+  --weig-tools-surface: #fff;
+  --weig-tools-line: #d0d7de;
+  --weig-tools-color: #24292f;
+}
+html[data-theme='dark'] #post-comment {
+  --weig-tools-surface: #0d0f11;
+  --weig-tools-line: #30363d;
+  --weig-tools-color: #c9d1d9;
+}
+#post-comment .weig-editor-tools {
+  position: relative;
+  top: auto;
+  z-index: 2;
+  border: 1px solid var(--weig-tools-line);
+  background: var(--weig-tools-surface);
+  color: var(--weig-tools-color);
+  box-shadow: none;
+}
+#post-comment .weig-editor-tools button {
+  border: 1px solid var(--weig-tools-line);
+  color: inherit;
+  background: transparent;
+}
+#post-comment .weig-editor-tools button[aria-pressed='true'] {
+  border-color: #238636;
+  box-shadow: inset 0 0 0 1px #238636;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-header-textarea, .gt-reply-textarea, .gt-reply-preview) {
+  border: 1px solid var(--gt-color-panel-line-strong, #30363d);
+  background: var(--gt-color-input-bg, var(--weig-tools-surface));
+}
+
+/* Expanded editors remain in normal document flow. Increase the parent panel,
+   not only the textarea, and never let the composer dock over the article. */
+#post-comment.weig-editor-expanded #gitalk-container .gt-container {
+  height: auto !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+#post-comment.weig-editor-expanded #gitalk-container .gt-container .gt-header {
+  position: relative !important;
+  inset: auto !important;
+  transform: none !important;
+  width: auto !important;
+  height: auto !important;
+  max-height: none !important;
+  flex: 0 0 auto;
+}
+#post-comment.weig-editor-expanded.weig-editor-target-main #gitalk-container .gt-container .gt-comments {
+  flex: 0 1 auto;
+  max-height: min(48dvh, 520px) !important;
+  min-height: 140px;
   overflow-y: auto;
 }
-#post-comment.weig-editor-full.weig-editor-target-main #gitalk-container .gt-container .gt-header,
-#post-comment.weig-editor-full.weig-editor-target-reply #gitalk-container .gt-container .gt-reply-box {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 2147482000;
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  gap: 12px;
-  width: auto;
-  height: auto;
+#post-comment.weig-editor-expanded.weig-editor-target-reply #gitalk-container .gt-container .gt-comments {
+  flex: 0 1 auto;
+  max-height: min(75dvh, 760px) !important;
+  min-height: 160px;
+  overflow-y: auto;
+}
+#post-comment.weig-editor-expanded.weig-editor-target-main #gitalk-container .gt-container .gt-header-textarea {
+  height: min(48dvh, 460px) !important;
+  max-height: 65dvh;
+}
+#post-comment.weig-editor-expanded.weig-editor-target-reply #gitalk-container .gt-container .gt-reply-textarea {
+  height: min(45dvh, 420px) !important;
+  max-height: 55dvh;
+}
+#post-comment.weig-editor-expanded #gitalk-container .gt-container .gt-header-placeholder {
+  display: none;
+}
+
+/* Native Fullscreen API lifts the whole comment section into the browser's
+   top layer; no nested fixed editor or DOM reparenting, so no sidebar overlap. */
+#post-comment.weig-editor-native-full:fullscreen {
+  width: 100%;
+  height: 100%;
   max-width: none;
   max-height: none;
   margin: 0;
-  padding: calc(var(--weig-editor-toolbar-height, 56px) + 18px + env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
-           max(16px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
-  border: 0;
-  border-radius: 0;
-  background: var(--gt-color-panel-solid, #fff);
-  color: var(--gt-color-text, #24292f);
-  overflow-y: auto;
-  box-shadow: none;
+  padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right))
+           max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left));
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--weig-tools-surface);
+  color: var(--weig-tools-color);
+  box-sizing: border-box;
 }
-#post-comment.weig-editor-full.weig-editor-target-main #gitalk-container .gt-container .gt-header :is(.gt-header-comment, .gt-composer-body, .gt-editor),
-#post-comment.weig-editor-full.weig-editor-target-reply #gitalk-container .gt-container .gt-reply-box > .gt-editor {
+#post-comment.weig-editor-native-full:fullscreen .comment-head {
+  display: none;
+}
+#post-comment.weig-editor-native-full:fullscreen .weig-editor-tools {
+  flex: 0 0 auto;
+  position: relative;
+  top: 0;
+  margin: 0 0 8px;
+  z-index: 2;
+}
+#post-comment.weig-editor-native-full:fullscreen #gitalk-container {
+  display: flex;
   flex: 1 1 auto;
   min-height: 0;
-  width: 100%;
+  min-width: 0;
+  overflow: hidden;
 }
-#post-comment.weig-editor-full.weig-editor-target-main #gitalk-container .gt-container .gt-header-textarea,
-#post-comment.weig-editor-full.weig-editor-target-reply #gitalk-container .gt-container .gt-reply-textarea {
+#post-comment.weig-editor-native-full:fullscreen #gitalk-container .gt-container {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  height: 100%;
+  max-height: none !important;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+}
+#post-comment.weig-editor-native-full:fullscreen #gitalk-container .gt-container .gt-meta {
+  display: none;
+}
+#post-comment.weig-editor-native-full.weig-editor-target-main:fullscreen #gitalk-container .gt-container .gt-comments,
+#post-comment.weig-editor-native-full.weig-editor-target-main:fullscreen #gitalk-container .gt-container .gt-header-placeholder,
+#post-comment.weig-editor-native-full.weig-editor-target-reply:fullscreen #gitalk-container .gt-container .gt-header {
+  display: none !important;
+}
+#post-comment.weig-editor-native-full.weig-editor-target-main:fullscreen #gitalk-container .gt-container .gt-header {
+  position: relative !important;
+  display: flex;
+  flex: 1 1 auto;
+  align-items: stretch;
+  gap: 12px;
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+  width: auto !important;
+  padding: 12px;
+  transform: none !important;
+}
+#post-comment.weig-editor-native-full.weig-editor-target-main:fullscreen #gitalk-container .gt-container :is(.gt-header-comment, .gt-composer-body, .gt-editor) {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+}
+#post-comment.weig-editor-native-full.weig-editor-target-main:fullscreen #gitalk-container .gt-container .gt-header-textarea {
+  flex: 1 1 auto;
   height: 100% !important;
-  min-height: min(35dvh, 260px);
+  min-height: 0;
   max-height: none;
   resize: none;
 }
-#post-comment.weig-editor-full #gitalk-container .gt-container .gt-composer-preview,
-#post-comment.weig-editor-full #gitalk-container .gt-container .gt-composer-preview .preview-body {
+#post-comment.weig-editor-native-full.weig-editor-target-reply:fullscreen #gitalk-container .gt-container .gt-comments {
+  flex: 1 1 auto;
+  max-height: none !important;
+  height: 100%;
+  min-height: 0;
+  overflow-y: auto;
+  scroll-padding-block: 24px;
+}
+#post-comment.weig-editor-native-full.weig-editor-target-reply:fullscreen #gitalk-container .gt-container .gt-reply-textarea {
+  height: min(57dvh, 650px) !important;
   max-height: none;
+  resize: vertical;
+}
+#post-comment.weig-editor-native-full:fullscreen #gitalk-container .gt-container .gt-composer-preview .preview-body,
+#post-comment.weig-editor-native-full:fullscreen #gitalk-container .gt-container .gt-reply-preview .preview-body {
+  max-height: 60dvh;
   overflow-y: auto;
 }
-#post-comment.weig-editor-full #gitalk-container .gt-container :is(.gt-header-controls, .gt-reply-actions) {
-  flex: 0 0 auto;
-  align-self: stretch;
+#post-comment.weig-editor-native-full:fullscreen #gitalk-container .gt-container .gt-header-placeholder {
+  display: none;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-preview {
+  min-height: 120px;
+  max-height: min(62dvh, 660px);
+  padding: 12px;
+  border-radius: 7px;
+  overflow-y: auto;
+  overflow-wrap: anywhere;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-editor.is--preview > .gt-editor {
+  display: none;
+}
+#post-comment #gitalk-container .gt-container .gt-btn-preview-reply {
+  margin-inline-end: auto;
 }
 @media (max-width: 600px) {
-  #post-comment .weig-editor-tools { top: 8px; padding: 6px; }
-  #post-comment .weig-editor-tools button { min-width: 36px; min-height: 38px; }
+  #post-comment .weig-editor-tools {
+    top: auto;
+    flex-wrap: wrap;
+    padding: 7px;
+  }
   #post-comment .weig-editor-tools .weig-editor-context { width: 100%; }
-  #post-comment.weig-editor-full .weig-editor-tools { max-height: 35dvh; }
+  #post-comment.weig-editor-native-full:fullscreen {
+    padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
+  }
 }

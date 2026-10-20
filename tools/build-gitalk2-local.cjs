@@ -153,6 +153,129 @@ function adapt(core) {
       ].join('\n'), 'native inline nested reply composer')
     return s.slice(0, start) + chunk + s.slice(end)
   })
+
+  // Native reply preview extension: both parent and nested ReplyBox instances
+  // use the existing trusted Gitalk backend Markdown renderer. Keep its state
+  // separate from the top-level composer's preview to avoid draft collisions.
+  patch(path.join(core, 'src', 'use-gitalk.ts'), original => {
+    let s = replaceOne(original,
+      '      refreshPreview,\n      toggleSort,',
+      '      refreshPreview,\n      previewReply,\n      toggleSort,', 'reply preview action export')
+    const action = [
+      '  const previewReply = useCallback(async (body: string): Promise<string | null> => {',
+      '    if (!body.trim()) return null',
+      '    try {',
+      '      return await backend.preview(body)',
+      '    } catch (err) {',
+      '      reportFailure(patch, err)',
+      '      return null',
+      '    }',
+      '  }, [backend, patch])',
+      ''
+    ].join('\n')
+    return replaceOne(s,
+      '  const refreshPreview = useCallback(async () => {',
+      action + '\n  const refreshPreview = useCallback(async () => {',
+      'reply preview callback')
+  })
+
+  patch(path.join(core, 'src', 'widget.tsx'), original =>
+    replaceOne(original,
+      '                  onReplyInput={actions.setReplyDraft}',
+      '                  onReplyPreview={actions.previewReply}\n                  onReplyInput={actions.setReplyDraft}',
+      'reply preview callback wiring'))
+
+  patch(path.join(core, 'src', 'components', 'comment.tsx'), original => {
+    let s = replaceOne(original,
+      '  onReplyInput: (value: string) => void',
+      '  onReplyPreview?: (body: string) => Promise<string | null>\n  onReplyInput: (value: string) => void',
+      'reply preview prop')
+    s = replaceOne(s,
+      '  onReplyInput,\n  onReplySubmit,',
+      '  onReplyInput,\n  onReplyPreview,\n  onReplySubmit,',
+      'reply preview destructure')
+    const from = '              onInput={onReplyInput}'
+    const to = '              onPreview={onReplyPreview}\n              previewLabel={labels.preview}\n              editLabel={labels.edit}\n              onInput={onReplyInput}'
+    // Two ReplyBoxes: the root reply and the nested reply injected earlier.
+    const matches = s.split(from).length - 1
+    if (matches !== 2) throw new Error('Expected two native reply preview render sites, got ' + matches)
+    s = s.split(from).join(to)
+    s = replaceOne(s,
+      '  mentionLabel: string\n  replyTo: (login: string) => string',
+      '  mentionLabel: string\n  preview: string\n  edit: string\n  replyTo: (login: string) => string',
+      'reply preview labels')
+    return s
+  })
+
+  patch(path.join(core, 'src', 'widget.tsx'), original =>
+    replaceOne(original,
+      "      mentionLabel: t('mention-label'),",
+      "      mentionLabel: t('mention-label'),\n      preview: t('preview'),\n      edit: t('edit'),",
+      'reply preview translated labels'))
+
+  patch(path.join(core, 'src', 'components', 'reply-box.tsx'), original => {
+    let s = replaceOne(original,
+      "import { useEffect, useRef } from 'preact/hooks'",
+      "import { useEffect, useRef, useState } from 'preact/hooks'\nimport { MarkdownBody } from './markdown-body'",
+      'native preview imports')
+    s = replaceOne(s,
+      '  submitLabel: string\n  onInput:',
+      '  submitLabel: string\n  previewLabel?: string\n  editLabel?: string\n  onPreview?: (body: string) => Promise<string | null>\n  onInput:',
+      'native preview prop types')
+    s = replaceOne(s,
+      '  submitLabel,\n  onInput,',
+      '  submitLabel,\n  previewLabel,\n  editLabel,\n  onPreview,\n  onInput,',
+      'native preview prop destructure')
+    s = replaceOne(s,
+      'const rootRef = useRef<HTMLDivElement>(null)',
+      [
+        'const rootRef = useRef<HTMLDivElement>(null)',
+        'const previewSeq = useRef(0)',
+        'const [previewHtml, setPreviewHtml] = useState<string | null>(null)',
+        'const [previewBusy, setPreviewBusy] = useState(false)',
+        'useEffect(() => () => { previewSeq.current++ }, [])',
+        'const togglePreview = async () => {',
+        '  if (previewHtml !== null) {',
+        '    previewSeq.current++',
+        '    setPreviewHtml(null)',
+        '    setPreviewBusy(false)',
+        '    return',
+        '  }',
+        '  if (!value.trim() || !onPreview || previewBusy) return',
+        '  const seq = ++previewSeq.current',
+        '  setPreviewBusy(true)',
+        '  try {',
+        '    const html = await onPreview(value)',
+        '    if (seq === previewSeq.current && html !== null) setPreviewHtml(html)',
+        '  } finally {',
+        '    if (seq === previewSeq.current) setPreviewBusy(false)',
+        '  }',
+        '}'
+      ].join('\n'), 'native reply preview state')
+    const from = '      <MentionTextarea\n        className="gt-reply-textarea"'
+    const to = '      <div className={previewHtml === null ? "gt-reply-editor" : "gt-reply-editor is--preview"}>\n        <MentionTextarea\n        className="gt-reply-textarea"'
+    s = replaceOne(s, from, to, 'reply preview editor wrapper')
+    s = replaceOne(s,
+      '      <div className="gt-reply-actions">',
+      [
+        '        {previewHtml !== null ? (',
+        '          <div className="gt-reply-preview markdown-body" role="region" aria-label={previewLabel ?? "Preview"}>',
+        '            <MarkdownBody className="preview-body markdown-body" html={previewHtml} />',
+        '          </div>',
+        '        ) : null}',
+        '      </div>',
+        '      <div className="gt-reply-actions">',
+        '        {onPreview ? (',
+        '          <Button className="gt-btn-preview-reply"',
+        '            disabled={!value.trim() || previewBusy}',
+        '            onClick={() => { void togglePreview() }}>',
+        '            {previewHtml === null ? (previewLabel ?? "Preview") : (editLabel ?? "Edit")}',
+        '          </Button>',
+        '        ) : null}'
+      ].join('\n'), 'native preview markup')
+    return s
+  })
+
 }
 
 async function main() {
