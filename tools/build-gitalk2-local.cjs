@@ -231,6 +231,8 @@ function adapt(core) {
       [
         'const rootRef = useRef<HTMLDivElement>(null)',
         'const previewSeq = useRef(0)',
+        'const currentDraft = useRef(value)',
+        'currentDraft.current = value',
         'const [previewHtml, setPreviewHtml] = useState<string | null>(null)',
         'const [previewBusy, setPreviewBusy] = useState(false)',
         'useEffect(() => () => { previewSeq.current++ }, [])',
@@ -246,7 +248,7 @@ function adapt(core) {
         '  setPreviewBusy(true)',
         '  try {',
         '    const html = await onPreview(value)',
-        '    if (seq === previewSeq.current && html !== null) setPreviewHtml(html)',
+        '    if (seq === previewSeq.current && currentDraft.current === value && html !== null) setPreviewHtml(html)',
         '  } finally {',
         '    if (seq === previewSeq.current) setPreviewBusy(false)',
         '  }',
