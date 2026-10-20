@@ -25,6 +25,39 @@ DOM replacement and subsequent reflow following focus-triggered revalidation.
 Do not publish user-provided raw event logs (which contain image URLs and
 browser metadata) in the repository.
 
+## Confirmed: viewport visibility is NOT the trigger (v1.2)
+
+The independent Violentmonkey diagnostic v1.2 recorded **302 events** from
+the Cloudflare Preview article on 2026-10-20 00:03 UTC. The iframe was
+actually within the browser viewport during **all 9** measured returns.
+
+| Focus returns with iframe visible | Image nodes replaced | Discussion API response |
+| ---: | ---: | ---: |
+| 9 | 5 | 5 |
+
+For each of these five events, the comment DOM removed **7** image nodes and
+created **7** replacements (same URLs, comment body count unchanged). All
+seven newly created images were pending again immediately after replacement.
+The first replacement followed tab return after
+**1115, 1222, 1381, 1384, and 1392 milliseconds** respectively.
+The other four returns did not trigger a discussion fetch or replacement.
+The iframe was in view (often 1108 visible pixels), and the comment
+heading being outside the viewport did not prevent revalidation.
+
+This rejects the theory that scrolling the comment iframe out of view is
+necessary. The timing and alternating successful revalidations are consistent
+with SWR's throttled focus-triggered revalidation, although the exact throttle
+configuration should be confirmed against the deployed SWR version.
+
+**Confirmed causal sequence:** tab focus -> discussion API request/response ->
+comment-image DOM replacement -> pending images -> reload/reflow.
+The evidence does NOT yet establish whether `bodyHTML` differs
+byte-for-byte across responses or whether React writes identical HTML again.
+To make a final, production-worthy upstream patch, capture/compare the
+comment body HTML before and after revalidation and test preservation of
+unchanged image nodes on a local giscus build. Do not substitute more iframe
+height clamps or a visibility-based skip, since both have failed real tests.
+
 ## Underlying source paths
 
 - `giscus/giscus/services/giscus/discussions.ts` uses SWR's
