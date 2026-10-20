@@ -103,7 +103,7 @@
   }
 
   function replyToNestedComment(button) {
-    const nested = button.closest('.gt-comment-reply-item');
+    const nested = button.closest('.gt-comment');
     const parent = nested?.closest('.gt-comment-replies')?.closest('.gt-comment');
     const parentButton = parent && topLevelReplyButton(parent);
     if (!parentButton) return;
