@@ -76,7 +76,7 @@
     if (link) {
       try {
         const url = new URL(link.href, location.href);
-        const match = url.pathname.match(/^\\/([A-Za-z0-9-]{1,39})\\/?$/);
+        const match = url.pathname.match(new RegExp('^/([A-Za-z0-9-]{1,39})/?$'));
         if ((url.hostname === 'github.com' || url.hostname === 'www.github.com') && match) {
           return match[1];
         }
@@ -86,7 +86,7 @@
     // when the visible name is a human-friendly display name.
     const label = [author.getAttribute('aria-label'), author.getAttribute('title')]
       .filter(Boolean).join(' ');
-    const match = label.match(/@([A-Za-z0-9-]{1,39})\\b/);
+    const match = label.match(/@([A-Za-z0-9-]{1,39})(?![A-Za-z0-9-])/);
     return match ? match[1] : '';
   }
 
@@ -128,7 +128,7 @@
       const mention = '@' + login + ' ';
       const current = editor.value;
       if (!current.includes(mention)) {
-        const glue = current && !/\\s$/.test(current) ? '\\n' : '';
+        const glue = current && !/\s$/.test(current) ? '\n' : '';
         const next = current + glue + mention;
         editor.value = next;
         // MentionTextarea is controlled by Preact. Its onInput callback must
