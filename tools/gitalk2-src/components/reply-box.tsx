@@ -5,6 +5,7 @@ import { CommentEditor } from './comment-editor'
 import { AccountStrip } from './account-strip'
 import { Button } from './button'
 import { EditorUpload } from './editor-upload'
+import { EditorFooter } from './editor-footer'
 import type { EditorUploadConfig } from './editor-upload'
 import { buildImageMarkdown } from '../images'
 import type { GitalkUploadedImage } from '../types'
@@ -109,20 +110,20 @@ export function ReplyBox(props: ReplyBoxProps) {
         onFiles={props.upload ? (files) => { void uploadFiles(files) } : undefined}
         autoFocus
       />
-      <div className="gt-reply-actions gt-editor-footer">
-        <EditorUpload config={props.upload ? {
+      <EditorFooter className="gt-reply-actions"
+        account={<AccountStrip user={props.currentUser ?? null}
+          logoutLabel={props.logoutLabel ?? 'Logout'} onLogout={props.onLogout ?? (() => {})} />}
+        upload={<EditorUpload config={props.upload ? {
           ...props.upload,
           onFiles: files => { void uploadFiles(files) },
           retry: () => { const failed = props.upload?.error; if (failed) void uploadFiles(failed.files) }
-        } : undefined} />
-        <AccountStrip user={props.currentUser ?? null} logoutLabel={props.logoutLabel ?? 'Logout'}
-          onLogout={props.onLogout ?? (() => {})} />
+        } : undefined} />}>
         <Button className="gt-btn-cancel-reply" onClick={props.onCancel}>{props.cancelLabel}</Button>
         <Button className="gt-btn-public gt-btn-submit-reply"
           loading={props.submitting} disabled={!props.value.trim()} onClick={props.onSubmit}>
           {props.submitLabel}
         </Button>
-      </div>
+      </EditorFooter>
     </div>
   )
 }

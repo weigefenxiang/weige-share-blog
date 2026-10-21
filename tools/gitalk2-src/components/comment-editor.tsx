@@ -1,4 +1,4 @@
-import { useRef } from 'preact/hooks'
+import { useRef, useState } from 'preact/hooks'
 import type { MentionCandidate } from '../mentions'
 import type { MarkdownCommand } from '../markdown-commands'
 import { MarkdownBody } from './markdown-body'
@@ -37,6 +37,7 @@ interface CommentEditorProps {
 export function CommentEditor(props: CommentEditorProps) {
   const ownHandle = useRef<MentionTextareaHandle | null>(null)
   const handle = props.handleRef ?? ownHandle
+  const [history, setHistory] = useState({ undo: false, redo: false })
   const format = (command: MarkdownCommand) => {
     if (!props.previewing) handle.current?.format(command)
   }
@@ -54,7 +55,11 @@ export function CommentEditor(props: CommentEditorProps) {
             {props.previewLabel}
           </button>
         </div>
-        <MarkdownToolbar language={props.language} disabled={props.previewing} onCommand={format} />
+        <MarkdownToolbar language={props.language} disabled={props.previewing} onCommand={format}
+          onMention={() => handle.current?.mention()}
+          onUndo={() => handle.current?.undo()}
+          onRedo={() => handle.current?.redo()}
+          canUndo={history.undo} canRedo={history.redo} />
       </div>
       <div className="gt-shared-editor-stage">
         <MentionTextarea className={props.textareaClassName}
@@ -63,6 +68,8 @@ export function CommentEditor(props: CommentEditorProps) {
           listLabel={props.listLabel} rows={3} autoFocus={props.autoFocus}
           handleRef={handle} caretAvailable={!props.previewing}
           onFiles={props.onFiles}
+          onHistoryChange={(undo, redo) => setHistory(previous =>
+            previous.undo === undo && previous.redo === redo ? previous : {undo, redo})}
           onInput={props.onInput} onSubmit={props.onSubmit}
           onEscape={props.onEscape} submitOnPlainEnter={props.submitOnPlainEnter} />
         {props.previewing ? (

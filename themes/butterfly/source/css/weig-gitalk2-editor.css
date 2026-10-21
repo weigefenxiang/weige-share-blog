@@ -663,22 +663,39 @@ html[data-theme='dark'] #post-comment {
   background: transparent;
 }
 #post-comment #gitalk-container .gt-container .gt-editor-footer {
-  display: flex;
+  display: grid;
   width: 100%;
   min-width: 0;
-  flex-wrap: nowrap;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr);
   align-items: center;
-  gap: 8px;
-  justify-content: flex-end;
+  gap: 6px;
   margin-top: 8px;
 }
+#post-comment #gitalk-container .gt-container .gt-footer-account {
+  grid-column: 1;
+  min-width: 0;
+  justify-self: start;
+}
+#post-comment #gitalk-container .gt-container .gt-footer-center {
+  grid-column: 2;
+  justify-self: center;
+  min-width: 0;
+  max-width: 100%;
+}
+#post-comment #gitalk-container .gt-container .gt-footer-actions {
+  grid-column: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  justify-self: end;
+  white-space: nowrap;
+}
 #post-comment #gitalk-container .gt-container .gt-editor-account {
-  flex: 0 1 auto;
   display: flex;
   min-width: 0;
+  max-width: 100%;
   align-items: center;
   gap: 7px;
-  margin-inline-start: auto;
 }
 #post-comment #gitalk-container .gt-container .gt-editor-account-avatar {
   flex: 0 0 26px;
@@ -732,7 +749,7 @@ html[data-theme='dark'] #post-comment {
   }
 }
 @container gt-editor (max-width: 390px) {
-  #post-comment #gitalk-container .gt-container .gt-format-btn[data-command="quote"] { display: none; }
+  
   #post-comment #gitalk-container .gt-container .gt-editor-tabs { gap: 0; }
 }
 #post-comment #gitalk-container .gt-container .gt-editor-footer > :is(button, .gt-btn, a) {
@@ -755,10 +772,11 @@ html[data-theme='dark'] #post-comment {
 #post-comment #gitalk-container .gt-container .gt-footer-upload {
   display: flex;
   align-items: center;
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   min-width: 0;
+  max-width: 100%;
+  justify-content: center;
   gap: 4px;
-  margin-inline-end: auto;
 }
 #post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-upload-image {
   display: inline-flex;
@@ -815,9 +833,38 @@ html[data-theme='dark'] #post-comment {
 }
 
 
-@container gt-footer (max-width: 410px) {
+#post-comment #gitalk-container .gt-container .gt-editor-logout-icon { display: none; }
+#post-comment #gitalk-container .gt-container .gt-footer-actions .gt-btn {
+  max-width: none;
+  min-width: 0;
+}
+@container gt-footer (max-width: 475px) {
   #post-comment #gitalk-container .gt-container .gt-editor-account-login { display: none; }
   #post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-text { display: none; }
   #post-comment #gitalk-container .gt-container .gt-editor-footer { gap: 4px; }
-  #post-comment #gitalk-container .gt-container .gt-editor-account-logout { padding-inline: 4px; }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-logout {
+    padding: 4px 6px;
+    min-width: 28px;
+    min-height: 28px;
+  }
+  #post-comment #gitalk-container .gt-container .gt-editor-logout-text { display: none; }
+  #post-comment #gitalk-container .gt-container .gt-editor-logout-icon { display: inline; }
+  #post-comment #gitalk-container .gt-container .gt-footer-actions { gap: 4px; }
+  #post-comment #gitalk-container .gt-container .gt-footer-actions .gt-btn-cancel-reply {
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+}
+@container gt-footer (max-width: 300px) {
+  #post-comment #gitalk-container .gt-container .gt-editor-account-avatar {
+    width: 20px;
+    height: 20px;
+    flex-basis: 20px;
+  }
+  #post-comment #gitalk-container .gt-container .gt-editor-footer {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  }
+  #post-comment #gitalk-container .gt-container .gt-footer-actions .gt-btn {
+    padding-inline: 4px;
+  }
 }

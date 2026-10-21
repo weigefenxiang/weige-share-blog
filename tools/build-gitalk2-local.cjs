@@ -470,6 +470,7 @@ async function main() {
     adapt(core)
     require('./gitalk2-v3-adapter.cjs')(core, site)
     require('./gitalk2-v3-upload-adapter.cjs')(core, site)
+    require('./gitalk2-v3-third-adapter.cjs')(core, site)
     // Offline regression checks run on the actual patched TypeScript before
     // fetching npm dependencies. TypeScript checks the full core before bundling.
     run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-401.cjs'), core], core)

@@ -5,6 +5,11 @@ interface MarkdownToolbarProps {
   language?: string
   disabled?: boolean
   onCommand: (command: MarkdownCommand) => void
+  onMention: () => void
+  onUndo: () => void
+  onRedo: () => void
+  canUndo: boolean
+  canRedo: boolean
 }
 const FORMATS: ReadonlyArray<{ command: MarkdownCommand; symbol: string; label: string }> = [
   { command: 'heading', symbol: 'H', label: 'Heading' },
@@ -33,31 +38,59 @@ const LOCALES: Record<string, Partial<Record<MarkdownCommand, string>>> = {
   pt: {heading:'Título',bold:'Negrito',italic:'Itálico',quote:'Citação',link:'Ligação'},
   ru: {heading:'Заголовок',bold:'Жирный',italic:'Курсив',quote:'Цитата',link:'Ссылка'}
 }
+type ToolbarAction = MarkdownCommand | 'mention' | 'undo' | 'redo'
+const EXTRA: ReadonlyArray<{command: ToolbarAction; symbol: string; label: string}> = [
+  { command: 'mention', symbol: '@', label: 'Mention a participant' },
+  { command: 'undo', symbol: '↶', label: 'Undo' },
+  { command: 'redo', symbol: '↷', label: 'Redo' }
+]
+
 
 
 /** Common editor toolbar at every reply depth.
  * Container queries select wide or compact presentation, never render
  * a second editor or duplicate draft state.
  */
-export function MarkdownToolbar({ language = 'en', disabled, onCommand }: MarkdownToolbarProps) {
+/** Shared toolbar, with real commands and one compact overflow menu. */
+export function MarkdownToolbar({
+  language = 'en', disabled, onCommand, onMention, onUndo, onRedo, canUndo, canRedo
+}: MarkdownToolbarProps) {
   const labels = LOCALES[language.toLowerCase()] ?? LOCALES[language.slice(0, 2).toLowerCase()] ?? {}
   const dropdown = useRef<HTMLDetailsElement>(null)
-  const compactName = /^zh/i.test(language) ? '更多格式' : 'More formatting'
-  const primary = FORMATS.slice(0, 4)
-  const extended = FORMATS.slice(4)
-  const button = ({ command, symbol, label }: typeof FORMATS[number], compact = false) => (
-    <button key={command} type="button"
-      className={'gt-format-btn' + (compact ? ' gt-format-in-menu' : '')}
-      data-command={command} aria-label={labels[command] ?? label}
-      title={labels[command] ?? label} disabled={disabled}
-      onMouseDown={event => event.preventDefault()}
-      onClick={() => {
-        onCommand(command)
-        if (compact && dropdown.current) dropdown.current.open = false
-      }}>
-      <span aria-hidden="true">{symbol}</span>
-    </button>
-  )
+  const chinese = /^zh/i.test(language)
+  const compactName = chinese ? '更多格式' : 'More formatting'
+  const extraLabels = chinese
+    ? { mention: '提及用户', undo: '撤销', redo: '重做' }
+    : { mention: 'Mention a participant', undo: 'Undo', redo: 'Redo' }
+  const primary: ReadonlyArray<{command: ToolbarAction; symbol: string; label: string}> =
+    [...FORMATS.slice(0, 3), EXTRA[0]]
+  const extended: ReadonlyArray<{command: ToolbarAction; symbol: string; label: string}> =
+    [...FORMATS.slice(3), EXTRA[1], EXTRA[2]]
+  const action = (command: ToolbarAction) => {
+    if (command === 'mention') onMention()
+    else if (command === 'undo') onUndo()
+    else if (command === 'redo') onRedo()
+    else onCommand(command)
+  }
+  const button = ({ command, symbol, label }: typeof primary[number], compact = false) => {
+    const labelText = command === 'mention' || command === 'undo' || command === 'redo'
+      ? extraLabels[command]
+      : labels[command] ?? label
+    return (
+      <button key={command} type="button"
+        className={'gt-format-btn' + (compact ? ' gt-format-in-menu' : '')}
+        data-command={command}
+        aria-label={labelText} title={labelText}
+        disabled={disabled || (command === 'undo' && !canUndo) || (command === 'redo' && !canRedo)}
+        onMouseDown={event => event.preventDefault()}
+        onClick={() => {
+          action(command)
+          if (compact && dropdown.current) dropdown.current.open = false
+        }}>
+        <span aria-hidden="true">{symbol}</span>
+      </button>
+    )
+  }
   return (
     <div className="gt-markdown-toolbar" role="toolbar" aria-label="Markdown">
       {primary.map(item => button(item))}

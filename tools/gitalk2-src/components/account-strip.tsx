@@ -13,7 +13,8 @@ export function AccountStrip({ user, logoutLabel, onLogout }: AccountStripProps)
       <Avatar className="gt-editor-account-avatar" src={user.avatarUrl} alt={user.login} />
       <span className="gt-editor-account-login" title={'@' + user.login}>@{user.login}</span>
       <button type="button" className="gt-editor-account-logout" onClick={onLogout}>
-        {logoutLabel}
+        <span className="gt-editor-logout-text">{logoutLabel}</span>
+        <span className="gt-editor-logout-icon" aria-hidden="true">⇥</span>
       </button>
     </div>
   )
