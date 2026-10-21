@@ -1,3 +1,4 @@
+import { useRef } from 'preact/hooks'
 import type { MarkdownCommand } from '../markdown-commands'
 
 interface MarkdownToolbarProps {
@@ -33,21 +34,40 @@ const LOCALES: Record<string, Partial<Record<MarkdownCommand, string>>> = {
   ru: {heading:'Заголовок',bold:'Жирный',italic:'Курсив',quote:'Цитата',link:'Ссылка'}
 }
 
+
+/** Common editor toolbar at every reply depth.
+ * Container queries select wide or compact presentation, never render
+ * a second editor or duplicate draft state.
+ */
 export function MarkdownToolbar({ language = 'en', disabled, onCommand }: MarkdownToolbarProps) {
   const labels = LOCALES[language.toLowerCase()] ?? LOCALES[language.slice(0, 2).toLowerCase()] ?? {}
+  const dropdown = useRef<HTMLDetailsElement>(null)
+  const compactName = /^zh/i.test(language) ? '更多格式' : 'More formatting'
+  const primary = FORMATS.slice(0, 4)
+  const extended = FORMATS.slice(4)
+  const button = ({ command, symbol, label }: typeof FORMATS[number], compact = false) => (
+    <button key={command} type="button"
+      className={'gt-format-btn' + (compact ? ' gt-format-in-menu' : '')}
+      data-command={command} aria-label={labels[command] ?? label}
+      title={labels[command] ?? label} disabled={disabled}
+      onMouseDown={event => event.preventDefault()}
+      onClick={() => {
+        onCommand(command)
+        if (compact && dropdown.current) dropdown.current.open = false
+      }}>
+      <span aria-hidden="true">{symbol}</span>
+    </button>
+  )
   return (
     <div className="gt-markdown-toolbar" role="toolbar" aria-label="Markdown">
-      {FORMATS.map(({ command, symbol, label }) => (
-        <button key={command} type="button" className="gt-format-btn"
-          data-command={command}
-          aria-label={labels[command] ?? label}
-          title={labels[command] ?? label}
-          disabled={disabled}
-          onMouseDown={(event) => event.preventDefault()}
-          onClick={() => onCommand(command)}>
-          <span aria-hidden="true">{symbol}</span>
-        </button>
-      ))}
+      {primary.map(item => button(item))}
+      <span className="gt-format-extra">{extended.map(item => button(item))}</span>
+      <details className="gt-format-overflow" ref={dropdown}>
+        <summary title={compactName} aria-label={compactName}>⋯</summary>
+        <div className="gt-format-menu" role="group" aria-label={compactName}>
+          {extended.map(item => button(item, true))}
+        </div>
+      </details>
     </div>
   )
 }

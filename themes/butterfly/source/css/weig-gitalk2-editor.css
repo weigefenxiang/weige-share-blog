@@ -521,13 +521,15 @@ html[data-theme='dark'] #post-comment {
   border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
   border-radius: 8px;
   background: var(--gt-color-input-bg, var(--weig-tools-surface));
-  overflow: hidden;
+  overflow: visible;
+  container-type: inline-size;
+  container-name: gt-editor;
 }
 #post-comment #gitalk-container .gt-container .gt-shared-editor-top {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
   align-items: center;
-  gap: 6px 10px;
+  gap: 8px;
   padding: 6px;
   border-bottom: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
 }
@@ -574,7 +576,45 @@ html[data-theme='dark'] #post-comment {
   justify-content: flex-end;
   align-items: center;
   gap: 2px;
-  flex-wrap: wrap;
+  min-width: 0;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+#post-comment #gitalk-container .gt-container .gt-format-extra {
+  display: inline-flex;
+  gap: 2px;
+}
+#post-comment #gitalk-container .gt-container .gt-format-overflow { display: none; position: relative; }
+#post-comment #gitalk-container .gt-container .gt-format-overflow summary {
+  list-style: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 30px;
+  height: 30px;
+  border-radius: 5px;
+  color: var(--gt-color-text-2, var(--weig-tools-color));
+  cursor: pointer;
+  user-select: none;
+}
+#post-comment #gitalk-container .gt-container .gt-format-overflow summary::-webkit-details-marker { display: none; }
+#post-comment #gitalk-container .gt-container .gt-format-overflow summary:focus-visible {
+  outline: 2px solid #3fb950;
+  outline-offset: 2px;
+}
+#post-comment #gitalk-container .gt-container .gt-format-menu {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 6px);
+  inset-inline-end: 0;
+  display: grid;
+  grid-template-columns: repeat(3, 34px);
+  gap: 4px;
+  padding: 7px;
+  border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  border-radius: 8px;
+  background: var(--gt-color-input-bg, var(--weig-tools-surface));
+  box-shadow: 0 10px 30px rgba(0,0,0,.25);
 }
 #post-comment #gitalk-container .gt-container .gt-shared-editor-stage {
   display: flex;
@@ -624,19 +664,19 @@ html[data-theme='dark'] #post-comment {
   display: flex;
   width: 100%;
   min-width: 0;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: center;
   gap: 8px;
   justify-content: flex-end;
   margin-top: 8px;
 }
 #post-comment #gitalk-container .gt-container .gt-editor-account {
-  flex: 1 1 auto;
+  flex: 0 1 auto;
   display: flex;
   min-width: 0;
   align-items: center;
   gap: 7px;
-  margin-inline-end: auto;
+  margin-inline-start: auto;
 }
 #post-comment #gitalk-container .gt-container .gt-editor-account-avatar {
   flex: 0 0 26px;
@@ -677,16 +717,30 @@ html[data-theme='dark'] #post-comment {
   max-width: 100%;
   min-width: 0;
 }
+/* Query the actual editor width: a nested reply can be narrow on desktop. */
+@container gt-editor (max-width: 540px) {
+  #post-comment #gitalk-container .gt-container .gt-format-extra { display: none; }
+  #post-comment #gitalk-container .gt-container .gt-format-overflow { display: block; }
+  #post-comment #gitalk-container .gt-container .gt-markdown-toolbar { gap: 0; }
+  #post-comment #gitalk-container .gt-container :is(.gt-editor-tab, .gt-format-btn) {
+    min-width: 27px;
+    padding: 4px 5px;
+  }
+}
+@container gt-editor (max-width: 390px) {
+  #post-comment #gitalk-container .gt-container .gt-format-btn[data-command="quote"] { display: none; }
+  #post-comment #gitalk-container .gt-container .gt-editor-tabs { gap: 0; }
+}
+#post-comment #gitalk-container .gt-container .gt-editor-footer > :is(button, .gt-btn, a) {
+  flex: 0 0 auto;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account-login {
+  max-width: min(150px, 17vw);
+}
 @media (max-width: 600px) {
-  #post-comment #gitalk-container .gt-container .gt-shared-editor-top {
-    align-items: stretch;
-  }
-  #post-comment #gitalk-container .gt-container .gt-markdown-toolbar {
-    justify-content: flex-start;
-    max-height: 78px;
-    overflow-y: auto;
-  }
-  #post-comment #gitalk-container .gt-container .gt-editor-account-login {
-    max-width: 25vw;
-  }
+  #post-comment #gitalk-container .gt-container .gt-editor-footer { gap: 5px; }
+  #post-comment #gitalk-container .gt-container .gt-editor-account { gap: 4px; }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-avatar { flex-basis: 22px; width: 22px; height: 22px; }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-login { max-width: 72px; }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-logout { padding: 4px; font-size: 11px; }
 }

@@ -55,7 +55,7 @@ test('formatting is routed through the original caret-aware native textarea', ()
   assert.match(input, /el\.setSelectionRange\(caret, selectionEnd\)/)
   assert.match(input, /e\.key\.toLowerCase\(\) === "b"/)
   assert.match(input, /e\.key\.toLowerCase\(\) === "i"/)
-  assert.match(toolbar, /onMouseDown=\{\(event\) => event\.preventDefault\(\)\}/)
+  assert.match(toolbar, /onMouseDown=\{event => event\.preventDefault\(\)\}/)
 })
 
 test('every reply location gets account strip and identical controls', () => {
@@ -73,4 +73,17 @@ test('previews ignore stale async results and attachments have no fictitious UI'
   assert.match(editor, /props\.previewing/)
   assert.match(widget, /meta\.canUploadImage \? \(/)
   assert.doesNotMatch(toolbar, /upload|attachment|paperclip/i)
+})
+
+
+test('single-row toolbar and footer share responsive container layout', () => {
+  assert.match(toolbar, /className="gt-format-overflow"/)
+  assert.match(toolbar, /className="gt-format-extra"/)
+  assert.match(toolbar, /const compactName/)
+  assert.match(toolbar, /dropdown\.current\.open = false/)
+  const css = fs.readFileSync(path.join(__dirname, '../themes/butterfly/source/css/weig-gitalk2-editor.css'), 'utf8')
+  assert.match(css, /grid-template-columns: max-content minmax\(0, 1fr\)/)
+  assert.match(css, /@container gt-editor \(max-width: 540px\)/)
+  assert.match(css, /\.gt-editor-footer\s*\{[\s\S]*?flex-wrap: nowrap/)
+  assert.match(css, /\.gt-editor-account\s*\{[\s\S]*?flex: 0 1 auto/)
 })
