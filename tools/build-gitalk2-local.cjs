@@ -278,6 +278,117 @@ function adapt(core) {
     return s
   })
 
+
+  // A revoked GitHub App user token can survive in localStorage. On a 401
+  // from a TOKEN-AUTHENTICATED READ, renew once (singleflight), otherwise
+  // discard only that invalid access token and retry the GET anonymously.
+  // Never replay writes; neither draft text nor unrelated storage is touched.
+  patch(path.join(core, 'src', 'auth.ts'), original => {
+    let s = replaceOne(original,
+      '  private expiresAt = 0',
+      '  private expiresAt = 0\n  private unauthorizedRecovery: Promise<void> | null = null',
+      '401 recovery singleflight field')
+    const method = [
+      '  /** Recover one rejected access token without clearing drafts or a usable session. */',
+      '  async recoverUnauthorizedToken(rejected: string): Promise<void> {',
+      '    if (!rejected || this.getToken() !== rejected) return',
+      '    if (this.unauthorizedRecovery) {',
+      '      await this.unauthorizedRecovery',
+      '      return',
+      '    }',
+      '    const pending = (async () => {',
+      '      try {',
+      '        if (this.hasSession()) await this.refresh()',
+      '      } catch {',
+      '        // A transient proxy error is not proof that the refresh session is invalid.',
+      '      }',
+      '      // Do not erase a newer token established by another in-flight login.',
+      '      if (this.getToken() === rejected) {',
+      '        this.token = null',
+      '        this.expiresAt = 0',
+      '        removeStored(STORAGE_KEY)',
+      '        removeStored(EXPIRES_KEY)',
+      '      }',
+      '    })()',
+      '    this.unauthorizedRecovery = pending',
+      '    try { await pending } finally {',
+      '      if (this.unauthorizedRecovery === pending) this.unauthorizedRecovery = null',
+      '    }',
+      '  }',
+      ''
+    ].join('\n')
+    return replaceOne(s, '  /** Persist draft so a round trip to GitHub does not lose it. */',
+      method + '\n  /** Persist draft so a round trip to GitHub does not lose it. */',
+      '401 recovery Auth method')
+  })
+
+  patch(path.join(core, 'src', 'api', 'client.ts'), original => {
+    let s = replaceOne(original,
+      '    private readonly baseUrl: string = GITHUB_API\n  ) {}',
+      '    private readonly baseUrl: string = GITHUB_API,\n' +
+      '    private readonly onUnauthorized?: (rejectedToken: string) => Promise<void>\n  ) {}',
+      '401 recovery optional callback')
+    const retry = [
+      '    // Only retry safe reads. The callback may renew the session or drop a',
+      '    // rejected token, allowing public comments to load anonymously.',
+      '    // Never automatically repeat POST/mutations or loop on a second 401.',
+      "    if (response.status === 401 && token && (init.method ?? 'GET').toUpperCase() === 'GET' && this.onUnauthorized) {",
+      '      await this.onUnauthorized(token)',
+      '      const replacement = this.getToken()',
+      '      const retryHeaders = { ...headers }',
+      '      if (replacement) retryHeaders.Authorization = "Bearer " + replacement',
+      '      else delete retryHeaders.Authorization',
+      '      try {',
+      '        response = await fetch(this.baseUrl + path, { ...init, headers: retryHeaders })',
+      '      } catch (err) {',
+      '        throw new GitalkError("Network error: " + (err as Error).message)',
+      '      }',
+      '    }',
+      ''
+    ].join('\n')
+    return replaceOne(s, '    if (response.status === 429) throw new RateLimitError()',
+      retry + '\n    if (response.status === 429) throw new RateLimitError()',
+      '401 retry only GET')
+  })
+
+  patch(path.join(core, 'src', 'use-gitalk.ts'), original =>
+    replaceOne(original,
+      '    () => new HttpClient(() => auth.getToken()),',
+      [ 
+        '    () => new HttpClient(() => auth.getToken(), GITHUB_API, async rejected => {',
+        '      await auth.recoverUnauthorizedToken(rejected)',
+        '      if (!auth.getToken()) patch({ user: null })',
+        '    }),'
+      ].join('\n'),
+      '401 recovery client wiring'))
+
+
+  // /user requires authentication, so its anonymous retry after an invalid
+  // token legitimately returns 401. Treat it as signed-out, not a page error.
+  patch(path.join(core, 'src', 'use-gitalk.ts'), original => {
+    let s = replaceOne(original,
+      '    const me = await http.get<{',
+      '    const me = await http.get<{',
+      '401 viewer read anchor')
+    const old = [
+      "    }>('/user')",
+      "    // A sign-out can land while"
+    ].join('\n')
+    const newer = [
+      "    }>('/user').catch(err => {",
+      "      if (err instanceof GitalkError && err.status === 401 && !auth.getToken()) return null",
+      "      throw err",
+      "    })",
+      "    if (!me) {",
+      "      viewerRef.current = null",
+      "      patch({ user: null })",
+      "      return null",
+      "    }",
+      "    // A sign-out can land while"
+    ].join('\n')
+    return replaceOne(s, old, newer, '401 anonymous /user handling')
+  })
+
 }
 
 async function main() {
@@ -293,7 +404,11 @@ async function main() {
     const manifest = JSON.parse(fs.readFileSync(path.join(core, 'package.json'), 'utf8'))
     if (manifest.version !== '2.0.0-beta.0') throw new Error('Unexpected Gitalk version')
     adapt(core)
+    // Offline regression checks run on the actual patched TypeScript before
+    // fetching npm dependencies. TypeScript checks the full core before bundling.
+    run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-401.cjs'), core], core)
     run('npm', ['install', '--no-audit', '--no-fund', '--no-package-lock'], core)
+    run(process.execPath, [path.join(core, 'node_modules', 'typescript', 'bin', 'tsc'), '-p', 'tsconfig.types.json'], core)
     const vite = path.join(core, 'node_modules', 'vite', 'bin', 'vite.js')
     run(process.execPath, [vite, 'build'], core)
     run(process.execPath, [vite, 'build', '--config', 'vite.iife.config.ts'], core)
