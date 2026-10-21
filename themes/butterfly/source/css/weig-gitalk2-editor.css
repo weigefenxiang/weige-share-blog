@@ -350,3 +350,72 @@ html[data-theme='dark'] #post-comment {
     padding: max(8px, env(safe-area-inset-top)) 8px max(8px, env(safe-area-inset-bottom));
   }
 }
+
+
+/* Gitalk reply sign-in prompt. <dialog>.showModal() puts it in the browser
+   top layer, unlike the previous notice hidden at the top of the thread.
+   Colors inherit the same light/dark theme as the rest of the comment UI. */
+#post-comment #gitalk-container .gt-container .gt-reply-login-dialog {
+  position: fixed;
+  inset: 0;
+  box-sizing: border-box;
+  width: min(420px, calc(100vw - 32px));
+  max-width: calc(100vw - 32px);
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 22px;
+  border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  border-radius: 12px;
+  background: var(--gt-color-panel-solid, var(--weig-tools-surface));
+  color: var(--gt-color-text, var(--weig-tools-color));
+  box-shadow: 0 18px 56px rgba(0, 0, 0, .28);
+  font: inherit;
+  overflow: auto;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-login-dialog::backdrop {
+  background: rgba(0, 0, 0, .58);
+}
+#post-comment #gitalk-container .gt-container .gt-reply-login-message {
+  margin: 0 0 22px;
+  color: inherit;
+  font-size: max(14px, var(--weig-editor-font));
+  line-height: 1.55;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-login-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-reply-login-cancel, .gt-reply-login-confirm) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 38px;
+  padding: 7px 14px;
+  border-radius: 8px;
+  text-decoration: none;
+  font: inherit;
+  font-size: max(13px, calc(var(--weig-editor-font) * .9));
+  cursor: pointer;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-login-cancel {
+  border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  background: transparent;
+  color: inherit;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-login-confirm {
+  border: 1px solid #238636;
+  background: #238636;
+  color: #fff;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-reply-login-cancel, .gt-reply-login-confirm):focus-visible {
+  outline: 2px solid var(--gt-color-accent, #2f81f7);
+  outline-offset: 3px;
+}
+@media (max-width: 600px) {
+  #post-comment #gitalk-container .gt-container .gt-reply-login-dialog {
+    padding: 18px;
+  }
+}

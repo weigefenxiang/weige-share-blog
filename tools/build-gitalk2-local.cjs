@@ -389,6 +389,84 @@ function adapt(core) {
     return replaceOne(s, old, newer, '401 anonymous /user handling')
   })
 
+
+  // Keep the login prompt at the clicked reply, not at the top of the
+  // potentially long scrolling comment list. Both parent and nested buttons
+  // already route unauthenticated clicks through requireLogin('reply').
+  patch(path.join(core, 'src', 'use-gitalk.ts'), original => {
+    let s = replaceOne(original,
+      '  notice: string | null\n',
+      '  notice: string | null\n  replyLoginPrompt: boolean\n',
+      'reply prompt state type')
+    s = replaceOne(s,
+      '    notice: null,\n    imageUploading:',
+      '    notice: null,\n    replyLoginPrompt: false,\n    imageUploading:',
+      'reply prompt state initial')
+    s = replaceOne(s,
+      '      patch({ notice: message })',
+      "      patch({ notice: message, replyLoginPrompt: reason === 'reply' })",
+      'reply prompt routing')
+    return replaceOne(s,
+      '  const dismissNotice = useCallback(() => patch({ notice: null }), [patch])',
+      '  const dismissNotice = useCallback(() => patch({ notice: null, replyLoginPrompt: false }), [patch])',
+      'reply prompt dismissal')
+  })
+
+  patch(path.join(core, 'src', 'widget.tsx'), original => {
+    let s = replaceOne(original,
+      '  const fabRef = useRef<HTMLButtonElement>(null)',
+      '  const fabRef = useRef<HTMLButtonElement>(null)\n  const replyLoginDialogRef = useRef<HTMLDialogElement>(null)',
+      'reply prompt dialog ref')
+    s = replaceOne(s,
+      '  const expand = () => {',
+      [
+        '  // A modal dialog is in the browser top layer: it stays visible even',
+        '  // when the reply is far down an overflow-clipped comments list.',
+        '  useEffect(() => {',
+        '    const dialog = replyLoginDialogRef.current',
+        '    if (!dialog || !state.replyLoginPrompt) return',
+        '    if (!dialog.open) {',
+        '      if (typeof dialog.showModal === "function") dialog.showModal()',
+        '      else dialog.setAttribute("open", "")',
+        '    }',
+        '  }, [state.replyLoginPrompt])',
+        '',
+        '  const expand = () => {'
+      ].join('\n'), 'reply dialog top layer effect')
+    s = replaceOne(s,
+      '      {state.notice ? (',
+      '      {state.notice && !state.replyLoginPrompt ? (',
+      'hide offscreen duplicate reply notice')
+    const prompt = [
+      '      {state.replyLoginPrompt && !meta.authenticated ? (',
+      '        <dialog',
+      '          ref={replyLoginDialogRef}',
+      '          className="gt-reply-login-dialog"',
+      '          aria-label={t("login-to-reply")}',
+      '          onCancel={(event) => { event.preventDefault(); actions.dismissNotice() }}',
+      '          onClose={actions.dismissNotice}',
+      '        >',
+      '          <p className="gt-reply-login-message">{t("login-to-reply")}</p>',
+      '          <div className="gt-reply-login-actions">',
+      '            <button type="button" className="gt-reply-login-cancel" onClick={actions.dismissNotice}>',
+      '              {t("cancel")}',
+      '            </button>',
+      '            {meta.canLogin ? (',
+      '              <a className="gt-reply-login-confirm" href={loginHref} onClick={onLoginClick}>',
+      '                {t("login-with-github")}',
+      '              </a>',
+      '            ) : null}',
+      '          </div>',
+      '        </dialog>',
+      '      ) : null}',
+      ''
+    ].join('\n')
+    return replaceOne(s,
+      '      {state.error ? (',
+      prompt + '\n      {state.error ? (',
+      'native reply prompt markup')
+  })
+
 }
 
 async function main() {
@@ -407,6 +485,7 @@ async function main() {
     // Offline regression checks run on the actual patched TypeScript before
     // fetching npm dependencies. TypeScript checks the full core before bundling.
     run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-401.cjs'), core], core)
+    run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-reply-login.cjs'), core], core)
     run('npm', ['install', '--no-audit', '--no-fund', '--no-package-lock'], core)
     run(process.execPath, [path.join(core, 'node_modules', 'typescript', 'bin', 'tsc'), '-p', 'tsconfig.types.json'], core)
     const vite = path.join(core, 'node_modules', 'vite', 'bin', 'vite.js')
