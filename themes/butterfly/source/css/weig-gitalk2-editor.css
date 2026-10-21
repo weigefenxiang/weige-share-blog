@@ -493,3 +493,200 @@ html[data-theme='dark'] #post-comment {
     font-size: 12px;
   }
 }
+
+
+/* V3: ONE native editor surface shared by main comments and all reply entrypoints.
+   Supersedes the pinned Gitalk's compact single-line composer layout.
+   Upload controls appear only if an authenticated storage adapter is configured. */
+#post-comment #gitalk-container .gt-container .gt-header {
+  align-items: stretch;
+  height: auto;
+  min-height: 0;
+}
+#post-comment #gitalk-container .gt-container .gt-header-comment {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-composer-body, .gt-reply-editor).gt-shared-editor {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: stretch;
+  min-width: 0;
+  width: 100%;
+  border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  border-radius: 8px;
+  background: var(--gt-color-input-bg, var(--weig-tools-surface));
+  overflow: hidden;
+}
+#post-comment #gitalk-container .gt-container .gt-shared-editor-top {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 10px;
+  padding: 6px;
+  border-bottom: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+}
+#post-comment #gitalk-container .gt-container .gt-editor-tabs {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 3px;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-editor-tab, .gt-format-btn) {
+  display: inline-flex;
+  justify-content: center;
+  align-items: center;
+  min-width: 30px;
+  min-height: 30px;
+  padding: 4px 7px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--gt-color-text-2, var(--weig-tools-color));
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-tab[aria-pressed='true'] {
+  color: var(--gt-color-text, var(--weig-tools-color));
+  background: var(--gt-color-wash-strong, rgba(139,148,158,.12));
+  font-weight: 600;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-editor-tab, .gt-format-btn):hover:not(:disabled) {
+  background: var(--gt-color-wash-strong, rgba(139,148,158,.12));
+  color: var(--gt-color-text, var(--weig-tools-color));
+}
+#post-comment #gitalk-container .gt-container :is(.gt-editor-tab, .gt-format-btn):focus-visible {
+  outline: 2px solid #3fb950;
+  outline-offset: 1px;
+}
+#post-comment #gitalk-container .gt-container :is(.gt-editor-tab, .gt-format-btn):disabled {
+  opacity: .45;
+  cursor: not-allowed;
+}
+#post-comment #gitalk-container .gt-container .gt-markdown-toolbar {
+  display: flex;
+  flex: 1 1 auto;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 2px;
+  flex-wrap: wrap;
+}
+#post-comment #gitalk-container .gt-container .gt-shared-editor-stage {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 120px;
+  padding: 8px;
+}
+#post-comment #gitalk-container .gt-container .gt-shared-editor-stage > .gt-editor {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 120px;
+  width: 100%;
+}
+#post-comment #gitalk-container .gt-container .gt-shared-editor-stage :is(.gt-header-textarea, .gt-reply-textarea) {
+  flex: 1 1 auto;
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 115px;
+  height: 160px;
+  max-height: min(70dvh, 720px);
+  padding: 9px 10px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  line-height: 1.6;
+  resize: vertical;
+  background: transparent;
+  color: var(--gt-color-text);
+  font-size: var(--weig-editor-font, 16px);
+}
+#post-comment #gitalk-container .gt-container .gt-shared-editor.is--preview .gt-shared-editor-stage > .gt-editor {
+  display: none;
+}
+#post-comment #gitalk-container .gt-container .gt-shared-editor-stage :is(.gt-composer-preview, .gt-reply-preview) {
+  width: 100%;
+  box-sizing: border-box;
+  max-height: min(70dvh, 720px);
+  min-height: 120px;
+  overflow: auto;
+  padding: 10px;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-footer {
+  display: flex;
+  width: 100%;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 8px;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account {
+  flex: 1 1 auto;
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 7px;
+  margin-inline-end: auto;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account-avatar {
+  flex: 0 0 26px;
+  width: 26px;
+  height: 26px;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account-login {
+  display: inline-block;
+  max-width: min(190px, 25vw);
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--gt-color-text);
+  font-size: 12px;
+  font-weight: 600;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account-logout {
+  flex: 0 0 auto;
+  padding: 5px 8px;
+  border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gt-color-text-2);
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account-logout:hover {
+  color: var(--gt-color-text);
+  border-color: var(--gt-color-main-border, #238636);
+}
+#post-comment #gitalk-container .gt-container .gt-editor-account-logout:focus-visible {
+  outline: 2px solid #3fb950;
+  outline-offset: 2px;
+}
+#post-comment #gitalk-container .gt-container .gt-reply-box {
+  max-width: 100%;
+  min-width: 0;
+}
+@media (max-width: 600px) {
+  #post-comment #gitalk-container .gt-container .gt-shared-editor-top {
+    align-items: stretch;
+  }
+  #post-comment #gitalk-container .gt-container .gt-markdown-toolbar {
+    justify-content: flex-start;
+    max-height: 78px;
+    overflow-y: auto;
+  }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-login {
+    max-width: 25vw;
+  }
+}

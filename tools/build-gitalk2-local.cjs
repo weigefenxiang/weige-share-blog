@@ -213,71 +213,7 @@ function adapt(core) {
       "      mentionLabel: t('mention-label'),\n      preview: t('preview'),\n      edit: t('edit'),",
       'reply preview translated labels'))
 
-  patch(path.join(core, 'src', 'components', 'reply-box.tsx'), original => {
-    let s = replaceOne(original,
-      "import { useEffect, useRef } from 'preact/hooks'",
-      "import { useEffect, useRef, useState } from 'preact/hooks'\nimport { MarkdownBody } from './markdown-body'",
-      'native preview imports')
-    s = replaceOne(s,
-      '  submitLabel: string\n  onInput:',
-      '  submitLabel: string\n  previewLabel?: string\n  editLabel?: string\n  onPreview?: (body: string) => Promise<string | null>\n  onInput:',
-      'native preview prop types')
-    s = replaceOne(s,
-      '  submitLabel,\n  onInput,',
-      '  submitLabel,\n  previewLabel,\n  editLabel,\n  onPreview,\n  onInput,',
-      'native preview prop destructure')
-    s = replaceOne(s,
-      'const rootRef = useRef<HTMLDivElement>(null)',
-      [
-        'const rootRef = useRef<HTMLDivElement>(null)',
-        'const previewSeq = useRef(0)',
-        'const currentDraft = useRef(value)',
-        'currentDraft.current = value',
-        'const [previewHtml, setPreviewHtml] = useState<string | null>(null)',
-        'const [previewBusy, setPreviewBusy] = useState(false)',
-        'useEffect(() => () => { previewSeq.current++ }, [])',
-        'const togglePreview = async () => {',
-        '  if (previewHtml !== null) {',
-        '    previewSeq.current++',
-        '    setPreviewHtml(null)',
-        '    setPreviewBusy(false)',
-        '    return',
-        '  }',
-        '  if (!value.trim() || !onPreview || previewBusy) return',
-        '  const seq = ++previewSeq.current',
-        '  setPreviewBusy(true)',
-        '  try {',
-        '    const html = await onPreview(value)',
-        '    if (seq === previewSeq.current && currentDraft.current === value && html !== null) setPreviewHtml(html)',
-        '  } finally {',
-        '    if (seq === previewSeq.current) setPreviewBusy(false)',
-        '  }',
-        '}'
-      ].join('\n'), 'native reply preview state')
-    const from = '      <MentionTextarea\n        className="gt-reply-textarea"'
-    const to = '      <div className={previewHtml === null ? "gt-reply-editor" : "gt-reply-editor is--preview"}>\n        <MentionTextarea\n        className="gt-reply-textarea"'
-    s = replaceOne(s, from, to, 'reply preview editor wrapper')
-    s = replaceOne(s,
-      '      <div className="gt-reply-actions">',
-      [
-        '        {previewHtml !== null ? (',
-        '          <div className="gt-reply-preview markdown-body" role="region" aria-label={previewLabel ?? "Preview"}>',
-        '            <MarkdownBody className="preview-body markdown-body" html={previewHtml} />',
-        '          </div>',
-        '        ) : null}',
-        '      </div>',
-        '      <div className="gt-reply-actions">',
-        '        {onPreview ? (',
-        '          <Button className="gt-btn-preview-reply"',
-        '            disabled={!value.trim() || previewBusy}',
-        '            onClick={() => { void togglePreview() }}>',
-        '            {previewHtml === null ? (previewLabel ?? "Preview") : (editLabel ?? "Edit")}',
-        '          </Button>',
-        '        ) : null}'
-      ].join('\n'), 'native preview markup')
-    return s
-  })
-
+  // V3 replaces the old one-off reply preview patch with a native shared editor.
 
   // A revoked GitHub App user token can survive in localStorage. On a 401
   // from a TOKEN-AUTHENTICATED READ, renew once (singleflight), otherwise
@@ -532,11 +468,13 @@ async function main() {
     const manifest = JSON.parse(fs.readFileSync(path.join(core, 'package.json'), 'utf8'))
     if (manifest.version !== '2.0.0-beta.0') throw new Error('Unexpected Gitalk version')
     adapt(core)
+    require('./gitalk2-v3-adapter.cjs')(core, site)
     // Offline regression checks run on the actual patched TypeScript before
     // fetching npm dependencies. TypeScript checks the full core before bundling.
     run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-401.cjs'), core], core)
     run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-reply-login.cjs'), core], core)
     run('npm', ['install', '--no-audit', '--no-fund', '--no-package-lock'], core)
+    run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-v3.cjs'), core], core)
     run(process.execPath, [path.join(core, 'node_modules', 'typescript', 'bin', 'tsc'), '-p', 'tsconfig.types.json'], core)
     const vite = path.join(core, 'node_modules', 'vite', 'bin', 'vite.js')
     run(process.execPath, [vite, 'build'], core)
