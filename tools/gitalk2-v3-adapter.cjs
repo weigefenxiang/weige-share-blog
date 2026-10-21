@@ -100,7 +100,7 @@ module.exports = function installV3(core, site) {
       '  mentionLabel: string\n  logout: string\n', 'localized logout')
     s = replaceOne(s,
       '  onReplyInput: (value: string) => void',
-      '  currentUser?: GitalkUser | null\n  onLogout?: () => void\n  onReplyInput: (value: string) => void',
+      '  currentUser?: Pick<GitalkUser, "login" | "avatarUrl"> | null\n  onLogout?: () => void\n  onReplyInput: (value: string) => void',
       'shared reply account props')
     s = replaceOne(s, '  onReplyInput,\n  onReplyPreview,',
       '  onReplyInput,\n  onReplyPreview,\n  currentUser,\n  onLogout,',
