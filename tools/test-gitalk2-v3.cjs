@@ -3,7 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const vm = require('node:vm')
-const ts = require(path.join(process.argv[2], 'node_modules', 'typescript', 'lib', 'typescript.js'))
+const ts = require(require.resolve('typescript', { paths: [process.argv[2]] }))
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const core = process.argv[2]

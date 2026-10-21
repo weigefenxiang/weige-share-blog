@@ -475,8 +475,10 @@ async function main() {
     run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-reply-login.cjs'), core], core)
     run('npm', ['install', '--no-audit', '--no-fund', '--no-package-lock'], core)
     run(process.execPath, [path.join(site, 'tools', 'test-gitalk2-v3.cjs'), core], core)
-    run(process.execPath, [path.join(core, 'node_modules', 'typescript', 'bin', 'tsc'), '-p', 'tsconfig.types.json'], core)
-    const vite = path.join(core, 'node_modules', 'vite', 'bin', 'vite.js')
+    const compilerFile = require.resolve('typescript', { paths: [core] })
+    const tsc = path.resolve(path.dirname(compilerFile), '..', 'bin', 'tsc')
+    run(process.execPath, [tsc, '-p', 'tsconfig.types.json'], core)
+    const vite = require.resolve('vite/bin/vite.js', { paths: [core] })
     run(process.execPath, [vite, 'build'], core)
     run(process.execPath, [vite, 'build', '--config', 'vite.iife.config.ts'], core)
     for (const [filename, target] of [
