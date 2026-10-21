@@ -5,7 +5,7 @@
  * Required Cloudflare bindings:
  *  COMMENTS_BUCKET (R2), UPLOAD_RATE_LIMITER (Rate Limiting API binding)
  * Required vars: ALLOWED_ORIGINS (CSV), PUBLIC_ASSET_BASE (HTTPS origin)
- * Optional: ENABLE_ARCHIVES=true after malware-scanning policy is deployed.
+ * Archive uploads are disabled until a scanning service is implemented.
  */
 const MAX_IMAGE = 10 * 1024 * 1024
 const MAX_FILE = 25 * 1024 * 1024
@@ -15,8 +15,7 @@ const TYPES = Object.freeze({
   'image/webp': { ext: '.webp', max: MAX_IMAGE, inline: true },
   'image/gif': { ext: '.gif', max: MAX_IMAGE, inline: true },
   'application/pdf': { ext: '.pdf', max: MAX_FILE, inline: false },
-  'text/plain': { ext: '.txt', max: MAX_FILE, inline: false },
-  'application/zip': { ext: '.zip', max: MAX_FILE, inline: false }
+  'text/plain': { ext: '.txt', max: MAX_FILE, inline: false }
 })
 
 function json(status, value, origin = null) {
@@ -46,7 +45,8 @@ function filename(raw, ext) {
   let value
   try { value = decodeURIComponent(raw || 'attachment') } catch { return null }
   value = value.split(/[\\/]/).pop()?.replace(/[\x00-\x1f\x7f<>:"|?*]/g,'').trim() ?? ''
-  if (!value || value.length > 120 || !value.toLowerCase().endsWith(ext)) return null
+  const endings = ext === '.jpg' ? ['.jpg', '.jpeg'] : ext === '.txt' ? ['.txt', '.log'] : [ext]
+  if (!value || value.length > 120 || !endings.some(suffix => value.toLowerCase().endsWith(suffix))) return null
   return value
 }
 function allowedOrigin(request, env) {
@@ -82,7 +82,7 @@ export default {
     if (!match) return json(401, { error: 'GitHub login required' }, origin)
     const type = (request.headers.get('Content-Type') || '').split(';')[0].toLowerCase()
     const policy = TYPES[type]
-    if (!policy || (type === 'application/zip' && env.ENABLE_ARCHIVES !== 'true')) {
+    if (!policy) {
       return json(415, { error: 'File type not accepted' }, origin)
     }
     const name = filename(request.headers.get('X-Upload-Filename'), policy.ext)

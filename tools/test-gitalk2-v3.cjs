@@ -71,7 +71,7 @@ test('every reply location gets account strip and identical controls', () => {
 test('previews ignore stale async results and attachments have no fictitious UI', () => {
   assert.match(reply, /seq === request\.current && snapshot === current\.current/)
   assert.match(editor, /props\.previewing/)
-  assert.match(widget, /meta\.canUploadImage \? \(/)
+  assert.match(widget, /<EditorUpload config=\{meta\.canUploadImage \?/)
   assert.doesNotMatch(toolbar, /upload|attachment|paperclip/i)
 })
 
@@ -86,4 +86,20 @@ test('single-row toolbar and footer share responsive container layout', () => {
   assert.match(css, /@container gt-editor \(max-width: 540px\)/)
   assert.match(css, /\.gt-editor-footer\s*\{[\s\S]*?flex-wrap: nowrap/)
   assert.match(css, /\.gt-editor-account\s*\{[\s\S]*?flex: 0 1 auto/)
+})
+
+
+test('file action is shared by main and every nested reply and hidden without handler', () => {
+  const upload = read('components/editor-upload.tsx')
+  assert.match(widget, /<EditorUpload config=\{meta\.canUploadImage \?/)
+  assert.match(widget, /upload=\{meta\.canUploadImage \? sharedUpload : undefined\}/)
+  assert.match(reply, /<EditorUpload config=\{props\.upload \?/)
+  assert.match(reply, /handleRef\.current\?\.insertAtCaret\(images\.map\(buildImageMarkdown\)/)
+  assert.match(editor, /onFiles=\{props\.onFiles\}/)
+  assert.match(upload, /if \(!config\) return null/)
+  assert.match(input, /onPaste=\{\(event\) =>/)
+  assert.match(input, /onDragOver=\{\(event\) =>/)
+  assert.match(input, /onDrop=\{\(event\) =>/)
+  assert.match(read('images.ts'), /image\.kind === "file"/)
+  assert.match(read('types.ts'), /onUploadFile\?:/)
 })

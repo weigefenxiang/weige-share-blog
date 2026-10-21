@@ -4,6 +4,10 @@ import type { MentionTextareaHandle } from './mention-textarea'
 import { CommentEditor } from './comment-editor'
 import { AccountStrip } from './account-strip'
 import { Button } from './button'
+import { EditorUpload } from './editor-upload'
+import type { EditorUploadConfig } from './editor-upload'
+import { buildImageMarkdown } from '../images'
+import type { GitalkUploadedImage } from '../types'
 
 interface ReplyBoxProps {
   value: string
@@ -20,6 +24,9 @@ interface ReplyBoxProps {
   currentUser?: { login: string; avatarUrl: string } | null
   logoutLabel?: string
   onLogout?: () => void
+  upload?: Omit<EditorUploadConfig, 'onFiles' | 'retry'> & {
+    uploadFiles: (files: File[]) => Promise<GitalkUploadedImage[] | null>
+  }
   onInput: (value: string) => void
   onSubmit: () => void
   onCancel: () => void
@@ -44,6 +51,14 @@ export function ReplyBox(props: ReplyBoxProps) {
   }, [])
   useEffect(() => () => { request.current++ }, [])
 
+  const uploadFiles = async (files: File[]) => {
+    const images = await props.upload?.uploadFiles(files)
+    if (!images) return
+    handleRef.current?.insertAtCaret(images.map(buildImageMarkdown).join('\n\n'))
+    request.current++
+    setPreviewHtml(null)
+    setBusy(false)
+  }
   const update = (next: string) => {
     current.current = next
     request.current++
@@ -91,9 +106,15 @@ export function ReplyBox(props: ReplyBoxProps) {
         onSubmit={props.onSubmit}
         onEscape={props.onCancel}
         handleRef={handleRef}
+        onFiles={props.upload ? (files) => { void uploadFiles(files) } : undefined}
         autoFocus
       />
       <div className="gt-reply-actions gt-editor-footer">
+        <EditorUpload config={props.upload ? {
+          ...props.upload,
+          onFiles: files => { void uploadFiles(files) },
+          retry: () => { const failed = props.upload?.error; if (failed) void uploadFiles(failed.files) }
+        } : undefined} />
         <AccountStrip user={props.currentUser ?? null} logoutLabel={props.logoutLabel ?? 'Logout'}
           onLogout={props.onLogout ?? (() => {})} />
         <Button className="gt-btn-cancel-reply" onClick={props.onCancel}>{props.cancelLabel}</Button>

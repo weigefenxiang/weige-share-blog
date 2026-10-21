@@ -744,3 +744,68 @@ html[data-theme='dark'] #post-comment {
   #post-comment #gitalk-container .gt-container .gt-editor-account-login { max-width: 72px; }
   #post-comment #gitalk-container .gt-container .gt-editor-account-logout { padding: 4px; font-size: 11px; }
 }
+
+
+/* Native attachment action lives inside the SAME account/send footer row.
+   The handler is optional; without one <EditorUpload> renders nothing. */
+#post-comment #gitalk-container .gt-container .gt-footer-upload {
+  display: flex;
+  align-items: center;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 4px;
+  margin-inline-end: auto;
+}
+#post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-upload-image {
+  display: inline-flex;
+  flex: 0 1 auto;
+  align-items: center;
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 8px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--gt-color-text-2, var(--weig-tools-color));
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+#post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-text {
+  display: inline-block;
+  min-width: 0;
+  max-width: min(245px, 28vw);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+#post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-upload-image:hover,
+#post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-upload-image:focus-visible {
+  border-color: var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  color: var(--gt-color-text, var(--weig-tools-color));
+}
+#post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-upload-image:focus-visible {
+  outline: 2px solid #3fb950;
+  outline-offset: 2px;
+}
+#post-comment #gitalk-container .gt-container .gt-editor-footer .gt-btn-submit-reply,
+#post-comment #gitalk-container .gt-container .gt-editor-footer .gt-btn-public {
+  flex: 0 0 auto;
+}
+#post-comment #gitalk-container .gt-container .gt-footer-upload .gt-image-error {
+  position: absolute;
+  z-index: 4;
+  inset-inline: 6px;
+  bottom: calc(100% + 5px);
+  padding: 6px;
+  border: 1px solid var(--gt-color-panel-line-strong, var(--weig-tools-line));
+  border-radius: 6px;
+  background: var(--gt-color-input-bg, var(--weig-tools-surface));
+}
+#post-comment #gitalk-container .gt-container .gt-editor-footer { position: relative; }
+@media (max-width: 600px) {
+  #post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-text {
+    max-width: 75px;
+  }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-login { max-width: 60px; }
+}

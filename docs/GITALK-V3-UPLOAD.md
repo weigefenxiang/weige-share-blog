@@ -37,7 +37,13 @@ allowed by default. ZIP requires an external malware scanning policy and
 must not be enabled merely because the source supports an opt-in flag.
 Executable files, HTML and SVG are not permitted.
 
-Browser-side integration status: NOT CONFIGURED. Gitalk's existing
-onUploadImage hook is the intended image upload integration point.
-Avoid showing an upload button before a real endpoint, permissions,
-quota/rate rules, and end-to-end verification are ready.
+Browser-side integration status: OPTIONAL, DISABLED BY DEFAULT.
+The shared editor supports image paste, drag/drop, and file pick at each
+reply depth through the pinned native Gitalk uploader. The blog only
+configures onUploadFile when theme.gitalk.option.upload_endpoint is an HTTPS
+URL on a controlled hostname and the Worker exists.
+
+No live Cloudflare R2 bucket, Worker deployment or verified upload endpoint
+has been configured in this repository. Therefore uploads stay hidden in
+dev and production until provisioning, policy review and real E2E tests.
+Do NOT claim this optional service has been deployed.

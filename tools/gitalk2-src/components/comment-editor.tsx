@@ -21,6 +21,7 @@ interface CommentEditorProps {
   previewBusy: boolean
   previewHtml: string
   onTogglePreview: () => void
+  onFiles?: (files: File[]) => void
   onInput: (next: string) => void
   onSubmit: () => void
   onEscape?: () => void
@@ -61,6 +62,7 @@ export function CommentEditor(props: CommentEditorProps) {
           placeholder={props.placeholder} ariaLabel={props.placeholder}
           listLabel={props.listLabel} rows={3} autoFocus={props.autoFocus}
           handleRef={handle} caretAvailable={!props.previewing}
+          onFiles={props.onFiles}
           onInput={props.onInput} onSubmit={props.onSubmit}
           onEscape={props.onEscape} submitOnPlainEnter={props.submitOnPlainEnter} />
         {props.previewing ? (
