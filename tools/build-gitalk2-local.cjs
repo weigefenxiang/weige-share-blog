@@ -478,7 +478,7 @@ async function main() {
     const compilerFile = require.resolve('typescript', { paths: [core] })
     const tsc = path.resolve(path.dirname(compilerFile), '..', 'bin', 'tsc')
     run(process.execPath, [tsc, '-p', 'tsconfig.types.json'], core)
-    const vite = require.resolve('vite/bin/vite.js', { paths: [core] })
+    const vite = path.join(path.dirname(require.resolve('vite/package.json', { paths: [core] })), 'bin', 'vite.js')
     run(process.execPath, [vite, 'build'], core)
     run(process.execPath, [vite, 'build', '--config', 'vite.iife.config.ts'], core)
     for (const [filename, target] of [

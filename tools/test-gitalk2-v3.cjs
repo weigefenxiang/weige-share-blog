@@ -3,8 +3,7 @@
 const fs = require('node:fs')
 const path = require('node:path')
 const vm = require('node:vm')
-const tsModule = require(require.resolve('typescript/lib/typescript.js', { paths: [process.argv[2]] }))
-const ts = tsModule.default ?? tsModule
+const { stripTypeScriptTypes } = require('node:module')
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 const core = process.argv[2]
@@ -17,13 +16,9 @@ const editor = read('components/comment-editor.tsx')
 const toolbar = read('components/markdown-toolbar.tsx')
 const reply = read('components/reply-box.tsx')
 
-const compiled = ts.transpileModule(read('markdown-commands.ts'), {
-  compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2020 }
-}).outputText
-const mod = { exports: {} }
-vm.runInNewContext('((exports,module) => {' + compiled + '\n})(module.exports,module)',
-  { module: mod }, { timeout: 500 })
-const apply = mod.exports.applyMarkdownCommand
+const stripped = stripTypeScriptTypes(read('markdown-commands.ts'), { mode: 'strip' })
+const standalone = stripped.replace('export function applyMarkdownCommand', 'function applyMarkdownCommand')
+const apply = vm.runInNewContext(standalone + '\napplyMarkdownCommand', {}, { timeout: 500 })
 
 test('pure commands preserve selection, avoid replacing text outside the range', () => {
   const a = apply('say hello here', 4, 9, 'bold')
