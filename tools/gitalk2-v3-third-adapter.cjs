@@ -16,7 +16,7 @@ const change = (s, before, after, name) => {
 module.exports = function installBatch3(core, site) {
   const base = path.join(core, 'src')
   const local = path.join(site, 'tools', 'gitalk2-src')
-  for (const name of ['editor-history.ts', 'components/editor-footer.tsx']) {
+  for (const name of ['editor-history.ts', 'components/editor-footer.tsx', 'components/github-draft-link.tsx']) {
     const from = path.join(local, name)
     if (!fs.existsSync(from)) throw new Error('Missing tracked shared module: ' + name)
     const destination = path.join(base, name)
@@ -141,25 +141,45 @@ module.exports = function installBatch3(core, site) {
 
   edit('widget.tsx', original => {
     let s = change(original,
-      "import { EditorUpload } from './components/editor-upload'",
-      "import { EditorUpload } from './components/editor-upload'\nimport { EditorFooter } from './components/editor-footer'",
+      "import { AccountStrip } from './components/account-strip'",
+      "import { AccountStrip } from './components/account-strip'\nimport { EditorFooter } from './components/editor-footer'\nimport { GitHubDraftLink } from './components/github-draft-link'",
       'shared footer import')
     const start = s.indexOf('<div className="gt-header-controls gt-editor-footer">')
     const actions = s.indexOf('{meta.authenticated || meta.canLogin ? (',start)
     const end = s.indexOf('\n                  </div>',actions)
     if (start < 0 || actions < 0 || end < 0) throw new Error('Root footer contracts moved')
     const left = [
-      '<EditorFooter className="gt-header-controls"',
+      '<EditorFooter className="gt-header-controls"' ,
       '                    account={<AccountStrip user={state.user} logoutLabel={t("logout")} onLogout={logoutSafely} />}',
-      '                    upload={<EditorUpload config={meta.canUploadImage ? {',
-      '                      ...sharedUpload,',
-      '                      onFiles: (files) => { void uploadFiles(files) },',
-      '                      retry: () => { const failed = state.imageUploadError; if (failed) void uploadFiles(failed.files) }',
-      '                    } : undefined} />}>',
+      '                    external={<GitHubDraftLink threadUrl={state.thread?.url ?? null}',
+      '                      draft={state.draft} language={options.language} />}>',
       '                    '
     ].join('\n')
     s = s.slice(0,start)+left+s.slice(actions,end).replace(/\s+$/,'')+
       '\n                  </EditorFooter>'+s.slice(end + '\n                  </div>'.length)
+    s = change(s,
+      '                  labels={labels}\n',
+      '                  labels={labels}\n                  threadUrl={state.thread?.url ?? null}\n',
+      'thread URL for every reply editor')
     return s
   })
+
+  edit('components/comment.tsx', original => {
+    let s = change(original,
+      '  onReplyInput: (value: string) => void',
+      '  threadUrl: string | null\n  onReplyInput: (value: string) => void',
+      'current Discussion URL')
+    s = change(s,
+      '  currentUser,\n  onLogout,',
+      '  currentUser,\n  onLogout,\n  threadUrl,',
+      'Discussion URL props')
+    let index = 0
+    s = s.replace(/(<ReplyBox\s*\n\s*value=\{replyDraft\})/g, (matched) => {
+      const target = index++ === 0 ? 'comment.htmlUrl' : 'reply.htmlUrl'
+      return matched + '\n              threadUrl={threadUrl}\n              commentUrl={' + target + '}'
+    })
+    if (index !== 2) throw new Error('Expected root reply and child reply editors')
+    return s
+  })
+
 }

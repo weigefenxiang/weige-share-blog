@@ -39,6 +39,4 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci
-      - run: node --test tools/gitalk2-upload-worker/worker.test.mjs
-      - run: node --test tools/test-gitalk2-upload-bridge.cjs
       - run: npm run build

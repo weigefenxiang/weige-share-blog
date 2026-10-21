@@ -4,11 +4,8 @@ import type { MentionTextareaHandle } from './mention-textarea'
 import { CommentEditor } from './comment-editor'
 import { AccountStrip } from './account-strip'
 import { Button } from './button'
-import { EditorUpload } from './editor-upload'
 import { EditorFooter } from './editor-footer'
-import type { EditorUploadConfig } from './editor-upload'
-import { buildImageMarkdown } from '../images'
-import type { GitalkUploadedImage } from '../types'
+import { GitHubDraftLink } from './github-draft-link'
 
 interface ReplyBoxProps {
   value: string
@@ -25,9 +22,8 @@ interface ReplyBoxProps {
   currentUser?: { login: string; avatarUrl: string } | null
   logoutLabel?: string
   onLogout?: () => void
-  upload?: Omit<EditorUploadConfig, 'onFiles' | 'retry'> & {
-    uploadFiles: (files: File[]) => Promise<GitalkUploadedImage[] | null>
-  }
+  threadUrl: string | null
+  commentUrl?: string | null
   onInput: (value: string) => void
   onSubmit: () => void
   onCancel: () => void
@@ -52,14 +48,6 @@ export function ReplyBox(props: ReplyBoxProps) {
   }, [])
   useEffect(() => () => { request.current++ }, [])
 
-  const uploadFiles = async (files: File[]) => {
-    const images = await props.upload?.uploadFiles(files)
-    if (!images) return
-    handleRef.current?.insertAtCaret(images.map(buildImageMarkdown).join('\n\n'))
-    request.current++
-    setPreviewHtml(null)
-    setBusy(false)
-  }
   const update = (next: string) => {
     current.current = next
     request.current++
@@ -107,17 +95,13 @@ export function ReplyBox(props: ReplyBoxProps) {
         onSubmit={props.onSubmit}
         onEscape={props.onCancel}
         handleRef={handleRef}
-        onFiles={props.upload ? (files) => { void uploadFiles(files) } : undefined}
         autoFocus
       />
       <EditorFooter className="gt-reply-actions"
         account={<AccountStrip user={props.currentUser ?? null}
           logoutLabel={props.logoutLabel ?? 'Logout'} onLogout={props.onLogout ?? (() => {})} />}
-        upload={<EditorUpload config={props.upload ? {
-          ...props.upload,
-          onFiles: files => { void uploadFiles(files) },
-          retry: () => { const failed = props.upload?.error; if (failed) void uploadFiles(failed.files) }
-        } : undefined} />}>
+        external={<GitHubDraftLink threadUrl={props.threadUrl}
+          commentUrl={props.commentUrl} draft={props.value} language={props.language} />}>
         <Button className="gt-btn-cancel-reply" onClick={props.onCancel}>{props.cancelLabel}</Button>
         <Button className="gt-btn-public gt-btn-submit-reply"
           loading={props.submitting} disabled={!props.value.trim()} onClick={props.onSubmit}>

@@ -68,14 +68,12 @@ test('every reply location gets account strip and identical controls', () => {
   assert.match(widget, /window\.confirm/)
 })
 
-test('previews ignore stale async results and attachments have no fictitious UI', () => {
+test('preview retains current text and GitHub handoff is independent', () => {
   assert.match(reply, /seq === request\.current && snapshot === current\.current/)
   assert.match(editor, /props\.previewing/)
-  assert.match(widget, /<EditorUpload config=\{meta\.canUploadImage \?/)
-  assert.doesNotMatch(toolbar, /upload|attachment|paperclip/i)
+  assert.match(widget, /<GitHubDraftLink threadUrl=\{state\.thread\?\.url \?\? null\}/)
 })
-
-
+ 
 test('single-row toolbar and footer share responsive container layout', () => {
   assert.match(toolbar, /className="gt-format-overflow"/)
   assert.match(toolbar, /className="gt-format-extra"/)
@@ -89,23 +87,45 @@ test('single-row toolbar and footer share responsive container layout', () => {
 })
 
 
-test('file action is shared by main and every nested reply and hidden without handler', () => {
-  const upload = read('components/editor-upload.tsx')
-  assert.match(widget, /<EditorUpload config=\{meta\.canUploadImage \?/)
-  assert.match(widget, /upload=\{meta\.canUploadImage \? sharedUpload : undefined\}/)
-  assert.match(reply, /<EditorUpload config=\{props\.upload \?/)
-  assert.match(reply, /handleRef\.current\?\.insertAtCaret\(images\.map\(buildImageMarkdown\)/)
-  assert.match(editor, /onFiles=\{props\.onFiles\}/)
-  assert.match(upload, /if \(!config\) return null/)
-  assert.match(input, /onPaste=\{\(event\) =>/)
-  assert.match(input, /onDragOver=\{\(event\) =>/)
-  assert.match(input, /onDrop=\{\(event\) =>/)
-  assert.match(read('images.ts'), /image\.kind === "file"/)
-  assert.match(read('types.ts'), /onUploadFile\?:/)
+test('GitHub handoff lives in all editors and never submits text', () => {
+  const link = read('components/github-draft-link.tsx')
+  const footer = read('components/editor-footer.tsx')
+  assert.match(widget, /<GitHubDraftLink threadUrl=\{state\.thread\?\.url \?\? null\}/)
+  assert.equal((comment.match(/threadUrl=\{threadUrl\}/g) || []).length, 2)
+  assert.match(comment, /commentUrl=\{comment\.htmlUrl\}/)
+  assert.match(comment, /commentUrl=\{reply\.htmlUrl\}/)
+  assert.match(reply, /<GitHubDraftLink threadUrl=\{props\.threadUrl\}/)
+  assert.match(reply, /draft=\{props\.value\}/)
+  assert.match(footer, /className="gt-footer-center">\{external\}/)
+  assert.doesNotMatch(widget, /<EditorUpload/)
+  assert.doesNotMatch(reply, /<EditorUpload/)
+  assert.match(link, /target="_blank"/)
+  assert.match(link, /rel="noopener noreferrer"/)
+  assert.match(link, /clipboard\.writeText\(draft\)/)
+  assert.match(link, /<textarea readOnly value=\{draft\}/)
+  assert.match(link, /if \(!draft\) \{ setStatus\('idle'\); return \}/)
+})
+test('confirmed GitHub URLs preserve Discussion and exact comment permalinks', () => {
+  const source = read('components/github-draft-link.tsx')
+  const start = source.indexOf('export function resolveGitHubDiscussionUrl')
+  const end = source.indexOf('interface GitHubDraftLinkProps', start)
+  assert.ok(start >= 0 && end > start)
+  const code = stripTypeScriptTypes(source.slice(start,end), { mode: 'strip' })
+    .replace('export function resolveGitHubDiscussionUrl', 'function resolveGitHubDiscussionUrl')
+  const resolve = vm.runInNewContext(code + '\nresolveGitHubDiscussionUrl', { URL }, { timeout: 500 })
+  const thread = 'https://github.com/weigefenxiang/weige-share-blog/discussions/10'
+  const permalink = thread + '#discussioncomment-DIC_kwDOP3_example'
+  assert.equal(resolve(thread), thread)
+  assert.equal(resolve(thread, permalink), permalink)
+  assert.equal(resolve(thread, 'https://github.com/other/other/discussions/10#discussioncomment-a'), thread)
+  assert.equal(resolve(thread, 'https://github.com/weigefenxiang/weige-share-blog/discussions/11#discussioncomment-a'), thread)
+  assert.equal(resolve(thread, 'javascript:alert(1)'), thread)
+  assert.equal(resolve(thread,'https://github.com/weigefenxiang/weige-share-blog/discussions/10?x=1'), thread)
+  assert.equal(resolve('https://evil.example/weigefenxiang/weige-share-blog/discussions/10'), null)
+  assert.equal(resolve(null), null)
 })
 
-
-test('one footer component orders account-left, upload-center, actions-right at all levels', () => {
+test('one footer component orders account-left, GitHub-center, actions-right at all levels', () => {
   const footer = read('components/editor-footer.tsx')
   const account = read('components/account-strip.tsx')
   const css = fs.readFileSync(path.join(__dirname,'../themes/butterfly/source/css/weig-gitalk2-editor.css'),'utf8')

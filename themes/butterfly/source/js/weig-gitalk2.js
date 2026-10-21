@@ -49,10 +49,6 @@
       createIssueManually: true,
       reactions: true
     };
-    // Optional upload adapter is fail-closed and only present for a vetted
-    // HTTPS endpoint on a site-controlled domain. No endpoint => no upload UI.
-    const uploader = cfg.uploadEndpoint && window.WEIG_GITALK_UPLOAD?.create(cfg.uploadEndpoint);
-    if (uploader) options.onUploadFile = uploader;
     // Same thread #10 for all translations of the original OpenWrt guide.
     if (term === 'posts/WeiG-OpenWrt-AutoBuild-Guide/') options.number = 10;
     host.dataset.weigGitalk2Ready = '1';
