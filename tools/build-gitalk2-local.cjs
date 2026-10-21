@@ -467,6 +467,56 @@ function adapt(core) {
       'native reply prompt markup')
   })
 
+
+  // The signed-out composer shares the reply login dialog (rather than being
+  // a read-only dead textarea). Both its field and its green button require
+  // an explicit confirmation before starting the existing OAuth flow.
+  patch(path.join(core, 'src', 'use-gitalk.ts'), original =>
+    replaceOne(original,
+      "      patch({ notice: message, replyLoginPrompt: reason === 'reply' })",
+      "      patch({ notice: message, replyLoginPrompt: reason === 'reply' || reason === 'comment' })",
+      'anonymous composer modal routing'))
+
+  patch(path.join(core, 'src', 'widget.tsx'), original => {
+    let s = replaceOne(original,
+      '          aria-label={t("login-to-reply")}',
+      '          aria-label={state.notice || t("login-to-reply")}',
+      'modal label for comments and replies')
+    s = replaceOne(s,
+      '          <p className="gt-reply-login-message">{t("login-to-reply")}</p>',
+      '          <p className="gt-reply-login-message">{state.notice || t("login-to-reply")}</p>',
+      'modal message for comments and replies')
+    s = replaceOne(s,
+      [
+        '                  <textarea',
+        '                    className="gt-composer-login-field"',
+        '                    readOnly',
+        '                    rows={1}',
+        "                    placeholder={t('login-placeholder')}",
+        "                    aria-label={t('login-placeholder')}",
+        '                  />'
+      ].join('\n'),
+      [
+        '                  <button',
+        '                    type="button"',
+        '                    className="gt-composer-login-field"',
+        "                    title={t('login-to-comment')}",
+        "                    aria-label={t('login-to-comment')}",
+        "                    onClick={() => actions.requireLogin('comment')}",
+        '                  >',
+        "                    {t('login-placeholder')}",
+        '                  </button>'
+      ].join('\n'), 'signed-out composer accessible click target')
+    s = replaceOne(s,
+      '                    className="gt-btn gt-btn-login gt-composer-login-btn"\n                    href={loginHref}\n                    onClick={onLoginClick}',
+      '                    className="gt-btn gt-btn-login gt-composer-login-btn"\n                    href={loginHref}\n                    onClick={(event) => { event.preventDefault(); actions.requireLogin("comment") }}',
+      'signed-out small login button modal route')
+    return replaceOne(s,
+      "                    <span className=\"gt-btn-text\">{t('login')}</span>",
+      "                    <span className=\"gt-btn-text\">{t('login-with-github')}</span>",
+      'signed-out login button explicit GitHub label')
+  })
+
 }
 
 async function main() {

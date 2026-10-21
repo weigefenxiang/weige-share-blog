@@ -32,7 +32,7 @@ test('requireLogin uses reason-specific state; other interactions keep their not
   for (const kind of ['reply', 'comment', 'react', 'upvote']) action(kind)
   assert.deepEqual(calls, [
     { notice: 'login-to-reply', replyLoginPrompt: true },
-    { notice: 'login-to-comment', replyLoginPrompt: false },
+    { notice: 'login-to-comment', replyLoginPrompt: true },
     { notice: 'login-to-react', replyLoginPrompt: false },
     { notice: 'login-to-upvote', replyLoginPrompt: false }
   ])
@@ -45,7 +45,7 @@ test('dialog is native, top-layer, focusable, translatable, and dismissible', ()
   assert.match(widget, /<dialog[\s\S]*?ref=\{replyLoginDialogRef\}/)
   assert.match(widget, /dialog\.showModal\(\)/)
   assert.match(widget, /className="gt-reply-login-dialog"/)
-  assert.match(widget, /aria-label=\{t\("login-to-reply"\)\}/)
+  assert.match(widget, /aria-label=\{state\.notice \|\| t\("login-to-reply"\)\}/)
   assert.match(widget, /onCancel=\{\(event\) => \{ event\.preventDefault\(\); actions\.dismissNotice\(\) \}\}/)
   assert.match(widget, /onClose=\{actions\.dismissNotice\}/)
   assert.match(widget, /onClick=\{actions\.dismissNotice\}/)
@@ -70,4 +70,34 @@ test('the login prompt never opens or submits a reply without authorization', ()
   assert.match(use, /const login = useCallback\(\(\) => \{/)
   assert.match(use, /auth\.saveDraft\(state\.draft\)/)
   assert.match(use, /if \(!auth\.getToken\(\)\) \{\s*requireLogin\('reply'\)/)
+})
+
+
+test('signed-out composer placeholder is a real accessible button opening the same dialog', () => {
+  assert.match(widget, /className="gt-composer-login-field"/)
+  assert.match(widget, /type="button"\s+className="gt-composer-login-field"/)
+  assert.match(widget, /aria-label=\{t\('login-to-comment'\)\}/)
+  assert.match(widget, /onClick=\{\(\) => actions\.requireLogin\('comment'\)\}/)
+  assert.match(widget, /\{t\('login-placeholder'\)\}/)
+  // Not the former inert readOnly textarea; button has native Enter/Space semantics.
+  assert.doesNotMatch(widget, /<textarea\s+className="gt-composer-login-field"/)
+  assert.match(widget, /<p className="gt-reply-login-message">\{state\.notice \|\| t\("login-to-reply"\)\}<\/p>/)
+})
+
+test('composer login button is explicit GitHub login with confirmation before OAuth', () => {
+  assert.match(widget, /className="gt-btn gt-btn-login gt-composer-login-btn"/)
+  assert.match(widget, /onClick=\{\(event\) => \{ event\.preventDefault\(\); actions\.requireLogin\("comment"\) \}\}/)
+  assert.match(widget, /<span className="gt-btn-text">\{t\('login-with-github'\)\}<\/span>/)
+  assert.match(widget, /className="gt-reply-login-confirm" href=\{loginHref\} onClick=\{onLoginClick\}/)
+  assert.match(widget, /onClick=\{actions\.dismissNotice\}/)
+})
+
+test('green buttons use GitHub color and retain obvious focus and mobile labels', () => {
+  assert.match(css, /#post-comment #gitalk-container \.gt-container \.gt-btn-login/)
+  assert.match(css, /background-color: #238636;/)
+  assert.match(css, /background-color: #2ea043;/)
+  assert.match(css, /color: #fff;/)
+  assert.match(css, /\.gt-composer-login-field:focus-visible/)
+  assert.match(css, /\.gt-btn-login:focus-visible/)
+  assert.match(css, /@media \(max-width: 479px\)/)
 })
