@@ -504,6 +504,8 @@ html[data-theme='dark'] #post-comment {
   min-height: 0;
 }
 #post-comment #gitalk-container .gt-container .gt-header-comment {
+  container-type: inline-size;
+  container-name: gt-footer;
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -714,6 +716,8 @@ html[data-theme='dark'] #post-comment {
   outline-offset: 2px;
 }
 #post-comment #gitalk-container .gt-container .gt-reply-box {
+  container-type: inline-size;
+  container-name: gt-footer;
   max-width: 100%;
   min-width: 0;
 }
@@ -808,4 +812,12 @@ html[data-theme='dark'] #post-comment {
     max-width: 75px;
   }
   #post-comment #gitalk-container .gt-container .gt-editor-account-login { max-width: 60px; }
+}
+
+
+@container gt-footer (max-width: 410px) {
+  #post-comment #gitalk-container .gt-container .gt-editor-account-login { display: none; }
+  #post-comment #gitalk-container .gt-container .gt-footer-upload .gt-btn-text { display: none; }
+  #post-comment #gitalk-container .gt-container .gt-editor-footer { gap: 4px; }
+  #post-comment #gitalk-container .gt-container .gt-editor-account-logout { padding-inline: 4px; }
 }
