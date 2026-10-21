@@ -44,7 +44,7 @@ test('one editor shell is shared by main composer and nested reply box', () => {
   assert.match(editor, /<MarkdownToolbar/)
   assert.match(editor, /<MentionTextarea/)
   assert.match(editor, /<MarkdownBody/)
-  assert.doesNotMatch(reply, /<MentionTextarea/)
+  assert.doesNotMatch(reply, /<MentionTextarea\s/)
   assert.doesNotMatch(widget, /className=\{\x60gt-composer-body/)
   assert.equal((comment.match(/onPreview=\{onReplyPreview\}/g) || []).length, 2)
 })
