@@ -46,7 +46,10 @@ module.exports = function adaptUploads(core, site) {
     return replaceOne(s, '        accept="image/*"', '        accept={accept}', 'file picker types')
   })
   edit('use-gitalk.ts', original => {
-    let s = replaceOne(original, 'useRef(opts.onUploadImage)',
+    let s = replaceOne(original, '    onUploadImage: raw.onUploadImage,',
+      '    onUploadImage: raw.onUploadImage,\n    onUploadFile: raw.onUploadFile,',
+      'normalised optional file handler')
+    s = replaceOne(s, 'useRef(opts.onUploadImage)',
       'useRef(opts.onUploadFile ?? opts.onUploadImage)', 'current upload handler')
     s = replaceOne(s, 'uploadHandlerRef.current = opts.onUploadImage',
       'uploadHandlerRef.current = opts.onUploadFile ?? opts.onUploadImage', 'updated upload handler')
