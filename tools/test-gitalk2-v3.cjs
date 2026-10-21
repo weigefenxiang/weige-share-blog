@@ -84,7 +84,7 @@ test('single-row toolbar and footer share responsive container layout', () => {
   const css = fs.readFileSync(path.join(__dirname, '../themes/butterfly/source/css/weig-gitalk2-editor.css'), 'utf8')
   assert.match(css, /grid-template-columns: max-content minmax\(0, 1fr\)/)
   assert.match(css, /@container gt-editor \(max-width: 540px\)/)
-  assert.match(css, /\.gt-editor-footer\s*\{[\s\S]*?flex-wrap: nowrap/)
+  assert.match(css, /\.gt-editor-footer\s*\{[\s\S]*?display: grid/)
   assert.match(css, /grid-template-columns: minmax\(0, 1fr\) minmax\(0, 1fr\) minmax\(0, 1fr\)/)
 })
 
